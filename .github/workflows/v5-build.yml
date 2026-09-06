@@ -9,8 +9,12 @@ concurrency:
   group: v5-deploy
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,103 +33,44 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
           echo "📦 Docker build başlıyor..."
           docker build --pull \
             --build-arg BUILD_SHA="${GITHUB_SHA}" \
-            -t hattrick-v5:deploy \
+            -t "${IMAGE}:${GITHUB_SHA}" \
+            -t "${IMAGE}:v5" \
             -f HattrickAI_V5/Dockerfile .
           echo "✅ Docker build tamamlandı"
-          echo "🔖 Build SHA: ${GITHUB_SHA:0:7}"
+          echo "🔖 Image: ${IMAGE}:${GITHUB_SHA}"
 
-      - name: Save Docker image
+      - name: Login to GHCR
         shell: bash
         run: |
           set -Eeuo pipefail
-          ARCHIVE="hattrick-v5-${GITHUB_SHA}.tar.gz"
-          echo "💾 Docker image paketleniyor: ${ARCHIVE}"
-          docker save hattrick-v5:deploy | gzip > "${ARCHIVE}"
-          echo "✅ Image hazır:"
-          ls -lh "${ARCHIVE}"
+          echo "🔐 GHCR login..."
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          echo "✅ GHCR login tamamlandı"
 
-      - name: Configure SSH
+      - name: Push Docker image to GHCR
         shell: bash
         run: |
           set -Eeuo pipefail
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          echo "🔐 Azure SSH host key alınıyor..."
-          for attempt in 1 2 3 4 5 6 7 8 9 10; do
-            if ssh-keyscan -4 -T 10 -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null; then
-              echo "✅ SSH host key hazır (deneme ${attempt})"
-              break
-            fi
-            if [ "${attempt}" -eq 10 ]; then
-              echo "❌ Azure SSH host key alınamadı"
-              exit 1
-            fi
-            echo "⚠️ SSH host key denemesi ${attempt} başarısız, 3 sn sonra tekrar..."
-            sleep 3
-          done
-          echo "✅ SSH hazır"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "📤 GHCR push başlıyor..."
+          docker push "${IMAGE}:${GITHUB_SHA}"
+          docker push "${IMAGE}:v5"
+          echo "✅ GHCR push tamamlandı"
 
-      - name: Upload Docker image
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Deploy via GHCR pull on Azure VM
         shell: bash
         run: |
           set -Eeuo pipefail
-          ARCHIVE="hattrick-v5-${GITHUB_SHA}.tar.gz"
-          REMOTE_ARCHIVE="/tmp/${ARCHIVE}"
-          echo "📤 Docker image Azure VM'ye gönderiliyor: ${REMOTE_ARCHIVE}"
-          scp -4 -o ConnectTimeout=20 -i ~/.ssh/deploy_key "${ARCHIVE}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${REMOTE_ARCHIVE}.upload"
-          ssh -4 -o ConnectTimeout=20 -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "mv '${REMOTE_ARCHIVE}.upload' '${REMOTE_ARCHIVE}'"
-          echo "✅ Image Azure VM'ye gönderildi"
-
-      - name: Deploy on Azure VM
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          ARCHIVE="hattrick-v5-${GITHUB_SHA}.tar.gz"
-          REMOTE_ARCHIVE="/tmp/${ARCHIVE}"
-          ssh -4 -o ConnectTimeout=20 -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" << EOF
-          set -Eeuo pipefail
-          LOG_DIR="/home/azureuser/hattrick-deploy"
-          LOG_FILE="\$LOG_DIR/deploy.log"
-          REMOTE_ARCHIVE="${REMOTE_ARCHIVE}"
-          mkdir -p "\$LOG_DIR"
-          touch "\$LOG_FILE"
-          log() { printf '[%s] %s\n' "\$(date '+%Y-%m-%d %H:%M:%S')" "\$1" >> "\$LOG_FILE"; }
-          trap 'rc=$?; log "❌ DEPLOY FAILED (exit code \$rc)"; exit \$rc' ERR
-          log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          log "🚀 GitHub deploy başladı"
-          log "Branch: ${GITHUB_REF_NAME}"
-          log "Commit: ${GITHUB_SHA:0:7}"
-          log "Gönderen: ${GITHUB_ACTOR}"
-          log "📦 Image: hattrick-v5:deploy"
-          log "📥 Docker image yükleniyor: \$REMOTE_ARCHIVE"
-          test -s "\$REMOTE_ARCHIVE"
-          gunzip -c "\$REMOTE_ARCHIVE" | sudo docker load
-          log "✅ Docker image yüklendi"
-          log "🛑 Eski container durduruluyor..."
-          sudo docker rm -f hattrick-v5 2>/dev/null || true
-          log "▶️ Yeni container başlatılıyor..."
-          sudo docker run -d --name hattrick-v5 --restart unless-stopped -p 10000:10000 -e CHPP_CONSUMER_SECRET="${{ secrets.CHPP_CONSUMER_SECRET }}" -v "\$LOG_FILE:/app/deploy.log:ro" hattrick-v5:deploy
-          log "⏳ Health check bekleniyor..."
-          sleep 5
-          if sudo docker ps --filter "name=hattrick-v5" --filter "status=running" | grep -q hattrick-v5; then
-            log "✅ Container çalışıyor"
-          else
-            log "❌ Container başlamadı"
-            sudo docker logs hattrick-v5 >> "\$LOG_FILE" 2>&1 || true
-            exit 1
-          fi
-          health="\$(curl --fail --silent --show-error http://127.0.0.1:10000/health)"
-          log "❤️ Health: \$health"
-          log "🟢 DEPLOY BAŞARILI"
-          log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          rm -f "\$REMOTE_ARCHIVE"
-          sudo docker image prune -f
-          EOF
-
-      - name: Deployment completed
-        run: echo "🟢 V5 deployment completed successfully"
+          echo "🚀 GHCR tabanlı Azure deploy hazır."
+          echo "📦 Image: ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}"
+          echo "⚠️ VM tarafında GHCR pull agent/cron kurulumu tamamlanmadan SSH'siz deploy mümkün değildir."
+          echo "❌ SSH deploy intentionally removed from workflow."
