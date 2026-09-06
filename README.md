@@ -17,45 +17,26 @@ AŞAMA 3  Hattrick matematik modeli [TAMAMLANDI]
 AŞAMA 4  Motor teknik dokümanları [TAMAMLANDI]
 AŞAMA 5  Gerçek maç örnek analizi [TAMAMLANDI]
 AŞAMA 6  Web arayüzü ve kullanıcı manueli [TAMAMLANDI]
-         - WEB_USER_MANUAL.md
-         - WEB_INTERFACE.md
-         - WEB_UI_FILE_MAP.md
 AŞAMA 7  Developer/API manueli [TAMAMLANDI]
-         - ASP.NET Core uygulama başlangıcı ve DI
-         - Session sözleşmesi
-         - CHPP OAuth 1.0 akışı
-         - CHPP XML client
-         - Production endpoint kataloğu
-         - AnalysisService veri akışı
-         - Historical opponent reconstruction
-         - HTTP hata davranışları
-         - Developer test noktaları
 AŞAMA 8  Teknik Manuel PDF birleştirme ve yayın hazırlığı [TAMAMLANDI]
-         - 05.09.2026 tarihinde ilk birleşik teknik manuel PDF oluşturuldu.
-         - PDF toplam 208 sayfadır.
-         - Motor, mimari, gerçek maç, web ve Developer/API bölümleri tek belgede birleştirildi.
 AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [DEVAM EDİYOR — 06.09.2026]
          9.1 JSON veri sözleşmesi [TAMAMLANDI — 06.09.2026]
-             - MOTOR_OUTPUT_JSON_SCHEMA.md oluşturuldu.
-             - schemaVersion, runId, build ve savedAt metadata sözleşmesi belirlendi.
-             - M3 → M11, FinalPlan/FinalPrediction, DB1/DB2 ve MotorRunLog kapsamı tanımlandı.
-             - Yalnızca gerçek MotorPipelineResult / Analysis / MotorRunLog çıktılarının kaydedileceği kilitlendi.
-         9.2 JSON archive backend [BEKLEMEDE]
-             - Mevcut MotorResultArchive sınıfı 9.1 sözleşmesine bağlanacak.
-             - Kalıcı kayıt yolu configurable yapılacak.
-         9.3 Backend analysis entegrasyonu [BEKLEMEDE]
-             - Başarılı `/api/v5/analysis` sonucundan gerçek snapshot üretilecek.
-         9.4 Motor DB API [BEKLEMEDE]
-             - latest / list / runId erişimleri eklenecek.
-         9.5 Motor Panel [BEKLEMEDE]
+         9.2 JSON archive backend [TAMAMLANDI — 06.09.2026]
+             - MotorResultArchive gerçek MotorPipelineResult + Analysis + MotorRunLog ile bağlandı.
+             - Snapshot: motorPipeline, DB1/DB2, metadata ve telemetry içeriyor.
+             - MOTOR_DB_PATH ile kayıt yolu yapılandırılabilir.
+             - latest.json ve run bazlı JSON kayıtları oluşturuluyor.
+             - /api/v5/motor-database/latest endpoint'i eklendi.
+         9.3 Backend analysis entegrasyonu [TAMAMLANDI — 06.09.2026]
+             - Başarılı /api/v5/analysis sonucu archive'a kaydediliyor.
+         9.4 Motor DB API [PLAN]
+             - list ve runId erişimleri eklenecek.
+         9.5 Motor Panel [PLAN]
              - "Motor DB JSON İndir" yalnızca tamamlanmış analiz sonrası aktif olacak.
-         9.6 Gerçek web JSON doğrulaması [BEKLEMEDE]
-             - Gerçek analizden alınan snapshot motor motor incelenecek.
-         9.7 C19 JSON regression [BEKLEMEDE]
-             - JSON yapısı ve gerçek pipeline çıktısı arasında regression kontrolü yapılacak.
-         9.8 Deterministic JSON kontrolü [BEKLEMEDE]
-             - Aynı fixture için değişken metadata hariç snapshot içeriği karşılaştırılacak.
-         9.9 Dokümantasyon / PDF snapshot güncellemesi [BEKLEMEDE]
+         9.6 Gerçek web JSON doğrulaması [PLAN]
+         9.7 C19 JSON regression [PLAN]
+         9.8 Deterministic JSON kontrolü [PLAN]
+         9.9 Dokümantasyon / PDF snapshot güncellemesi [PLAN]
 ```
 
 Her aşama tamamlandığında bu bölüm güncellenecek ve hazırlanan PDF bölümleri manuel içerisine eklenecek.
@@ -84,20 +65,20 @@ Her motor dokümanında aşağıdaki bilgiler bulunacak:
 
 Birleşik PDF tek başına kaynak değildir. Aşağıdaki `.md` dosyaları yaşayan teknik kaynaklardır; PDF ise bu kaynakların belirli tarihte alınmış sabit bir yayım/snapshot sürümüdür.
 
-1. `PROJECT_MEMORY.md` — proje hafızası, kararlar, sınırlar ve doğrulanmış proje durumu.
-2. `ENGINE_MAP.md` — motorların ve ilgili kod dosyalarının konum haritası.
-3. `CHANGE_HISTORY.md` — teknik değişiklik ve acceptance düzeltme geçmişi.
-4. `SYSTEM_ARCHITECTURE.md` — backend, pipeline ve runtime mimarisi.
-5. `DATA_MODEL.md` — ana veri yapıları, context nesneleri ve veri sözleşmeleri.
-6. `MATCH_ENGINE_MATH.md` — Hattrick maç motoru matematiği ve kullanılan referans bağıntılar.
-7. `MOTOR_TECHNICAL_MANUAL.md` — M3–M11 motorlarının teknik görevleri, girdileri, çıktıları ve katsayıları.
-8. `REAL_MATCH_ANALYSIS.md` — gerçek CHPP offline fixture üzerinden doğrulanmış örnek analiz.
-9. `WEB_USER_MANUAL.md` — son kullanıcı için web kullanım akışı.
-10. `WEB_INTERFACE.md` — web arayüzünün teknik davranışı.
-11. `WEB_UI_FILE_MAP.md` — frontend dosyalarının görev ve bağlantı haritası.
-12. `DEVELOPER_API_MANUAL.md` — ASP.NET Core, session, OAuth/CHPP, endpoint'ler ve developer test noktaları.
-13. `M8_PHASE_D_PDF_CALIBRATION.md` — M8 PDF/calibration özel teknik notları.
-14. `MOTOR_OUTPUT_JSON_SCHEMA.md` — Stage 9 motor çıktı JSON veri sözleşmesi.
+1. `PROJECT_MEMORY.md`
+2. `ENGINE_MAP.md`
+3. `CHANGE_HISTORY.md`
+4. `SYSTEM_ARCHITECTURE.md`
+5. `DATA_MODEL.md`
+6. `MATCH_ENGINE_MATH.md`
+7. `MOTOR_TECHNICAL_MANUAL.md`
+8. `REAL_MATCH_ANALYSIS.md`
+9. `WEB_USER_MANUAL.md`
+10. `WEB_INTERFACE.md`
+11. `WEB_UI_FILE_MAP.md`
+12. `DEVELOPER_API_MANUAL.md`
+13. `M8_PHASE_D_PDF_CALIBRATION.md`
+14. `MOTOR_OUTPUT_JSON_SCHEMA.md`
 
 ### PDF kaynak snapshot kaydı
 
@@ -106,7 +87,7 @@ Birleşik PDF tek başına kaynak değildir. Aşağıdaki `.md` dosyaları yaşa
 - **PDF sayfa sayısı:** 208
 - **Kaynak indexi:** `HattrickAI_V5/Docs/TECHNICAL_MANUAL_INDEX.md`
 
-PDF yeniden oluşturulduğunda snapshot tarihi güncellenecek ve `TECHNICAL_MANUAL_INDEX.md` içindeki kaynak tarihleri yeniden kaydedilecek. Böylece herhangi bir PDF sürümünün hangi Markdown bilgi snapshot'ından üretildiği takip edilebilecek.
+PDF yeniden oluşturulduğunda snapshot tarihi güncellenecek ve `TECHNICAL_MANUAL_INDEX.md` içindeki kaynak tarihleri yeniden kaydedilecek.
 
 ---
 
@@ -126,8 +107,9 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
-- **06.09.2026 — AŞAMA 9.1 TAMAMLANDI:** `MOTOR_OUTPUT_JSON_SCHEMA.md` oluşturuldu. JSON snapshot'ın gerçek `MotorPipelineResult`, `Analysis` ve `MotorRunLog` verilerini taşıyan resmi sözleşmesi belirlendi.
-- **06.09.2026 — AŞAMA 9.1 PLANI NETLEŞTİRİLDİ:** 9.2 archive backend, 9.3 analysis entegrasyonu, 9.4 API, 9.5 Motor Panel, 9.6 gerçek web doğrulaması, 9.7 C19 regression, 9.8 deterministic kontrol ve 9.9 dokümantasyon/PDF güncellemesi sıralı olarak tanımlandı.
+- **06.09.2026 — AŞAMA 9.3:** Başarılı `/api/v5/analysis` çalışmasının gerçek `Analysis` + `MotorPipelineResult` + `MotorRunLog` snapshot'ı backend archive'a bağlandı.
+- **06.09.2026 — AŞAMA 9.2:** `MotorResultArchive` gerçek pipeline çıktısını saklayacak şekilde düzenlendi; configurable `MOTOR_DB_PATH`, run bazlı JSON ve `latest.json` oluşturuldu; `/api/v5/motor-database/latest` eklendi.
+- **06.09.2026 — AŞAMA 9.1:** `MOTOR_OUTPUT_JSON_SCHEMA.md` oluşturuldu. JSON snapshot'ın gerçek `MotorPipelineResult`, `Analysis` ve `MotorRunLog` verilerini taşıyan resmi sözleşmesi belirlendi.
 - **06.09.2026 — AŞAMA 9 BAŞLANGICI:** Motor çıktı JSON veritabanı planı başlatıldı. Amaç, mevcut web analizinde motorların gerçekten ürettiği sonuçları değişiklik yapılmadan JSON snapshot olarak saklamak ve sonraki motor/taktik geliştirmelerinde karşılaştırılabilir bir veri havuzu oluşturmaktır.
 - **05.09.2026 — PRODUCTION DEPLOY:** V5 Docker build ve Azure deployment başarıyla tamamlandı; deployment health check doğrulandı.
 - **05.09.2026 — REGRESSION TESTLERİ:** C1–C18 offline acceptance/regression çalıştırması şimdilik durduruldu. Deployment artık regression gate'e bağlı olmadan devam ediyor.
@@ -135,10 +117,10 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 - **05.09.2026 — C13:** DB2 formation coverage düzeltildi; acceptance production DB2=100 içinden exposed DB2=90 kapsamını doğru kabul ediyor. 6 yasal formasyonun tamamı kapsanıyor.
 - **05.09.2026 — C14:** M11 finalist pool ve telemetry doğrulaması düzeltildi; M11 finalist pool 90 aday / 6 formasyon olarak geçiyor.
 - **05.09.2026 — C15:** M11 final selection testindeki top-N ranking davranışı production davranışıyla hizalandı.
-- **05.09.2026 — AŞAMA 5:** Gerçek CHPP offline fixture üzerinden maç örnek analizi `REAL_MATCH_ANALYSIS.md` içine işlendi. Fixture'da bulunmayan M8/M9/M10/M11 sonuçları özellikle üretilmedi.
-- **05.09.2026 — AŞAMA 6:** `wwwroot/index.html`, `motor-render.js` ve diğer gerçek frontend yardımcı dosyalarının görevleri dokümante edildi. `WEB_USER_MANUAL.md`, `WEB_INTERFACE.md` ve `WEB_UI_FILE_MAP.md` tamamlandı.
-- **05.09.2026 — AŞAMA 7:** `Program.cs`, `ChppV5.cs` ve `AnalysisService.cs` üzerinden backend HTTP sınırı, session/OAuth akışı, CHPP XML client, production endpoint'leri, analysis data flow, historical opponent reconstruction ve HTTP hata davranışları `DEVELOPER_API_MANUAL.md` içine işlendi.
-- **05.09.2026 — AŞAMA 8:** Birleşik teknik manuel PDF oluşturuldu. 208 sayfalık derleme; mimari, veri modeli, matematik, M3–M11 motorları, gerçek maç fixture'ı, web arayüzü ve Developer/API bölümlerini içerir.
+- **05.09.2026 — AŞAMA 5:** Gerçek CHPP offline fixture üzerinden maç örnek analizi `REAL_MATCH_ANALYSIS.md` içine işlendi.
+- **05.09.2026 — AŞAMA 6:** Web arayüzü teknik dosyaları ve kullanıcı manueli tamamlandı.
+- **05.09.2026 — AŞAMA 7:** Developer/API manueli tamamlandı.
+- **05.09.2026 — AŞAMA 8:** 208 sayfalık birleşik teknik manuel PDF oluşturuldu.
 
 ## DOKÜMANTASYON DOSYALARI
 
