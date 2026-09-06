@@ -29,8 +29,12 @@ AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [DEVAM EDİYOR — 06.09.2026]
              - /api/v5/motor-database/latest endpoint'i eklendi.
          9.3 Backend analysis entegrasyonu [TAMAMLANDI — 06.09.2026]
              - Başarılı /api/v5/analysis sonucu archive'a kaydediliyor.
-         9.4 Motor DB API [PLAN]
-             - list ve runId erişimleri eklenecek.
+         9.4 Motor DB API [TAMAMLANDI — 06.09.2026]
+             - /api/v5/motor-database/latest son snapshot'ı döndürüyor.
+             - /api/v5/motor-database/list arşivdeki run kayıtlarının metadata listesini döndürüyor.
+             - /api/v5/motor-database/{runId} ilgili run'ın tam JSON snapshot'ını döndürüyor.
+             - latest.json listesinde tekrar kayıt oluşmaması için list endpoint'i latest.json'ı hariç tutuyor.
+             - Geçersiz/bozuk JSON arşiv dosyaları listede yok sayılıyor.
          9.5 Motor Panel [PLAN]
              - "Motor DB JSON İndir" yalnızca tamamlanmış analiz sonrası aktif olacak.
          9.6 Gerçek web JSON doğrulaması [PLAN]
@@ -107,6 +111,7 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
+- **06.09.2026 — AŞAMA 9.4:** Motor DB API tamamlandı. `latest`, `list` ve `{runId}` erişimleri eklendi; liste endpoint'i yalnızca arşiv metadata'sını döndürüyor ve `latest.json` kaydını tekrarlamıyor.
 - **06.09.2026 — AŞAMA 9.3:** Başarılı `/api/v5/analysis` çalışmasının gerçek `Analysis` + `MotorPipelineResult` + `MotorRunLog` snapshot'ı backend archive'a bağlandı.
 - **06.09.2026 — AŞAMA 9.2:** `MotorResultArchive` gerçek pipeline çıktısını saklayacak şekilde düzenlendi; configurable `MOTOR_DB_PATH`, run bazlı JSON ve `latest.json` oluşturuldu; `/api/v5/motor-database/latest` eklendi.
 - **06.09.2026 — AŞAMA 9.1:** `MOTOR_OUTPUT_JSON_SCHEMA.md` oluşturuldu. JSON snapshot'ın gerçek `MotorPipelineResult`, `Analysis` ve `MotorRunLog` verilerini taşıyan resmi sözleşmesi belirlendi.
@@ -115,7 +120,7 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 - **05.09.2026 — REGRESSION TESTLERİ:** C1–C18 offline acceptance/regression çalıştırması şimdilik durduruldu. Deployment artık regression gate'e bağlı olmadan devam ediyor.
 - **05.09.2026 — C12:** M6-B refinement acceptance doğrulandı: DB2=100, 6 formasyon, 6 bütçe, 23701 değerlendirme.
 - **05.09.2026 — C13:** DB2 formation coverage düzeltildi; acceptance production DB2=100 içinden exposed DB2=90 kapsamını doğru kabul ediyor. 6 yasal formasyonun tamamı kapsanıyor.
-- **05.09.2026 — C14:** M11 finalist pool ve telemetry doğrulaması düzeltildi; M11 finalist pool 90 aday / 6 formasyon olarak geçiyor.
+- **05.09.2026 — C14:** M11 finalist pool ve telemetry doğrulaması düzeltildi; M11 finalist pool 90 aday / 6 formasyon olarak geçiliyor.
 - **05.09.2026 — C15:** M11 final selection testindeki top-N ranking davranışı production davranışıyla hizalandı.
 - **05.09.2026 — AŞAMA 5:** Gerçek CHPP offline fixture üzerinden maç örnek analizi `REAL_MATCH_ANALYSIS.md` içine işlendi.
 - **05.09.2026 — AŞAMA 6:** Web arayüzü teknik dosyaları ve kullanıcı manueli tamamlandı.
