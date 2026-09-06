@@ -42,11 +42,14 @@ AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [DEVAM EDİYOR — 06.09.2026]
          9.6 Gerçek web JSON doğrulaması [PLAN]
          9.7 C19 JSON regression [TAMAMLANDI — 06.09.2026]
              - Archive writer, schema, latest/list/run lookup regression doğrulandı.
-         9.8 Deterministic JSON kontrolü [UYGULANDI — 06.09.2026]
-             - Aynı gerçek payload'ın iki archive yazımında metadata dışındaki JSON içeriğinin değişmediği kontrol ediliyor.
-             - savedAt'ın her yazımda yeni metadata olarak kaldığı ayrıca doğrulanıyor.
-             - C20 acceptance testi workflow'a bağlandı.
-         9.9 Dokümantasyon / PDF snapshot güncellemesi [PLAN]
+         9.8 Deterministic JSON kontrolü [TAMAMLANDI — 06.09.2026]
+             - Aynı gerçek payload'ın iki archive yazımında metadata dışındaki JSON içeriğinin değişmediği C20 ile doğrulandı.
+             - savedAt'ın her yazımda yeni metadata olarak kaldığı ayrıca doğrulandı.
+             - C20 acceptance workflow gate'e bağlandı.
+         9.9 Dokümantasyon / PDF snapshot güncellemesi [DEVAM EDİYOR — 06.09.2026]
+             - Stage 9 değişiklikleri teknik kaynaklarda kayda alınıyor.
+             - Mevcut A8 PDF snapshot'ı 05.09.2026 tarihli olduğu için yeni Stage 9 kaynaklarıyla yeniden oluşturulması gerekiyor.
+             - PDF yeniden oluşturulduktan sonra TECHNICAL_MANUAL_INDEX.md snapshot tarihi ve yayın kaydı güncellenecek.
 ```
 
 Her aşama tamamlandığında bu bölüm güncellenecek ve hazırlanan PDF bölümleri manuel içerisine eklenecek.
@@ -117,6 +120,7 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
+- **06.09.2026 — AŞAMA 9.9:** Dokümantasyon/PDF snapshot güncellemesi başlatıldı. Stage 9 JSON değişiklikleri kaynak Markdown'lara işlendi; mevcut A8 PDF'nin 05.09.2026 snapshot'ı olduğu ve yeni PDF üretimi gerektiği kayıt altına alındı.
 - **06.09.2026 — AŞAMA 9.8:** C20 deterministic JSON regression eklendi. Aynı archive payload'ının `savedAt` ve `runId` metadata alanları hariç değişmediği doğrulanıyor; C20 workflow acceptance gate'e bağlandı.
 - **06.09.2026 — AŞAMA 9.7:** C19 Motor DB JSON regression geçti: archive writer + schema + latest/list/run lookup doğrulandı. C19 workflow sonrası Docker build ve Azure deployment da başarıyla tamamlandı.
 - **06.09.2026 — AŞAMA 9.5:** Motor Panel JSON düğmesi gerçek Motor DB `latest` snapshot'ına bağlandı; archive snapshot yokken düğme pasif, analiz sırasında pasif ve eski client-side JSON paketi kaldırıldı.
