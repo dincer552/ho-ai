@@ -62,15 +62,63 @@ jobs:
           echo "✅ GHCR push tamamlandı"
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     needs: build-and-push
 
     steps:
-      - name: Deploy via GHCR pull on Azure VM
+      - name: Deploy GHCR image on Azure VM
         shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          CHPP_CONSUMER_SECRET: ${{ secrets.CHPP_CONSUMER_SECRET }}
         run: |
           set -Eeuo pipefail
-          echo "🚀 GHCR tabanlı Azure deploy hazır."
-          echo "📦 Image: ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}"
-          echo "⚠️ VM tarafında GHCR pull agent/cron kurulumu tamamlanmadan SSH'siz deploy mümkün değildir."
-          echo "❌ SSH deploy intentionally removed from workflow."
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          TAG="${GITHUB_SHA}"
+          LOG_DIR="/home/azureuser/hattrick-deploy"
+          LOG_FILE="${LOG_DIR}/deploy.log"
+
+          mkdir -p "${LOG_DIR}"
+          touch "${LOG_FILE}"
+
+          log() {
+            printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" | tee -a "${LOG_FILE}"
+          }
+
+          trap 'rc=$?; log "❌ DEPLOY FAILED (exit code ${rc})"; exit ${rc}' ERR
+
+          log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          log "🚀 GHCR VM deployment başladı"
+          log "Branch: ${GITHUB_REF_NAME}"
+          log "Commit: ${GITHUB_SHA:0:7}"
+          log "Image: ${IMAGE}:${TAG}"
+
+          log "🔐 GHCR login..."
+          printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+
+          log "📥 GHCR image çekiliyor..."
+          docker pull "${IMAGE}:${TAG}"
+
+          log "🛑 Eski container durduruluyor..."
+          docker rm -f hattrick-v5 2>/dev/null || true
+
+          log "▶️ Yeni container başlatılıyor..."
+          docker run -d \
+            --name hattrick-v5 \
+            --restart unless-stopped \
+            -p 10000:10000 \
+            -e CHPP_CONSUMER_SECRET="${CHPP_CONSUMER_SECRET}" \
+            -v "${LOG_FILE}:/app/deploy.log:ro" \
+            "${IMAGE}:${TAG}"
+
+          log "⏳ Container health check bekleniyor..."
+          sleep 5
+
+          docker ps --filter "name=hattrick-v5" --filter "status=running" | grep -q hattrick-v5
+          health="$(curl --fail --silent --show-error http://127.0.0.1:10000/health)"
+          log "❤️ Health: ${health}"
+          log "🟢 GHCR VM deployment başarılı"
+          log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          docker image prune -f
