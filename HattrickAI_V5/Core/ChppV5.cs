@@ -56,6 +56,11 @@ public sealed class ChppV5
     }
 
     public Task CompleteAsync(string verifier, CancellationToken ct) => FinishAsync(verifier, ct);
+    public Task CompleteAsync(string oauthToken, string verifier, CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(oauthToken)) Session.SetString("v5.request", oauthToken.Trim());
+        return FinishAsync(verifier, ct);
+    }
 
     public void Disconnect() { Session.Remove("v5.access"); Session.Remove("v5.accessSecret"); Session.Remove("v5.request"); Session.Remove("v5.requestSecret"); }
 
