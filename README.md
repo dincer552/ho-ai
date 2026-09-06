@@ -40,8 +40,12 @@ AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [DEVAM EDİYOR — 06.09.2026]
              - Archive snapshot yokken düğme pasif.
              - Analiz sırasında düğme pasif ve eski client-side JSON paketi oluşturulmuyor.
          9.6 Gerçek web JSON doğrulaması [PLAN]
-         9.7 C19 JSON regression [PLAN]
-         9.8 Deterministic JSON kontrolü [PLAN]
+         9.7 C19 JSON regression [TAMAMLANDI — 06.09.2026]
+             - Archive writer, schema, latest/list/run lookup regression doğrulandı.
+         9.8 Deterministic JSON kontrolü [UYGULANDI — 06.09.2026]
+             - Aynı gerçek payload'ın iki archive yazımında metadata dışındaki JSON içeriğinin değişmediği kontrol ediliyor.
+             - savedAt'ın her yazımda yeni metadata olarak kaldığı ayrıca doğrulanıyor.
+             - C20 acceptance testi workflow'a bağlandı.
          9.9 Dokümantasyon / PDF snapshot güncellemesi [PLAN]
 ```
 
@@ -113,6 +117,8 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
+- **06.09.2026 — AŞAMA 9.8:** C20 deterministic JSON regression eklendi. Aynı archive payload'ının `savedAt` ve `runId` metadata alanları hariç değişmediği doğrulanıyor; C20 workflow acceptance gate'e bağlandı.
+- **06.09.2026 — AŞAMA 9.7:** C19 Motor DB JSON regression geçti: archive writer + schema + latest/list/run lookup doğrulandı. C19 workflow sonrası Docker build ve Azure deployment da başarıyla tamamlandı.
 - **06.09.2026 — AŞAMA 9.5:** Motor Panel JSON düğmesi gerçek Motor DB `latest` snapshot'ına bağlandı; archive snapshot yokken düğme pasif, analiz sırasında pasif ve eski client-side JSON paketi kaldırıldı.
 - **06.09.2026 — AŞAMA 9.4:** Motor DB API tamamlandı: latest/list/runId erişimleri eklendi; liste endpoint'i yalnızca arşiv metadata'sını döndürüyor ve `latest.json` kaydını tekrarlamıyor.
 - **06.09.2026 — AŞAMA 9.3:** Başarılı `/api/v5/analysis` çalışmasının gerçek `Analysis` + `MotorPipelineResult` + `MotorRunLog` snapshot'ı backend archive'a bağlandı.
