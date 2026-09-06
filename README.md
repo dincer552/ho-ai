@@ -34,6 +34,12 @@ AŞAMA 8  Teknik Manuel PDF birleştirme ve yayın hazırlığı [TAMAMLANDI]
          - 05.09.2026 tarihinde ilk birleşik teknik manuel PDF oluşturuldu.
          - PDF toplam 208 sayfadır.
          - Motor, mimari, gerçek maç, web ve Developer/API bölümleri tek belgede birleştirildi.
+AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [PLANLANDI — 06.09.2026]
+         - Her tamamlanan web analizinin gerçek motor çıktısını tek JSON snapshot olarak dışa aktarma.
+         - M3 → M11 çıktıları, DB1/DB2, final sonuç ve run/kalibrasyon metadata'sını aynı kayıtta tutma.
+         - Motor Paneline analiz tamamlandıktan sonra "Motor DB JSON İndir" erişimi ekleme.
+         - JSON schema sürümünü sabitleme; gelecekteki motor değişikliklerinde geriye dönük karşılaştırılabilirliği koruma.
+         - İlk aşamada hesaplama motorlarına yeni karar mantığı eklenmeyecek; yalnızca mevcut gerçek çıktılar kaydedilecek.
 ```
 
 Her aşama tamamlandığında bu bölüm güncellenecek ve hazırlanan PDF bölümleri manuel içerisine eklenecek.
@@ -100,8 +106,10 @@ Kod incelemesi sonucunda mevcut web production analiz akışında takım taktiğ
 
 Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladığı final taktikmiş gibi göstermek doğru değildir. Mevcut web path için gerçek durum `TAKTİK YOK` (input değeri `TeamTactic.Normal`) olarak dokümante edilmelidir.
 
-## SON İŞLEMLER — 05.09.2026
+## SON İŞLEMLER — 06.09.2026
 
+- **06.09.2026 — AŞAMA 9 BAŞLANGICI:** Motor çıktı JSON veritabanı planı başlatıldı. Amaç, mevcut web analizinde motorların gerçekten ürettiği sonuçları değişiklik yapılmadan JSON snapshot olarak saklamak ve sonraki motor/taktik geliştirmelerinde karşılaştırılabilir bir veri havuzu oluşturmaktır.
+- **06.09.2026 — PLAN:** Önce JSON veri sözleşmesi ve snapshot yapısı oluşturulacak; ardından backend'in gerçek `MotorPipelineResult` çıktısı bu sözleşmeye bağlanacak; daha sonra Motor Paneline yalnızca analiz başarıyla tamamlandığında kullanılabilen indirme butonu eklenecek; son olarak gerçek web analizi ile doğrulanacak.
 - **05.09.2026 — PRODUCTION DEPLOY:** V5 Docker build ve Azure deployment başarıyla tamamlandı; deployment health check doğrulandı.
 - **05.09.2026 — REGRESSION TESTLERİ:** C1–C18 offline acceptance/regression çalıştırması şimdilik durduruldu. Deployment artık regression gate'e bağlı olmadan devam ediyor.
 - **05.09.2026 — C12:** M6-B refinement acceptance doğrulandı: DB2=100, 6 formasyon, 6 bütçe, 23701 değerlendirme.
