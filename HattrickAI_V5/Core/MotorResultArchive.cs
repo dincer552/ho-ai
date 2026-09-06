@@ -51,6 +51,71 @@ public static class MotorResultArchive
         if (safeRunId.Length == 0) safeRunId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
 
         var savedAt = DateTimeOffset.UtcNow;
+
+        // Do not serialize the complete MotorPipelineResult here. It contains the
+        // large M3/M4/M5/M6 search graphs and candidate objects. Serializing that
+        // graph synchronously after the motors finish can keep /api/v5/analysis
+        // open indefinitely even though all motors are already completed.
+        // Analysis already exposes the production M7-M10 outputs; the archive
+        // keeps bounded candidate summaries for DB inspection/download.
+        var candidateDb1 = pipeline.CandidateDatabase1.Select(x => new
+        {
+            x.CandidateId,
+            x.Formation,
+            x.M5SuitabilityScore,
+            x.M5StructuralScore,
+            x.TacticalScore,
+            x.Rating,
+            x.RankingScore,
+            x.Stage,
+            Lineup = new
+            {
+                x.Lineup.TeamName,
+                x.Lineup.Formation,
+                Slots = x.Lineup.Slots.Select(s => new
+                {
+                    s.Code,
+                    s.Label,
+                    s.PlayerName,
+                    s.PlayerId,
+                    s.Rating,
+                    s.X,
+                    s.Y,
+                    s.Order,
+                    s.HistoricalStars
+                }).ToArray()
+            }
+        }).ToArray();
+
+        var candidateDb2 = pipeline.CandidateDatabase2.Select(x => new
+        {
+            x.CandidateId,
+            x.Formation,
+            x.M5SuitabilityScore,
+            x.M5StructuralScore,
+            x.TacticalScore,
+            x.Rating,
+            x.RankingScore,
+            x.Stage,
+            Lineup = new
+            {
+                x.Lineup.TeamName,
+                x.Lineup.Formation,
+                Slots = x.Lineup.Slots.Select(s => new
+                {
+                    s.Code,
+                    s.Label,
+                    s.PlayerName,
+                    s.PlayerId,
+                    s.Rating,
+                    s.X,
+                    s.Y,
+                    s.Order,
+                    s.HistoricalStars
+                }).ToArray()
+            }
+        }).ToArray();
+
         var payload = new MotorResultArchiveSnapshot(
             "hattrickai-v5-motor-database-v1",
             savedAt,
@@ -58,13 +123,20 @@ public static class MotorResultArchive
             runId,
             "HattrickAI V5 web analysis",
             analysis,
-            pipeline,
             new
             {
-                db1 = pipeline.CandidateDatabase1,
-                db2 = pipeline.CandidateDatabase2,
-                db1Count = pipeline.CandidateDatabase1Count,
-                db2Count = pipeline.CandidateDatabase2Count
+                candidateDatabase1Count = pipeline.CandidateDatabase1Count,
+                candidateDatabase2Count = pipeline.CandidateDatabase2Count,
+                selectedMatchApproach = pipeline.SelectedMatchApproach,
+                m6bFormationBudgets = pipeline.M6BFormationBudgets,
+                finalPlan = pipeline.FinalPlan
+            },
+            new
+            {
+                db1 = candidateDb1,
+                db2 = candidateDb2,
+                db1Count = candidateDb1.Length,
+                db2Count = candidateDb2.Length
             },
             motorLog);
 
