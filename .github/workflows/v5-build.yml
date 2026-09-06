@@ -86,7 +86,12 @@ jobs:
             printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" | tee -a "${LOG_FILE}"
           }
 
-          trap 'rc=$?; log "❌ DEPLOY FAILED (exit code ${rc})"; exit ${rc}' ERR
+          cleanup_secrets() {
+            docker logout ghcr.io >/dev/null 2>&1 || true
+            unset GHCR_TOKEN GHCR_USER CHPP_CONSUMER_SECRET
+          }
+
+          trap 'rc=$?; cleanup_secrets; if [ "${rc}" -ne 0 ]; then log "❌ DEPLOY FAILED (exit code ${rc})"; fi; exit "${rc}"' EXIT
 
           log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           log "🚀 GHCR VM deployment başladı"
@@ -100,6 +105,10 @@ jobs:
           log "📥 GHCR image çekiliyor..."
           docker pull "${IMAGE}:${TAG}"
 
+          log "🔒 GHCR credentials temizleniyor..."
+          docker logout ghcr.io >/dev/null 2>&1 || true
+          unset GHCR_TOKEN GHCR_USER
+
           log "🛑 Eski container durduruluyor..."
           docker rm -f hattrick-v5 2>/dev/null || true
 
@@ -111,6 +120,8 @@ jobs:
             -e CHPP_CONSUMER_SECRET="${CHPP_CONSUMER_SECRET}" \
             -v "${LOG_FILE}:/app/deploy.log:ro" \
             "${IMAGE}:${TAG}"
+
+          unset CHPP_CONSUMER_SECRET
 
           log "⏳ Container health check bekleniyor..."
           sleep 5
