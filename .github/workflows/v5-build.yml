@@ -54,7 +54,19 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+          echo "🔐 Azure SSH host key alınıyor..."
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if ssh-keyscan -4 -T 10 -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null; then
+              echo "✅ SSH host key hazır (deneme ${attempt})"
+              break
+            fi
+            if [ "${attempt}" -eq 10 ]; then
+              echo "❌ Azure SSH host key alınamadı"
+              exit 1
+            fi
+            echo "⚠️ SSH host key denemesi ${attempt} başarısız, 3 sn sonra tekrar..."
+            sleep 3
+          done
           echo "✅ SSH hazır"
 
       - name: Upload Docker image
@@ -64,8 +76,8 @@ jobs:
           ARCHIVE="hattrick-v5-${GITHUB_SHA}.tar.gz"
           REMOTE_ARCHIVE="/tmp/${ARCHIVE}"
           echo "📤 Docker image Azure VM'ye gönderiliyor: ${REMOTE_ARCHIVE}"
-          scp -i ~/.ssh/deploy_key "${ARCHIVE}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${REMOTE_ARCHIVE}.upload"
-          ssh -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+          scp -4 -o ConnectTimeout=20 -i ~/.ssh/deploy_key "${ARCHIVE}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${REMOTE_ARCHIVE}.upload"
+          ssh -4 -o ConnectTimeout=20 -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "mv '${REMOTE_ARCHIVE}.upload' '${REMOTE_ARCHIVE}'"
           echo "✅ Image Azure VM'ye gönderildi"
 
@@ -75,7 +87,7 @@ jobs:
           set -Eeuo pipefail
           ARCHIVE="hattrick-v5-${GITHUB_SHA}.tar.gz"
           REMOTE_ARCHIVE="/tmp/${ARCHIVE}"
-          ssh -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" << EOF
+          ssh -4 -o ConnectTimeout=20 -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" << EOF
           set -Eeuo pipefail
           LOG_DIR="/home/azureuser/hattrick-deploy"
           LOG_FILE="\$LOG_DIR/deploy.log"
