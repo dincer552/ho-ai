@@ -24,6 +24,19 @@ jobs:
         run: |
           set -Eeuo pipefail
           dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c20
+      - name: Remove fragile root HTML middleware
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("HattrickAI_V5/Program.cs")
+          s = p.read_text(encoding="utf-8")
+          start = s.index('app.Use(async (context, next) =>')
+          end = s.index('app.UseDefaultFiles();', start)
+          s = s[:start] + s[end:]
+          p.write_text(s, encoding="utf-8")
+          PY
       - name: Build Docker image
         shell: bash
         run: |
@@ -143,6 +156,12 @@ jobs:
             log "❌ Yeni container health check başarısız."
             exit 1
           fi
+
+          if ! curl --fail --silent --show-error --max-time 10 http://127.0.0.1:10000/ -o /dev/null; then
+            log "❌ Homepage smoke test başarısız: / cevap vermiyor."
+            exit 1
+          fi
+          log "🟢 Homepage smoke test başarılı."
 
           health="$(curl --fail --silent --show-error http://127.0.0.1:10000/health)"
           log "❤️ Health: ${health}"
