@@ -2,6 +2,17 @@ using System.Text.Json;
 
 namespace HattrickAI.V5.Core;
 
+public sealed record MotorResultArchiveSnapshot(
+    string SchemaVersion,
+    DateTimeOffset SavedAt,
+    string Build,
+    string RunId,
+    string Source,
+    object Analysis,
+    object MotorPipeline,
+    object CandidateDatabases,
+    object? MotorLog);
+
 public static class MotorResultArchive
 {
     private static readonly object Gate = new();
@@ -10,34 +21,55 @@ public static class MotorResultArchive
         WriteIndented = true
     };
 
-    public static string RootDirectory => Path.Combine(AppContext.BaseDirectory, "motor-db");
+    public static string RootDirectory
+    {
+        get
+        {
+            var configured = Environment.GetEnvironmentVariable("MOTOR_DB_PATH");
+            return string.IsNullOrWhiteSpace(configured)
+                ? Path.Combine(AppContext.BaseDirectory, "motor-db")
+                : Path.GetFullPath(configured.Trim());
+        }
+    }
 
-    public static string Save(string runId, object analysis, object? motorLog, string build)
+    public static string Save(string runId, Analysis analysis, MotorPipelineResult pipeline, object? motorLog, string build)
     {
         if (string.IsNullOrWhiteSpace(runId)) throw new ArgumentException("runId boş olamaz.", nameof(runId));
+        ArgumentNullException.ThrowIfNull(analysis);
+        ArgumentNullException.ThrowIfNull(pipeline);
+
         var safeRunId = string.Concat(runId.Where(char.IsLetterOrDigit));
         if (safeRunId.Length == 0) safeRunId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
 
-        var payload = new
-        {
-            schema = "hattrickai-v5-motor-database-v1",
-            savedAt = DateTimeOffset.UtcNow,
+        var savedAt = DateTimeOffset.UtcNow;
+        var payload = new MotorResultArchiveSnapshot(
+            "hattrickai-v5-motor-database-v1",
+            savedAt,
             build,
             runId,
-            source = "HattrickAI V5 web analysis",
+            "HattrickAI V5 web analysis",
             analysis,
-            motorLog
-        };
+            pipeline,
+            new
+            {
+                db1 = pipeline.CandidateDatabase1,
+                db2 = pipeline.CandidateDatabase2,
+                db1Count = pipeline.CandidateDatabase1Count,
+                db2Count = pipeline.CandidateDatabase2Count
+            },
+            motorLog);
 
         var json = JsonSerializer.Serialize(payload, JsonOptions);
         Directory.CreateDirectory(RootDirectory);
-        var fileName = $"{DateTimeOffset.UtcNow:yyyyMMdd_HHmmssfff}_{safeRunId}.json";
+        var fileName = $"{savedAt:yyyyMMdd_HHmmssfff}_{safeRunId}.json";
         var path = Path.Combine(RootDirectory, fileName);
+
         lock (Gate)
         {
             File.WriteAllText(path, json);
             File.WriteAllText(Path.Combine(RootDirectory, "latest.json"), json);
         }
+
         return path;
     }
 
@@ -51,6 +83,7 @@ public static class MotorResultArchive
                 json = string.Empty;
                 return false;
             }
+
             json = File.ReadAllText(path);
             return true;
         }
