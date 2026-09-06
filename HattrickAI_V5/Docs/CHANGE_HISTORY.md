@@ -2,6 +2,18 @@
 
 ## 2026-09-06 — Stage 9: Motor Output JSON Database
 
+### Stage 9.9 — Documentation / Publication Snapshot
+
+The Stage 9 documentation snapshot was completed without falsely replacing the existing A8 publication.
+
+- The 05.09.2026 A8 technical manual remains the 208-page base PDF.
+- A dated Stage 9 publication supplement was generated: `HattrickAI_V5_Teknik_Manuel_A9_SNAPSHOT_2026-09-06.pdf`.
+- `TECHNICAL_MANUAL_INDEX.md` now records the A8 base snapshot and the 06.09.2026 A9 supplement separately.
+- `README.md` records the exact publication filenames and snapshot dates.
+- The Stage 9 supplement documents JSON schema, archive persistence, API access, Motor Panel behavior, C19 regression and C20 deterministic JSON validation.
+
+The A9 supplement is intentionally a dated supplement rather than a claim that the older A8 PDF contains post-05.09.2026 changes.
+
 ### C20 — Deterministic Motor DB JSON Regression
 
 C20 was added and passed in the V5 acceptance workflow.
@@ -17,6 +29,18 @@ Verified by C20:
 - schema version remains `hattrickai-v5-motor-database-v1`.
 
 This verifies determinism of the JSON archive representation, not a new motor calculation or tactic-selection feature.
+
+### C19 — Motor DB JSON Regression
+
+C19 passed and verifies the archive writer, schema, latest snapshot, run lookup and archive list behavior. The successful C19 workflow also completed Docker build and Azure deployment.
+
+### Stage 9 documentation rule
+
+The Stage 9 JSON layer stores existing production outputs. It does not invent missing motor results, add a tactic selector, or relabel `TeamTactic.Normal` as an optimized tactic.
+
+### 9.6 live web validation boundary
+
+The planned "real web JSON validation" was not represented as completed without a direct live endpoint test record. It remains a separately identifiable follow-up validation item; Stage 9 publication documentation does not claim that test was performed.
 
 ---
 
