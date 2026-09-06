@@ -35,7 +35,6 @@ var port = int.TryParse(portText, out var parsed) ? parsed : 10000;
 app.Urls.Add($"http://0.0.0.0:{port}");
 app.UseSession();
 
-// Ana sayfaya deploy loglarını açılır/kapanır kutu olarak enjekte et.
 app.Use(async (context, next) =>
 {
     if (context.Request.Method == "GET" && context.Request.Path == "/")
@@ -63,7 +62,6 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
             return;
         }
     }
-
     await next();
 });
 
@@ -83,6 +81,12 @@ app.MapGet("/api/v5/motor-logs", (HttpContext http) =>
 {
     var log = MotorRunLogStore.GetLatest(http.Session.Id);
     return log is null ? Results.Ok(new { available = false }) : Results.Ok(new { available = true, log });
+});
+app.MapGet("/api/v5/motor-database/latest", () =>
+{
+    return MotorResultArchive.TryGetLatest(out var json)
+        ? Results.Text(json, "application/json; charset=utf-8")
+        : Results.NotFound(new { available = false, message = "Henüz kaydedilmiş motor JSON snapshot yok." });
 });
 app.MapGet("/api/deploy/log", () =>
 {
@@ -145,6 +149,8 @@ app.MapGet("/api/v5/analysis", async (HttpContext http, AnalysisService service,
             Enum.TryParse<TeamAttitude>(http.Session.GetString("v5.attitude"), true, out var attitude) ? attitude : TeamAttitude.Normal);
         var result = await service.RunAsync(build, questionnaire, ct);
         MotorRunLogStore.Finish(runId, true, "Analiz tamamlandı");
+        var motorLog = MotorRunLogStore.Get(runId);
+        MotorResultArchive.Save(runId, result, result.MotorPipeline!, motorLog, build);
         return Results.Ok(result);
     }
     catch (Exception ex)
@@ -189,15 +195,13 @@ app.MapGet("/auth/chpp/start", async (HttpContext http, ChppV5 chpp, Cancellatio
     catch (Exception ex) { return Results.Redirect("/?error=" + Uri.EscapeDataString(ex.Message)); }
 });
 
-app.MapGet("/auth/chpp/callback", async (HttpContext http, ChppV5 chpp, CancellationToken ct) =>
+app.MapGet("/auth/chpp/callback", async (HttpContext http, ChppV5 chpp, string? oauth_token, string? oauth_verifier, CancellationToken ct) =>
 {
-    var verifier = http.Request.Query["oauth_verifier"].ToString();
-    if (string.IsNullOrWhiteSpace(verifier)) return Results.Redirect("/?error=" + Uri.EscapeDataString("CHPP doğrulama kodu alınamadı."));
-    try { await chpp.FinishAsync(verifier, ct); return Results.Redirect("/?connected=1"); }
+    try
+    {
+        if (string.IsNullOrWhiteSpace(oauth_token) || string.IsNullOrWhiteSpace(oauth_verifier)) return Results.Redirect("/?error=" + Uri.EscapeDataString("CHPP callback eksik parametre ile geldi."));
+        await chpp.CompleteAsync(oauth_token, oauth_verifier, ct);
+        return Results.Redirect("/");
+    }
     catch (Exception ex) { return Results.Redirect("/?error=" + Uri.EscapeDataString(ex.Message)); }
 });
-
-app.MapPost("/auth/chpp/logout", (ChppV5 chpp) => { chpp.Disconnect(); return Results.Ok(new { ok = true }); });
-app.Run();
-
-public sealed record QuestionnaireRequest(string CoachStyle, string TeamSpirit, string MatchImportance);
