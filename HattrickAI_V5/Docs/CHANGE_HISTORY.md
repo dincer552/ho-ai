@@ -1,5 +1,25 @@
 # Hattrick AI V5 Change History
 
+## 2026-09-06 — Stage 9: Motor Output JSON Database
+
+### C20 — Deterministic Motor DB JSON Regression
+
+C20 was added and passed in the V5 acceptance workflow.
+
+The regression writes the same stable `Analysis` + `MotorPipelineResult` payload twice through the real `MotorResultArchive` writer and compares the normalized JSON payload while excluding only the volatile `savedAt` and `runId` metadata fields.
+
+Verified by C20:
+
+- deterministic motor-database payload across repeated archive writes;
+- `savedAt` remains per-write metadata;
+- `runId` remains the supplied run identifier;
+- `build` remains stable;
+- schema version remains `hattrickai-v5-motor-database-v1`.
+
+This verifies determinism of the JSON archive representation, not a new motor calculation or tactic-selection feature.
+
+---
+
 ## 2026-09-05
 
 ### Project Memory System Added
