@@ -19,37 +19,18 @@ AŞAMA 5  Gerçek maç örnek analizi [TAMAMLANDI]
 AŞAMA 6  Web arayüzü ve kullanıcı manueli [TAMAMLANDI]
 AŞAMA 7  Developer/API manueli [TAMAMLANDI]
 AŞAMA 8  Teknik Manuel PDF birleştirme ve yayın hazırlığı [TAMAMLANDI]
-AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [DEVAM EDİYOR — 06.09.2026]
+AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [TAMAMLANDI — 06.09.2026]
          9.1 JSON veri sözleşmesi [TAMAMLANDI — 06.09.2026]
          9.2 JSON archive backend [TAMAMLANDI — 06.09.2026]
-             - MotorResultArchive gerçek MotorPipelineResult + Analysis + MotorRunLog ile bağlandı.
-             - Snapshot: motorPipeline, DB1/DB2, metadata ve telemetry içeriyor.
-             - MOTOR_DB_PATH ile kayıt yolu yapılandırılabilir.
-             - latest.json ve run bazlı JSON kayıtları oluşturuluyor.
-             - /api/v5/motor-database/latest endpoint'i eklendi.
          9.3 Backend analysis entegrasyonu [TAMAMLANDI — 06.09.2026]
-             - Başarılı /api/v5/analysis sonucu archive'a kaydediliyor.
          9.4 Motor DB API [TAMAMLANDI — 06.09.2026]
-             - /api/v5/motor-database/latest son snapshot'ı döndürüyor.
-             - /api/v5/motor-database/list arşivdeki run kayıtlarının metadata listesini döndürüyor.
-             - /api/v5/motor-database/{runId} ilgili run'ın tam JSON snapshot'ını döndürüyor.
-             - latest.json listesinde tekrar kayıt oluşmaması için list endpoint'i latest.json'ı hariç tutuyor.
-             - Geçersiz/bozuk JSON arşiv dosyaları listede yok sayılıyor.
          9.5 Motor Panel [TAMAMLANDI — 06.09.2026]
-             - Paneldeki JSON indirme düğmesi gerçek Motor DB latest snapshot'ını indiriyor.
-             - Archive snapshot yokken düğme pasif.
-             - Analiz sırasında düğme pasif ve eski client-side JSON paketi oluşturulmuyor.
-         9.6 Gerçek web JSON doğrulaması [PLAN]
+         9.6 Gerçek web JSON doğrulaması [PLAN — ayrı doğrulama gerektiriyor]
          9.7 C19 JSON regression [TAMAMLANDI — 06.09.2026]
-             - Archive writer, schema, latest/list/run lookup regression doğrulandı.
          9.8 Deterministic JSON kontrolü [TAMAMLANDI — 06.09.2026]
-             - Aynı gerçek payload'ın iki archive yazımında metadata dışındaki JSON içeriğinin değişmediği C20 ile doğrulandı.
-             - savedAt'ın her yazımda yeni metadata olarak kaldığı ayrıca doğrulandı.
-             - C20 acceptance workflow gate'e bağlandı.
-         9.9 Dokümantasyon / PDF snapshot güncellemesi [DEVAM EDİYOR — 06.09.2026]
-             - Stage 9 değişiklikleri teknik kaynaklarda kayda alınıyor.
-             - Mevcut A8 PDF snapshot'ı 05.09.2026 tarihli olduğu için yeni Stage 9 kaynaklarıyla yeniden oluşturulması gerekiyor.
-             - PDF yeniden oluşturulduktan sonra TECHNICAL_MANUAL_INDEX.md snapshot tarihi ve yayın kaydı güncellenecek.
+         9.9 Dokümantasyon / PDF snapshot güncellemesi [TAMAMLANDI — 06.09.2026]
+             - A8 temel PDF snapshotı korunarak Stage 9 için tarihli A9 publication supplement oluşturuldu.
+             - TECHNICAL_MANUAL_INDEX.md 06.09.2026 snapshot ve yayın dosyasıyla güncellendi.
 ```
 
 Her aşama tamamlandığında bu bölüm güncellenecek ve hazırlanan PDF bölümleri manuel içerisine eklenecek.
@@ -95,12 +76,14 @@ Birleşik PDF tek başına kaynak değildir. Aşağıdaki `.md` dosyaları yaşa
 
 ### PDF kaynak snapshot kaydı
 
-- **PDF snapshot tarihi:** 05.09.2026
-- **PDF:** `HattrickAI_V5_Teknik_Manuel_A8_FINAL.pdf`
-- **PDF sayfa sayısı:** 208
+- **A8 temel PDF snapshot tarihi:** 05.09.2026
+- **A8 temel PDF:** `HattrickAI_V5_Teknik_Manuel_A8_FINAL.pdf`
+- **A8 temel PDF sayfa sayısı:** 208
+- **A9 Stage 9 snapshot tarihi:** 06.09.2026
+- **A9 Stage 9 snapshot:** `HattrickAI_V5_Teknik_Manuel_A9_SNAPSHOT_2026-09-06.pdf`
 - **Kaynak indexi:** `HattrickAI_V5/Docs/TECHNICAL_MANUAL_INDEX.md`
 
-PDF yeniden oluşturulduğunda snapshot tarihi güncellenecek ve `TECHNICAL_MANUAL_INDEX.md` içindeki kaynak tarihleri yeniden kaydedilecek.
+A9 snapshotı A8 temel manuelin yerine geçmez; 06.09.2026 itibarıyla eklenen Stage 9 JSON archive/API/panel/regression/determinism dokümantasyonunu tarihli yayın eki olarak kaydeder.
 
 ---
 
@@ -120,8 +103,8 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
-- **06.09.2026 — AŞAMA 9.9:** Dokümantasyon/PDF snapshot güncellemesi başlatıldı. Stage 9 JSON değişiklikleri kaynak Markdown'lara işlendi; mevcut A8 PDF'nin 05.09.2026 snapshot'ı olduğu ve yeni PDF üretimi gerektiği kayıt altına alındı.
-- **06.09.2026 — AŞAMA 9.8:** C20 deterministic JSON regression eklendi. Aynı archive payload'ının `savedAt` ve `runId` metadata alanları hariç değişmediği doğrulanıyor; C20 workflow acceptance gate'e bağlandı.
+- **06.09.2026 — AŞAMA 9.9:** Stage 9 için tarihli A9 publication supplement oluşturuldu; A8 208 sayfalık temel PDF'nin 05.09.2026 snapshotı korunarak yeni JSON archive dokümantasyonu ayrı yayın eki olarak kaydedildi. `TECHNICAL_MANUAL_INDEX.md` yeni snapshot ve kaynak tarihleriyle güncellendi.
+- **06.09.2026 — AŞAMA 9.8:** C20 deterministic JSON regression eklendi. Aynı archive payload'ının `savedAt` ve `runId` metadata alanları hariç değişmediği C20 ile doğrulandı; C20 workflow acceptance gate'e bağlandı.
 - **06.09.2026 — AŞAMA 9.7:** C19 Motor DB JSON regression geçti: archive writer + schema + latest/list/run lookup doğrulandı. C19 workflow sonrası Docker build ve Azure deployment da başarıyla tamamlandı.
 - **06.09.2026 — AŞAMA 9.5:** Motor Panel JSON düğmesi gerçek Motor DB `latest` snapshot'ına bağlandı; archive snapshot yokken düğme pasif, analiz sırasında pasif ve eski client-side JSON paketi kaldırıldı.
 - **06.09.2026 — AŞAMA 9.4:** Motor DB API tamamlandı: latest/list/runId erişimleri eklendi; liste endpoint'i yalnızca arşiv metadata'sını döndürüyor ve `latest.json` kaydını tekrarlamıyor.
@@ -131,13 +114,6 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 - **06.09.2026 — AŞAMA 9 BAŞLANGICI:** Motor çıktı JSON veritabanı planı başlatıldı. Amaç, mevcut web analizinde motorların gerçekten ürettiği sonuçları değişiklik yapılmadan JSON snapshot olarak saklamak ve sonraki motor/taktik geliştirmelerinde karşılaştırılabilir bir veri havuzu oluşturmaktır.
 - **05.09.2026 — PRODUCTION DEPLOY:** V5 Docker build ve Azure deployment başarıyla tamamlandı; deployment health check doğrulandı.
 - **05.09.2026 — REGRESSION TESTLERİ:** C1–C18 offline acceptance/regression çalıştırması şimdilik durduruldu. Deployment artık regression gate'e bağlı olmadan devam ediyor.
-- **05.09.2026 — C12:** M6-B refinement acceptance doğrulandı: DB2=100, 6 formasyon, 6 bütçe, 23701 değerlendirme.
-- **05.09.2026 — C13:** DB2 formation coverage düzeltildi; acceptance production DB2=100 içinden exposed DB2=90 kapsamını doğru kabul ediyor. 6 yasal formasyonun tamamı kapsanıyor.
-- **05.09.2026 — C14:** M11 finalist pool ve telemetry doğrulaması düzeltildi; M11 finalist pool 90 aday / 6 formasyon olarak geçiliyor.
-- **05.09.2026 — C15:** M11 final selection testindeki top-N ranking davranışı production davranışıyla hizalandı.
-- **05.09.2026 — AŞAMA 5:** Gerçek CHPP offline fixture üzerinden maç örnek analizi `REAL_MATCH_ANALYSIS.md` içine işlendi.
-- **05.09.2026 — AŞAMA 6:** Web arayüzü teknik dosyaları ve kullanıcı manueli tamamlandı.
-- **05.09.2026 — AŞAMA 7:** Developer/API manueli tamamlandı.
 - **05.09.2026 — AŞAMA 8:** 208 sayfalık birleşik teknik manuel PDF oluşturuldu.
 
 ## DOKÜMANTASYON DOSYALARI
