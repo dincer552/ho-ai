@@ -32,22 +32,35 @@ AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [TAMAMLANDI — 06.09.2026]
              - A8 temel PDF snapshotı korunarak Stage 9 için tarihli A9 publication supplement oluşturuldu.
              - TECHNICAL_MANUAL_INDEX.md 06.09.2026 snapshot ve yayın dosyasıyla güncellendi.
 
-AŞAMA 10  SSH'SİZ / DÜŞÜK RAM DEPLOYMENT MİMARİSİ [PLAN — 06.09.2026]
+AŞAMA 10  SSH'SİZ / DÜŞÜK RAM DEPLOYMENT MİMARİSİ [DEVAM EDİYOR — 06.09.2026]
          Amaç: GitHub Actions'ın Azure VM'ye SSH ile bağlanma, ssh-keyscan, scp ve Docker image taşıma bağımlılığını kaldırmak.
          VM'de Docker build/test çalıştırılmayacak; böylece düşük RAM'li VM gereksiz build yükü taşımayacak.
-         10.1 Deployment mimarisini sabitle: GitHub Actions → container registry → VM
-         10.2 GitHub Container Registry (GHCR) image yayınlama akışını ekle
-         10.3 Azure VM'ye self-hosted GitHub Actions runner kurulumu için hazırlık
-         10.4 VM runner'ın Docker yetkilerini ve servis olarak otomatik başlamasını doğrula
-         10.5 Workflow'dan SSH / DEPLOY_SSH_KEY / ssh-keyscan / scp bağımlılıklarını kaldır
-         10.6 VM runner üzerinden yalnızca image pull + container restart/deploy çalıştır
-         10.7 CHPP secret aktarımını güvenli şekilde koru
-         10.8 Health check ve başarısız deployment rollback davranışını doğrula
-         10.9 C20 + Docker build + GHCR + VM deployment uçtan uca regression
-         10.10 Deployment loglarını ve RAM kullanımını doğrula
-         10.11 README / PROJECT_MEMORY / CHANGE_HISTORY / teknik manuel kaynaklarını güncelle
+         10.1 Deployment mimarisini sabitle: GitHub Actions → container registry → VM [TAMAMLANDI]
+         10.2 GitHub Container Registry (GHCR) image yayınlama akışını ekle [TAMAMLANDI]
+         10.3 Azure VM'ye self-hosted GitHub Actions runner kurulumu için hazırlık [TAMAMLANDI — KURULUM VM'DE BEKLİYOR]
+         10.4 VM runner'ın Docker yetkilerini ve servis olarak otomatik başlamasını doğrula [SONRAKİ]
+         10.5 Workflow'dan SSH / DEPLOY_SSH_KEY / ssh-keyscan / scp bağımlılıklarını kaldır [TAMAMLANDI]
+         10.6 VM runner üzerinden yalnızca image pull + container restart/deploy çalıştır [PLAN]
+         10.7 CHPP secret aktarımını güvenli şekilde koru [PLAN]
+         10.8 Health check ve başarısız deployment rollback davranışını doğrula [PLAN]
+         10.9 C20 + Docker build + GHCR + VM deployment uçtan uca regression [PLAN]
+         10.10 Deployment loglarını ve RAM kullanımını doğrula [PLAN]
+         10.11 README / PROJECT_MEMORY / CHANGE_HISTORY / teknik manuel kaynaklarını güncelle [DEVAM EDİYOR]
 
 ```
+
+### AŞAMA 10.3 — VM runner hazırlığı
+
+GitHub tarafında Azure VM üzerinde çalışacak self-hosted runner için kurulum yardımcısı oluşturuldu:
+
+- `tools/setup-v5-self-hosted-runner.sh`
+- Runner etiketi: `v5,azure-vm`
+- Varsayılan runner dizini: `/home/azureuser/actions-runner`
+- Runner servis olarak kurulacak ve otomatik başlatılacak.
+- VM'de Docker build/test yapılmayacak.
+- Runner sonraki aşamada yalnızca hazır GHCR image'ını çekip container deploy etmek için kullanılacak.
+
+VM kurulumu için GitHub repository Settings → Actions → Runners bölümünden alınan geçici runner registration token gerekir. Bu token repoya veya source code'a yazılmayacaktır.
 
 Her aşama tamamlandığında bu bölüm güncellenecek ve hazırlanan PDF bölümleri manuel içerisine eklenecek.
 
@@ -110,7 +123,7 @@ A9 snapshotı A8 temel manuelin yerine geçmez; 06.09.2026 itibarıyla eklenen S
 
 Kod incelemesi sonucunda mevcut web production analiz akışında takım taktiğini seçen ayrı bir motor/selector bulunmadığı doğrulandı.
 
-`HattrickAI_V5/Core/AnalysisService.cs` içinde `RatingContext` oluşturulurken `TeamTactic.Normal` veriliyor.
+`HattrickAI V5/Core/AnalysisService.cs` içinde `RatingContext` oluşturulurken `TeamTactic.Normal` veriliyor.
 
 `HattrickAI_V5/Core/MotorPipelineService.cs` bu değeri M7/M7.2/M8 hesaplarına taşıyor.
 
@@ -120,7 +133,9 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
-- **06.09.2026 — AŞAMA 10 PLANI:** Düşük RAM'li Azure VM üzerinde Docker build/test çalıştırmadan, SSH/ssh-keyscan/scp bağımlılığını kaldıran GHCR + VM self-hosted runner deployment mimarisinin aşamalı uygulanması planlandı.
+- **06.09.2026 — AŞAMA 10.3:** Azure VM self-hosted runner kurulumu için `tools/setup-v5-self-hosted-runner.sh` eklendi. Runner'ın servis olarak kurulması ve `v5,azure-vm` etiketiyle çalışması planlandı; gerçek VM kurulumu bir sonraki doğrulama adımında yapılacak.
+- **06.09.2026 — AŞAMA 10.2:** GHCR image yayınlama akışı eklendi. C20 + Docker build sonrası image `ghcr.io/dincer552/ho-ai:<commit SHA>` ve `:v5` etiketleriyle yayınlanacak şekilde workflow düzenlendi.
+- **06.09.2026 — AŞAMA 10.1:** Deployment mimarisi SSH'siz olarak sabitlendi: GitHub Actions → GHCR → Azure VM. Eski SSH/ssh-keyscan/scp deployment hattı workflow'dan çıkarıldı.
 - **06.09.2026 — AŞAMA 9.9:** Stage 9 için tarihli A9 publication supplement oluşturuldu; A8 208 sayfalık temel PDF'nin 05.09.2026 snapshotı korunarak yeni JSON archive dokümantasyonu ayrı yayın eki olarak kaydedildi. `TECHNICAL_MANUAL_INDEX.md` yeni snapshot ve kaynak tarihleriyle güncellendi.
 - **06.09.2026 — AŞAMA 9.8:** C20 deterministic JSON regression eklendi. Aynı archive payload'ının `savedAt` ve `runId` metadata alanları hariç değişmediği C20 ile doğrulandı; C20 workflow acceptance gate'e bağlandı.
 - **06.09.2026 — AŞAMA 9.7:** C19 Motor DB JSON regression geçti: archive writer + schema + latest/list/run lookup doğrulandı. C19 workflow sonrası Docker build ve Azure deployment da başarıyla tamamlandı.
