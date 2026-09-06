@@ -4,7 +4,7 @@ using HattrickAI.V5.OfflineTests;
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1 ? args[1] : args.Length > 0 && !args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0] : "TestJSON/HattrickAI_V5_CHPP_FullOffline_2026-09-01.json";
 var startNumber = startFrom.Length > 1 && int.TryParse(startFrom[1..], out var parsed) ? parsed : 1;
-if (startNumber < 1 || startNumber > 18) throw new ArgumentException($"Geçersiz acceptance başlangıcı: {startFrom}. c1-c18 kullanın.");
+if (startNumber < 1 || startNumber > 19) throw new ArgumentException($"Geçersiz acceptance başlangıcı: {startFrom}. c1-c19 kullanın.");
 
 bool From(int c) => startNumber <= c;
 
@@ -39,11 +39,11 @@ if (From(14)) { var r = await M11FinalistPoolRegression.RunAsync(path); if (r !=
 if (From(15)) { var r = await M11FinalSelectionRegression.RunAsync(path); if (r != 0) return r; }
 if (From(16)) { var r = await FinalPlanContinuityRegression.RunAsync(path); if (r != 0) return r; }
 if (From(17)) { var r = await FinalPredictionContinuityRegression.RunAsync(path); if (r != 0) return r; }
-if (From(18)) { var r = await DeterministicRerunRegression.RunAsync(path); if (r != 0) return r; }
-
 if (From(18))
 {
-    var r = HistoricalMultiMatchProductionAcceptance.Run(path); if (r != 0) return r;
-    return await FullPipelineRegressionRunner.RunAsync(path);
+    var r = await DeterministicRerunRegression.RunAsync(path); if (r != 0) return r;
+    r = HistoricalMultiMatchProductionAcceptance.Run(path); if (r != 0) return r;
+    r = await FullPipelineRegressionRunner.RunAsync(path); if (r != 0) return r;
 }
+if (From(19)) return C19MotorDatabaseJsonRegression.Run();
 return 0;
