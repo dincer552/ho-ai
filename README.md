@@ -40,7 +40,7 @@ AŞAMA 10  SSH'SİZ / DÜŞÜK RAM DEPLOYMENT MİMARİSİ [DEVAM EDİYOR — 06.
          10.3 Azure VM'ye self-hosted GitHub Actions runner kurulumu [TAMAMLANDI — 06.09.2026]
          10.4 VM runner'ın Docker yetkilerini ve servis olarak otomatik başlamasını doğrula [TAMAMLANDI — 06.09.2026]
          10.5 Workflow'dan SSH / DEPLOY_SSH_KEY / ssh-keyscan / scp bağımlılıklarını kaldır [TAMAMLANDI]
-         10.6 VM runner üzerinden yalnızca image pull + container restart/deploy çalıştır [PLAN]
+         10.6 VM runner üzerinden yalnızca image pull + container restart/deploy çalıştır [UYGULANIYOR]
          10.7 CHPP secret aktarımını güvenli şekilde koru [PLAN]
          10.8 Health check ve başarısız deployment rollback davranışını doğrula [PLAN]
          10.9 C20 + Docker build + GHCR + VM deployment uçtan uca regression [PLAN]
@@ -137,6 +137,7 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
+- **06.09.2026 — AŞAMA 10.6:** Workflow deploy job'ı self-hosted `hattrick-vm` runner'a taşındı. Deploy artık SSH/scp kullanmadan GHCR'dan `${GITHUB_SHA}` image'ını çekip `hattrick-v5` container'ını yeniden başlatacak şekilde uygulanıyor; C20 + build/push GitHub-hosted runner'da kalıyor. Uçtan uca workflow doğrulaması bu değişikliğin ardından yapılacak.
 - **06.09.2026 — AŞAMA 10.4:** Azure VM self-hosted runner systemd servisi `active (running)` ve `enabled` olarak doğrulandı. `azureuser` Docker grubuna eklendi ve `sudo -u azureuser docker ps` başarıyla çalıştı; Docker socket erişimi doğrulandı.
 - **06.09.2026 — AŞAMA 10.3:** Azure VM self-hosted runner başarıyla kaydedildi ve servis olarak çalıştırıldı. Runner `hattrick-vm`, sürüm `2.337.0`, `/home/azureuser/actions-runner` altında çalışıyor.
 - **06.09.2026 — AŞAMA 10.2:** GHCR image yayınlama akışı eklendi. C20 + Docker build sonrası image `ghcr.io/dincer552/ho-ai:<commit SHA>` ve `:v5` etiketleriyle yayınlanacak şekilde workflow düzenlendi.
