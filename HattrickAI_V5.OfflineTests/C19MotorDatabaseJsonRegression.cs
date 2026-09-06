@@ -7,13 +7,31 @@ public static class C19MotorDatabaseJsonRegression
 {
     public static int Run()
     {
+        failures.Clear();
         var original = Environment.GetEnvironmentVariable("MOTOR_DB_PATH");
         var temp = Path.Combine(Path.GetTempPath(), "hattrickai-v5-c19-" + Guid.NewGuid().ToString("N"));
         try
         {
             Environment.SetEnvironmentVariable("MOTOR_DB_PATH", temp);
 
-            var analysis = new Analysis("c19-build", "Own", "Opponent", "C19", null!, null!, null!, null!, MatchQuestionnaire.Default);
+            var own = new Lineup("Own", "3-5-2", new[]
+            {
+                new Slot("GK", "Kaleci", "Kaleci", "Own GK", 1, 6, 50, 10),
+                new Slot("DEF-L", "Sol bek", "Sol bek", "Own DL", 2, 5, 12, 34),
+                new Slot("DEF-C", "Stoper", "Stoper", "Own DC", 3, 6, 50, 34),
+                new Slot("DEF-R", "Sağ bek", "Sağ bek", "Own DR", 4, 5, 88, 34),
+                new Slot("IM-L", "Sol iç", "Sol iç", "Own IM-L", 5, 6, 34, 50),
+                new Slot("IM-C", "Merkez", "Merkez", "Own IM-C", 6, 7, 50, 50),
+                new Slot("IM-R", "Sağ iç", "Sağ iç", "Own IM-R", 7, 6, 66, 50),
+                new Slot("W-L", "Sol kanat", "Sol kanat", "Own W-L", 8, 5, 12, 50),
+                new Slot("W-R", "Sağ kanat", "Sağ kanat", "Own W-R", 9, 5, 88, 50),
+                new Slot("FW-L", "Sol forvet", "Sol forvet", "Own FW-L", 10, 6, 38, 72),
+                new Slot("FW-R", "Sağ forvet", "Sağ forvet", "Own FW-R", 11, 6, 62, 72)
+            });
+            var opponent = own with { TeamName = "Opponent" };
+            var rating = new RegionalRatingSnapshot(6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5);
+            var analysis = new Analysis("c19-build", "Own", "Opponent", "C19", own, opponent, rating, rating, MatchQuestionnaire.Default);
+
             var pipeline = new MotorPipelineResult(
                 null!, null!, Array.Empty<PositionAssignmentCandidate>(), null!, null!, null!, null!, null!, null!, null!, null!)
             {
