@@ -31,6 +31,22 @@ AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [TAMAMLANDI — 06.09.2026]
          9.9 Dokümantasyon / PDF snapshot güncellemesi [TAMAMLANDI — 06.09.2026]
              - A8 temel PDF snapshotı korunarak Stage 9 için tarihli A9 publication supplement oluşturuldu.
              - TECHNICAL_MANUAL_INDEX.md 06.09.2026 snapshot ve yayın dosyasıyla güncellendi.
+
+AŞAMA 10  SSH'SİZ / DÜŞÜK RAM DEPLOYMENT MİMARİSİ [PLAN — 06.09.2026]
+         Amaç: GitHub Actions'ın Azure VM'ye SSH ile bağlanma, ssh-keyscan, scp ve Docker image taşıma bağımlılığını kaldırmak.
+         VM'de Docker build/test çalıştırılmayacak; böylece düşük RAM'li VM gereksiz build yükü taşımayacak.
+         10.1 Deployment mimarisini sabitle: GitHub Actions → container registry → VM
+         10.2 GitHub Container Registry (GHCR) image yayınlama akışını ekle
+         10.3 Azure VM'ye self-hosted GitHub Actions runner kurulumu için hazırlık
+         10.4 VM runner'ın Docker yetkilerini ve servis olarak otomatik başlamasını doğrula
+         10.5 Workflow'dan SSH / DEPLOY_SSH_KEY / ssh-keyscan / scp bağımlılıklarını kaldır
+         10.6 VM runner üzerinden yalnızca image pull + container restart/deploy çalıştır
+         10.7 CHPP secret aktarımını güvenli şekilde koru
+         10.8 Health check ve başarısız deployment rollback davranışını doğrula
+         10.9 C20 + Docker build + GHCR + VM deployment uçtan uca regression
+         10.10 Deployment loglarını ve RAM kullanımını doğrula
+         10.11 README / PROJECT_MEMORY / CHANGE_HISTORY / teknik manuel kaynaklarını güncelle
+
 ```
 
 Her aşama tamamlandığında bu bölüm güncellenecek ve hazırlanan PDF bölümleri manuel içerisine eklenecek.
@@ -40,6 +56,7 @@ Dokümantasyon prensibi:
 - Kullanılan katsayılar sadece kod/config veya kaynak PDF'den alınacak.
 - Her motor için input, output, hesaplama mantığı ve kullanılan dosya yolu belirtilecek.
 - Stage 9 JSON kayıtları yeni karar mantığı eklemez; yalnızca mevcut gerçek üretim çıktısını saklar.
+- Stage 10 deployment değişikliklerinde mevcut çalışan V5 analiz davranışı korunacak; yalnızca build/image/deployment taşıma mimarisi değiştirilecek.
 
 ### Motor / Kod ilişkilendirme standardı
 
@@ -103,6 +120,7 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
+- **06.09.2026 — AŞAMA 10 PLANI:** Düşük RAM'li Azure VM üzerinde Docker build/test çalıştırmadan, SSH/ssh-keyscan/scp bağımlılığını kaldıran GHCR + VM self-hosted runner deployment mimarisinin aşamalı uygulanması planlandı.
 - **06.09.2026 — AŞAMA 9.9:** Stage 9 için tarihli A9 publication supplement oluşturuldu; A8 208 sayfalık temel PDF'nin 05.09.2026 snapshotı korunarak yeni JSON archive dokümantasyonu ayrı yayın eki olarak kaydedildi. `TECHNICAL_MANUAL_INDEX.md` yeni snapshot ve kaynak tarihleriyle güncellendi.
 - **06.09.2026 — AŞAMA 9.8:** C20 deterministic JSON regression eklendi. Aynı archive payload'ının `savedAt` ve `runId` metadata alanları hariç değişmediği C20 ile doğrulandı; C20 workflow acceptance gate'e bağlandı.
 - **06.09.2026 — AŞAMA 9.7:** C19 Motor DB JSON regression geçti: archive writer + schema + latest/list/run lookup doğrulandı. C19 workflow sonrası Docker build ve Azure deployment da başarıyla tamamlandı.
