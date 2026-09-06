@@ -34,12 +34,28 @@ AŞAMA 8  Teknik Manuel PDF birleştirme ve yayın hazırlığı [TAMAMLANDI]
          - 05.09.2026 tarihinde ilk birleşik teknik manuel PDF oluşturuldu.
          - PDF toplam 208 sayfadır.
          - Motor, mimari, gerçek maç, web ve Developer/API bölümleri tek belgede birleştirildi.
-AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [PLANLANDI — 06.09.2026]
-         - Her tamamlanan web analizinin gerçek motor çıktısını tek JSON snapshot olarak dışa aktarma.
-         - M3 → M11 çıktıları, DB1/DB2, final sonuç ve run/kalibrasyon metadata'sını aynı kayıtta tutma.
-         - Motor Paneline analiz tamamlandıktan sonra "Motor DB JSON İndir" erişimi ekleme.
-         - JSON schema sürümünü sabitleme; gelecekteki motor değişikliklerinde geriye dönük karşılaştırılabilirliği koruma.
-         - İlk aşamada hesaplama motorlarına yeni karar mantığı eklenmeyecek; yalnızca mevcut gerçek çıktılar kaydedilecek.
+AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [DEVAM EDİYOR — 06.09.2026]
+         9.1 JSON veri sözleşmesi [TAMAMLANDI — 06.09.2026]
+             - MOTOR_OUTPUT_JSON_SCHEMA.md oluşturuldu.
+             - schemaVersion, runId, build ve savedAt metadata sözleşmesi belirlendi.
+             - M3 → M11, FinalPlan/FinalPrediction, DB1/DB2 ve MotorRunLog kapsamı tanımlandı.
+             - Yalnızca gerçek MotorPipelineResult / Analysis / MotorRunLog çıktılarının kaydedileceği kilitlendi.
+         9.2 JSON archive backend [BEKLEMEDE]
+             - Mevcut MotorResultArchive sınıfı 9.1 sözleşmesine bağlanacak.
+             - Kalıcı kayıt yolu configurable yapılacak.
+         9.3 Backend analysis entegrasyonu [BEKLEMEDE]
+             - Başarılı `/api/v5/analysis` sonucundan gerçek snapshot üretilecek.
+         9.4 Motor DB API [BEKLEMEDE]
+             - latest / list / runId erişimleri eklenecek.
+         9.5 Motor Panel [BEKLEMEDE]
+             - "Motor DB JSON İndir" yalnızca tamamlanmış analiz sonrası aktif olacak.
+         9.6 Gerçek web JSON doğrulaması [BEKLEMEDE]
+             - Gerçek analizden alınan snapshot motor motor incelenecek.
+         9.7 C19 JSON regression [BEKLEMEDE]
+             - JSON yapısı ve gerçek pipeline çıktısı arasında regression kontrolü yapılacak.
+         9.8 Deterministic JSON kontrolü [BEKLEMEDE]
+             - Aynı fixture için değişken metadata hariç snapshot içeriği karşılaştırılacak.
+         9.9 Dokümantasyon / PDF snapshot güncellemesi [BEKLEMEDE]
 ```
 
 Her aşama tamamlandığında bu bölüm güncellenecek ve hazırlanan PDF bölümleri manuel içerisine eklenecek.
@@ -48,6 +64,7 @@ Dokümantasyon prensibi:
 - Tahmin edilen veya varsayılan hesap yazılmayacak.
 - Kullanılan katsayılar sadece kod/config veya kaynak PDF'den alınacak.
 - Her motor için input, output, hesaplama mantığı ve kullanılan dosya yolu belirtilecek.
+- Stage 9 JSON kayıtları yeni karar mantığı eklemez; yalnızca mevcut gerçek üretim çıktısını saklar.
 
 ### Motor / Kod ilişkilendirme standardı
 
@@ -80,6 +97,7 @@ Birleşik PDF tek başına kaynak değildir. Aşağıdaki `.md` dosyaları yaşa
 11. `WEB_UI_FILE_MAP.md` — frontend dosyalarının görev ve bağlantı haritası.
 12. `DEVELOPER_API_MANUAL.md` — ASP.NET Core, session, OAuth/CHPP, endpoint'ler ve developer test noktaları.
 13. `M8_PHASE_D_PDF_CALIBRATION.md` — M8 PDF/calibration özel teknik notları.
+14. `MOTOR_OUTPUT_JSON_SCHEMA.md` — Stage 9 motor çıktı JSON veri sözleşmesi.
 
 ### PDF kaynak snapshot kaydı
 
@@ -108,8 +126,9 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
+- **06.09.2026 — AŞAMA 9.1 TAMAMLANDI:** `MOTOR_OUTPUT_JSON_SCHEMA.md` oluşturuldu. JSON snapshot'ın gerçek `MotorPipelineResult`, `Analysis` ve `MotorRunLog` verilerini taşıyan resmi sözleşmesi belirlendi.
+- **06.09.2026 — AŞAMA 9.1 PLANI NETLEŞTİRİLDİ:** 9.2 archive backend, 9.3 analysis entegrasyonu, 9.4 API, 9.5 Motor Panel, 9.6 gerçek web doğrulaması, 9.7 C19 regression, 9.8 deterministic kontrol ve 9.9 dokümantasyon/PDF güncellemesi sıralı olarak tanımlandı.
 - **06.09.2026 — AŞAMA 9 BAŞLANGICI:** Motor çıktı JSON veritabanı planı başlatıldı. Amaç, mevcut web analizinde motorların gerçekten ürettiği sonuçları değişiklik yapılmadan JSON snapshot olarak saklamak ve sonraki motor/taktik geliştirmelerinde karşılaştırılabilir bir veri havuzu oluşturmaktır.
-- **06.09.2026 — PLAN:** Önce JSON veri sözleşmesi ve snapshot yapısı oluşturulacak; ardından backend'in gerçek `MotorPipelineResult` çıktısı bu sözleşmeye bağlanacak; daha sonra Motor Paneline yalnızca analiz başarıyla tamamlandığında kullanılabilen indirme butonu eklenecek; son olarak gerçek web analizi ile doğrulanacak.
 - **05.09.2026 — PRODUCTION DEPLOY:** V5 Docker build ve Azure deployment başarıyla tamamlandı; deployment health check doğrulandı.
 - **05.09.2026 — REGRESSION TESTLERİ:** C1–C18 offline acceptance/regression çalıştırması şimdilik durduruldu. Deployment artık regression gate'e bağlı olmadan devam ediyor.
 - **05.09.2026 — C12:** M6-B refinement acceptance doğrulandı: DB2=100, 6 formasyon, 6 bütçe, 23701 değerlendirme.
@@ -137,3 +156,4 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 - `HattrickAI_V5/Docs/DEVELOPER_API_MANUAL.md`
 - `HattrickAI_V5/Docs/M8_PHASE_D_PDF_CALIBRATION.md`
 - `HattrickAI_V5/Docs/TECHNICAL_MANUAL_INDEX.md`
+- `HattrickAI_V5/Docs/MOTOR_OUTPUT_JSON_SCHEMA.md`
