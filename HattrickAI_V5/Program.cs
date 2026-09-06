@@ -213,3 +213,8 @@ app.MapGet("/auth/chpp/callback", async (HttpContext http, ChppV5 chpp, string? 
     }
     catch (Exception ex) { return Results.Redirect("/?error=" + Uri.EscapeDataString(ex.Message)); }
 });
+
+app.MapPost("/auth/chpp/logout", (ChppV5 chpp) => { chpp.Disconnect(); return Results.Ok(new { ok = true }); });
+app.Run();
+
+public sealed record QuestionnaireRequest(string CoachStyle, string TeamSpirit, string MatchImportance);
