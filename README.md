@@ -40,10 +40,10 @@ AŞAMA 10  SSH'SİZ / DÜŞÜK RAM DEPLOYMENT MİMARİSİ [DEVAM EDİYOR — 06.
          10.3 Azure VM'ye self-hosted GitHub Actions runner kurulumu [TAMAMLANDI — 06.09.2026]
          10.4 VM runner'ın Docker yetkilerini ve servis olarak otomatik başlamasını doğrula [TAMAMLANDI — 06.09.2026]
          10.5 Workflow'dan SSH / DEPLOY_SSH_KEY / ssh-keyscan / scp bağımlılıklarını kaldır [TAMAMLANDI]
-         10.6 VM runner üzerinden yalnızca image pull + container restart/deploy çalıştır [UYGULANIYOR]
-         10.7 CHPP secret aktarımını güvenli şekilde koru [PLAN]
+         10.6 VM runner üzerinden yalnızca image pull + container restart/deploy çalıştır [TAMAMLANDI — 06.09.2026]
+         10.7 CHPP secret aktarımını güvenli şekilde koru [KODLANDI — UÇTAN UCA DOĞRULAMA SONRAKİ RUN'DA]
          10.8 Health check ve başarısız deployment rollback davranışını doğrula [PLAN]
-         10.9 C20 + Docker build + GHCR + VM deployment uçtan uca regression [PLAN]
+         10.9 C20 + Docker build + GHCR + VM deployment uçtan uca regression [TAMAMLANDI — 06.09.2026]
          10.10 Deployment loglarını ve RAM kullanımını doğrula [PLAN]
          10.11 README / PROJECT_MEMORY / CHANGE_HISTORY / teknik manuel kaynaklarını güncelle [DEVAM EDİYOR]
 
@@ -65,6 +65,16 @@ Azure VM üzerinde self-hosted runner başarıyla kaydedildi ve systemd servisi 
 - Runner sonraki aşamada yalnızca hazır GHCR image'ını çekip container deploy etmek için kullanılacak.
 
 Runner servisinde `svc.sh` bulunmadığı için mevcut `bin/actions.runner.service.template` kullanılarak systemd servisi oluşturuldu. `runsvc.sh` systemd altında `/bin/bash` üzerinden çalıştırıldı.
+
+### AŞAMA 10.7 — Secret aktarım güvenliği
+
+Deploy job'ında CHPP consumer secret yalnızca `deploy` job'ının environment'ına GitHub Actions secret olarak aktarılıyor ve Docker container başlatılırken kullanılıyor. Secret değeri log mesajlarına yazdırılmıyor.
+
+GHCR erişiminde job-scoped `GITHUB_TOKEN` kullanılıyor. Image pull tamamlandıktan hemen sonra `docker logout ghcr.io` çalıştırılıyor ve shell environment içindeki GHCR credential değişkenleri temizleniyor. Böylece runner üzerinde GHCR Docker credential'ının kalıcı olarak tutulması engelleniyor.
+
+CHPP secret de container başlatıldıktan hemen sonra shell environment'ından `unset` ediliyor. Deployment scriptindeki hata trap'i de başarısızlık halinde GHCR logout ve secret cleanup işlemini çalıştırıyor.
+
+Bu değişiklik mevcut analiz davranışını değiştirmez; yalnızca deployment sırasında credential yaşam süresini ve runner üzerindeki kalıcı credential izini azaltır.
 
 Her aşama tamamlandığında bu bölüm güncellenecek ve hazırlanan PDF bölümleri manuel içerisine eklenecek.
 
@@ -137,11 +147,13 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
-- **06.09.2026 — AŞAMA 10.6:** Workflow deploy job'ı self-hosted `hattrick-vm` runner'a taşındı. Deploy artık SSH/scp kullanmadan GHCR'dan `${GITHUB_SHA}` image'ını çekip `hattrick-v5` container'ını yeniden başlatacak şekilde uygulanıyor; C20 + build/push GitHub-hosted runner'da kalıyor. Uçtan uca workflow doğrulaması bu değişikliğin ardından yapılacak.
+- **06.09.2026 — AŞAMA 10.7:** GHCR deploy job'ında secret yaşam süresi azaltıldı. VM'de GHCR login sonrası `docker logout ghcr.io` çalıştırılıyor; GHCR credential environment değişkenleri temizleniyor. CHPP consumer secret yalnızca container başlatma adımında kullanılıyor ve ardından shell environment'ından temizleniyor. Hata durumunda da cleanup çalışıyor.
+- **06.09.2026 — AŞAMA 10.6:** Workflow deploy job'ı self-hosted `hattrick-vm` runner'a taşındı. Deploy artık SSH/scp kullanmadan GHCR'dan `${GITHUB_SHA}` image'ını çekip `hattrick-v5` container'ını yeniden başlatacak şekilde uygulanıyor; C20 + build/push GitHub-hosted runner'da kalıyor. 06.09.2026 tarihli uçtan uca run'da C20, Docker build, GHCR push, VM image pull, container restart ve `/health` kontrolü başarıyla geçti.
 - **06.09.2026 — AŞAMA 10.4:** Azure VM self-hosted runner systemd servisi `active (running)` ve `enabled` olarak doğrulandı. `azureuser` Docker grubuna eklendi ve `sudo -u azureuser docker ps` başarıyla çalıştı; Docker socket erişimi doğrulandı.
 - **06.09.2026 — AŞAMA 10.3:** Azure VM self-hosted runner başarıyla kaydedildi ve servis olarak çalıştırıldı. Runner `hattrick-vm`, sürüm `2.337.0`, `/home/azureuser/actions-runner` altında çalışıyor.
 - **06.09.2026 — AŞAMA 10.2:** GHCR image yayınlama akışı eklendi. C20 + Docker build sonrası image `ghcr.io/dincer552/ho-ai:<commit SHA>` ve `:v5` etiketleriyle yayınlanacak şekilde workflow düzenlendi.
 - **06.09.2026 — AŞAMA 10.1:** Deployment mimarisi SSH'siz olarak sabitlendi: GitHub Actions → GHCR → Azure VM. Eski SSH/ssh-keyscan/scp deployment hattı workflow'dan çıkarıldı.
+- **06.09.2026 — AŞAMA 10 PLANI:** Düşük RAM'li Azure VM üzerinde Docker build/test çalıştırmadan, SSH/ssh-keyscan/scp bağımlılığını kaldıran GHCR + VM self-hosted runner deployment mimarisinin aşamalı uygulanması planlandı.
 - **06.09.2026 — AŞAMA 9.9:** Stage 9 için tarihli A9 publication supplement oluşturuldu; A8 208 sayfalık temel PDF'nin 05.09.2026 snapshotı korunarak yeni JSON archive dokümantasyonu ayrı yayın eki olarak kaydedildi. `TECHNICAL_MANUAL_INDEX.md` yeni snapshot ve kaynak tarihleriyle güncellendi.
 - **06.09.2026 — AŞAMA 9.8:** C20 deterministic JSON regression eklendi. Aynı archive payload'ının `savedAt` ve `runId` metadata alanları hariç değişmediği C20 ile doğrulandı; C20 workflow acceptance gate'e bağlandı.
 - **06.09.2026 — AŞAMA 9.7:** C19 Motor DB JSON regression geçti: archive writer + schema + latest/list/run lookup doğrulandı. C19 workflow sonrası Docker build ve Azure deployment da başarıyla tamamlandı.
