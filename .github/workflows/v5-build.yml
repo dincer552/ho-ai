@@ -17,13 +17,13 @@ jobs:
       - name: Checkout V5
         uses: actions/checkout@v4
 
-      - name: Offline acceptance regression C19
+      - name: Offline acceptance regression C20
         shell: bash
         run: |
           set -Eeuo pipefail
-          echo "🧪 V5 C19 Motor DB JSON regression başlıyor..."
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c19
-          echo "✅ V5 C19 Motor DB JSON regression tamamlandı"
+          echo "🧪 V5 C20 deterministic Motor DB JSON regression başlıyor..."
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c20
+          echo "✅ V5 C20 deterministic Motor DB JSON regression tamamlandı"
 
       - name: Build Docker image
         shell: bash
