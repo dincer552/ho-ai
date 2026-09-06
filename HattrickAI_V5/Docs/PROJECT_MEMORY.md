@@ -58,6 +58,22 @@ Never document a calculation that is not confirmed from code, config, tests, or 
 
 ---
 
+# Stage 9 — Motor Output JSON Database
+
+## Verified milestone — 2026-09-06
+
+The Motor DB archive now stores the real web analysis `Analysis`, `MotorPipelineResult`, candidate DB data and `MotorRunLog` telemetry through `MotorResultArchive`.
+
+The JSON archive contract is `hattrickai-v5-motor-database-v1`. Each save produces a run-specific JSON file and updates `latest.json`.
+
+C19 acceptance verifies the archive writer/schema and latest/list/run lookup behavior.
+
+C20 acceptance verifies deterministic JSON payload representation across repeated writes. Only the naturally varying `savedAt` and `runId` metadata are excluded from the payload comparison. The test also verifies stable build and schema-version fields and confirms that `savedAt` remains per-write metadata.
+
+Important boundary: Stage 9 stores existing production output. It does not add a new motor calculation, tactical selector, or decision rule.
+
+---
+
 # Verified Investigation Results
 
 ## Tactical Display / Tactical Selection
@@ -168,7 +184,7 @@ This example is reference data for the technical manual, not a claim that the hi
 - Acceptance/regression behavior has changed during recent C10-C18 fixes; do not describe C10-C18 as universally green unless the corresponding run has actually been verified.
 - C13 previously compared exposed DB2 count against production SecondPass count incorrectly. The production pipeline exposes a formation-diversified DB2 subset, so exposed count and production DB2 count are not required to be equal.
 - C17 contains pipeline/telemetry continuity checks, but a successful `Finish` event must be verified before documenting the acceptance as fully passing.
-- C18 deterministic rerun regression exists and is invoked after C17; its current pass status must be verified from an actual run before being documented as green.
+- C18 deterministic rerun regression exists and is invoked after C17; its current pass status must be verified from an actual run before documenting it as green.
 
 ---
 
