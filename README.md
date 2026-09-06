@@ -35,8 +35,10 @@ AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [DEVAM EDİYOR — 06.09.2026]
              - /api/v5/motor-database/{runId} ilgili run'ın tam JSON snapshot'ını döndürüyor.
              - latest.json listesinde tekrar kayıt oluşmaması için list endpoint'i latest.json'ı hariç tutuyor.
              - Geçersiz/bozuk JSON arşiv dosyaları listede yok sayılıyor.
-         9.5 Motor Panel [PLAN]
-             - "Motor DB JSON İndir" yalnızca tamamlanmış analiz sonrası aktif olacak.
+         9.5 Motor Panel [TAMAMLANDI — 06.09.2026]
+             - Paneldeki JSON indirme düğmesi gerçek Motor DB latest snapshot'ını indiriyor.
+             - Archive snapshot yokken düğme pasif.
+             - Analiz sırasında düğme pasif ve eski client-side JSON paketi oluşturulmuyor.
          9.6 Gerçek web JSON doğrulaması [PLAN]
          9.7 C19 JSON regression [PLAN]
          9.8 Deterministic JSON kontrolü [PLAN]
@@ -111,7 +113,8 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
-- **06.09.2026 — AŞAMA 9.4:** Motor DB API tamamlandı. `latest`, `list` ve `{runId}` erişimleri eklendi; liste endpoint'i yalnızca arşiv metadata'sını döndürüyor ve `latest.json` kaydını tekrarlamıyor.
+- **06.09.2026 — AŞAMA 9.5:** Motor Panel JSON düğmesi gerçek Motor DB `latest` snapshot'ına bağlandı; archive snapshot yokken düğme pasif, analiz sırasında pasif ve eski client-side JSON paketi kaldırıldı.
+- **06.09.2026 — AŞAMA 9.4:** Motor DB API tamamlandı: latest/list/runId erişimleri eklendi; liste endpoint'i yalnızca arşiv metadata'sını döndürüyor ve `latest.json` kaydını tekrarlamıyor.
 - **06.09.2026 — AŞAMA 9.3:** Başarılı `/api/v5/analysis` çalışmasının gerçek `Analysis` + `MotorPipelineResult` + `MotorRunLog` snapshot'ı backend archive'a bağlandı.
 - **06.09.2026 — AŞAMA 9.2:** `MotorResultArchive` gerçek pipeline çıktısını saklayacak şekilde düzenlendi; configurable `MOTOR_DB_PATH`, run bazlı JSON ve `latest.json` oluşturuldu; `/api/v5/motor-database/latest` eklendi.
 - **06.09.2026 — AŞAMA 9.1:** `MOTOR_OUTPUT_JSON_SCHEMA.md` oluşturuldu. JSON snapshot'ın gerçek `MotorPipelineResult`, `Analysis` ve `MotorRunLog` verilerini taşıyan resmi sözleşmesi belirlendi.
