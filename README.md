@@ -37,8 +37,8 @@ AŞAMA 10  SSH'SİZ / DÜŞÜK RAM DEPLOYMENT MİMARİSİ [DEVAM EDİYOR — 06.
          VM'de Docker build/test çalıştırılmayacak; böylece düşük RAM'li VM gereksiz build yükü taşımayacak.
          10.1 Deployment mimarisini sabitle: GitHub Actions → container registry → VM [TAMAMLANDI]
          10.2 GitHub Container Registry (GHCR) image yayınlama akışını ekle [TAMAMLANDI]
-         10.3 Azure VM'ye self-hosted GitHub Actions runner kurulumu için hazırlık [TAMAMLANDI — KURULUM VM'DE BEKLİYOR]
-         10.4 VM runner'ın Docker yetkilerini ve servis olarak otomatik başlamasını doğrula [SONRAKİ]
+         10.3 Azure VM'ye self-hosted GitHub Actions runner kurulumu [TAMAMLANDI — 06.09.2026]
+         10.4 VM runner'ın Docker yetkilerini ve servis olarak otomatik başlamasını doğrula [TAMAMLANDI — 06.09.2026]
          10.5 Workflow'dan SSH / DEPLOY_SSH_KEY / ssh-keyscan / scp bağımlılıklarını kaldır [TAMAMLANDI]
          10.6 VM runner üzerinden yalnızca image pull + container restart/deploy çalıştır [PLAN]
          10.7 CHPP secret aktarımını güvenli şekilde koru [PLAN]
@@ -51,16 +51,20 @@ AŞAMA 10  SSH'SİZ / DÜŞÜK RAM DEPLOYMENT MİMARİSİ [DEVAM EDİYOR — 06.
 
 ### AŞAMA 10.3 — VM runner hazırlığı
 
-GitHub tarafında Azure VM üzerinde çalışacak self-hosted runner için kurulum yardımcısı oluşturuldu:
+Azure VM üzerinde self-hosted runner başarıyla kaydedildi ve systemd servisi olarak çalıştırıldı.
 
-- `tools/setup-v5-self-hosted-runner.sh`
-- Runner etiketi: `v5,azure-vm`
-- Varsayılan runner dizini: `/home/azureuser/actions-runner`
-- Runner servis olarak kurulacak ve otomatik başlatılacak.
+- Runner adı: `hattrick-vm`
+- Runner dizini: `/home/azureuser/actions-runner`
+- Runner sürümü: `2.337.0`
+- GitHub bağlantısı: `Connected to GitHub`
+- Runner durumu: `Listening for Jobs`
+- Systemd servisi: `actions.runner.dincer552-ho-ai.hattrick-vm.service`
+- Servis durumu: `active (running)` ve `enabled`
+- Docker yetkisi: `azureuser` kullanıcısı Docker API'ye erişebiliyor.
 - VM'de Docker build/test yapılmayacak.
 - Runner sonraki aşamada yalnızca hazır GHCR image'ını çekip container deploy etmek için kullanılacak.
 
-VM kurulumu için GitHub repository Settings → Actions → Runners bölümünden alınan geçici runner registration token gerekir. Bu token repoya veya source code'a yazılmayacaktır.
+Runner servisinde `svc.sh` bulunmadığı için mevcut `bin/actions.runner.service.template` kullanılarak systemd servisi oluşturuldu. `runsvc.sh` systemd altında `/bin/bash` üzerinden çalıştırıldı.
 
 Her aşama tamamlandığında bu bölüm güncellenecek ve hazırlanan PDF bölümleri manuel içerisine eklenecek.
 
@@ -133,7 +137,8 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 
 ## SON İŞLEMLER — 06.09.2026
 
-- **06.09.2026 — AŞAMA 10.3:** Azure VM self-hosted runner kurulumu için `tools/setup-v5-self-hosted-runner.sh` eklendi. Runner'ın servis olarak kurulması ve `v5,azure-vm` etiketiyle çalışması planlandı; gerçek VM kurulumu bir sonraki doğrulama adımında yapılacak.
+- **06.09.2026 — AŞAMA 10.4:** Azure VM self-hosted runner systemd servisi `active (running)` ve `enabled` olarak doğrulandı. `azureuser` Docker grubuna eklendi ve `sudo -u azureuser docker ps` başarıyla çalıştı; Docker socket erişimi doğrulandı.
+- **06.09.2026 — AŞAMA 10.3:** Azure VM self-hosted runner başarıyla kaydedildi ve servis olarak çalıştırıldı. Runner `hattrick-vm`, sürüm `2.337.0`, `/home/azureuser/actions-runner` altında çalışıyor.
 - **06.09.2026 — AŞAMA 10.2:** GHCR image yayınlama akışı eklendi. C20 + Docker build sonrası image `ghcr.io/dincer552/ho-ai:<commit SHA>` ve `:v5` etiketleriyle yayınlanacak şekilde workflow düzenlendi.
 - **06.09.2026 — AŞAMA 10.1:** Deployment mimarisi SSH'siz olarak sabitlendi: GitHub Actions → GHCR → Azure VM. Eski SSH/ssh-keyscan/scp deployment hattı workflow'dan çıkarıldı.
 - **06.09.2026 — AŞAMA 9.9:** Stage 9 için tarihli A9 publication supplement oluşturuldu; A8 208 sayfalık temel PDF'nin 05.09.2026 snapshotı korunarak yeni JSON archive dokümantasyonu ayrı yayın eki olarak kaydedildi. `TECHNICAL_MANUAL_INDEX.md` yeni snapshot ve kaynak tarihleriyle güncellendi.
