@@ -88,6 +88,14 @@ app.MapGet("/api/v5/motor-database/latest", () =>
         ? Results.Text(json, "application/json; charset=utf-8")
         : Results.NotFound(new { available = false, message = "Henüz kaydedilmiş motor JSON snapshot yok." });
 });
+app.MapGet("/api/v5/motor-database/list", () =>
+    Results.Ok(new { available = Directory.Exists(MotorResultArchive.RootDirectory), entries = MotorResultArchive.List() }));
+app.MapGet("/api/v5/motor-database/{runId}", (string runId) =>
+{
+    return MotorResultArchive.TryGetByRunId(runId, out var json)
+        ? Results.Text(json, "application/json; charset=utf-8")
+        : Results.NotFound(new { available = false, message = "İstenen runId için motor JSON snapshot bulunamadı.", runId });
+});
 app.MapGet("/api/deploy/log", () =>
 {
     const string logPath = "/app/deploy.log";
