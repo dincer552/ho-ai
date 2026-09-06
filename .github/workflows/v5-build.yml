@@ -5,8 +5,6 @@ on:
     branches: [v5]
   workflow_dispatch:
 
-# Azure VM tek deploy hedefi olduğu için aynı anda birden fazla deploy
-# çalışmasına izin verme. Yeni commit geldiğinde eski deploy iptal edilir.
 concurrency:
   group: v5-deploy
   cancel-in-progress: true
@@ -19,16 +17,13 @@ jobs:
       - name: Checkout V5
         uses: actions/checkout@v4
 
-      # Geçici olarak durduruldu. Regression testleri daha sonra yeniden
-      # aktif etmek için if koşulunu true yap.
-      - name: Offline acceptance regression (PAUSED)
-        if: ${{ false }}
+      - name: Offline acceptance regression C19
         shell: bash
         run: |
           set -Eeuo pipefail
-          echo "🧪 V5 offline acceptance regression C12'den başlıyor..."
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c12 TestJSON/HattrickAI_V5_CHPP_FullOffline_2026-09-01.json
-          echo "✅ V5 offline acceptance regression tamamlandı"
+          echo "🧪 V5 C19 Motor DB JSON regression başlıyor..."
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c19
+          echo "✅ V5 C19 Motor DB JSON regression tamamlandı"
 
       - name: Build Docker image
         shell: bash
