@@ -54,8 +54,6 @@ public sealed class MotorPipelineService
             var db2 = databases.SecondPass.TopWithFormationDiversity(100, CandidateEvaluationDatabase.MaxPerFormation); if (db2.Count == 0 || m6b.TopCandidates.Count == 0) throw new InvalidOperationException("M6-B Candidate DB #2 oluşturamadı."); var missingDb2Formations = legalFormations.Where(f => !db2.Any(x => x.Formation.Equals(f, StringComparison.Ordinal))).ToList(); if (missingDb2Formations.Count > 0) throw new InvalidOperationException($"Anti-lock ihlali: DB2 içinde formasyon yok: {string.Join(", ", missingDb2Formations)}"); var formationDb2Summary = FormatFormationCounts(db2); LogComplete(runId, "M6-B", $"İkinci search tamamlandı • DB2 {databases.SecondPass.Count} aday • {formationDb2Summary} • M10 rank-driven", sw.ElapsedMilliseconds, m6b.EvaluatedCandidates);
             var finalists = db2.Select(record => { var tactical = cache.TryGetValue("B:" + record.CandidateId, out var cached) ? cached.Tactical : null; return tactical is null || record.Prediction is null ? null : new M11CandidateEvaluation(tactical, record.Prediction, record.Chance.StructuralChanceIndex, 1.0); }).Where(x => x is not null).Cast<M11CandidateEvaluation>().ToList(); if (finalists.Count == 0) throw new InvalidOperationException("M11 final havuzu oluşturulamadı."); if (finalists.Select(x => x.TacticalCandidate.Lineup.Formation).Distinct(StringComparer.Ordinal).Count() != legalFormations.Count) throw new InvalidOperationException("Anti-lock ihlali: M11 finalist havuzuna tüm legal formasyonlar taşınamadı."); sw.Restart(); LogStart(runId, "M11", $"DB2 final selection: {finalists.Count} aday • {legalFormations.Count} formasyon karşılaştırılıyor"); var m11 = _m11.Select(finalists); LogComplete(runId, "M11", $"DB2 final selection completed • FINAL: {m11.BestPlan.Formation} • {m11.CandidateCount} aday • {m11.FormationCount} formasyon • DB2 {formationDb2Summary}", sw.ElapsedMilliseconds, m11.CandidateCount);
 
-            // Expanded tactic search space: every DB2 XI is evaluated under every supported TeamTactic.
-            // The actual decision space is XI × tactic, not one tactic representative per formation.
             sw.Restart();
             LogStart(runId, "M11", $"Taktik arama uzayı: {db2.Count} DB2 XI × {Enum.GetValues<TeamTactic>().Length} taktik");
             var tacticComparisons = EvaluateFormationTactics(db2, legalFormations, players, context, runId, ct);
@@ -108,26 +106,20 @@ public sealed class MotorPipelineService
         }
     }
 
-    private List<FormationTacticComparison> EvaluateFormationTactics(
-        IReadOnlyList<CandidateEvaluationRecord> db2,
-        IReadOnlyList<string> legalFormations,
-        IReadOnlyList<Player> players,
-        MatchDataContext context,
-        string? runId,
-        CancellationToken ct)
+    private List<FormationTacticComparison> EvaluateFormationTactics(IReadOnlyList<CandidateEvaluationRecord> db2, IReadOnlyList<string> legalFormations, IReadOnlyList<Player> players, MatchDataContext context, string? runId, CancellationToken ct)
     {
         var tactics = Enum.GetValues<TeamTactic>();
         var results = new List<FormationTacticComparison>(db2.Count * tactics.Length);
-        foreach (var representative in db2)
+        foreach (var candidate in db2)
         {
             ct.ThrowIfCancellationRequested();
-            if (!legalFormations.Contains(representative.Formation, StringComparer.Ordinal)) continue;
+            if (!legalFormations.Contains(candidate.Formation, StringComparer.Ordinal)) continue;
             foreach (var tactic in tactics)
             {
                 ct.ThrowIfCancellationRequested();
-                var evaluation = EvaluateForComparison(representative.Lineup, players, context, tactic);
+                var evaluation = EvaluateForComparison(candidate.Lineup, players, context, tactic);
                 var prediction = evaluation.Prediction;
-                results.Add(new FormationTacticComparison(representative.Formation, representative.CandidateId, tactic, evaluation.Tactical.TacticalScore, evaluation.Chance.StructuralChanceIndex, evaluation.Chance.MidfieldShare, evaluation.Chance.OwnRegularChanceExpected, evaluation.Chance.OpponentRegularChanceExpected, prediction.WinProbability, prediction.DrawProbability, prediction.LossProbability, prediction.ExpectedHomeGoals, prediction.ExpectedAwayGoals, evaluation.Advanced.Level.Value, evaluation.Advanced.Tactic));
+                results.Add(new FormationTacticComparison(candidate.Formation, candidate.CandidateId, tactic, evaluation.Tactical.TacticalScore, evaluation.Chance.StructuralChanceIndex, evaluation.Chance.MidfieldShare, evaluation.Chance.OwnRegularChanceExpected, evaluation.Chance.OpponentRegularChanceExpected, prediction.WinProbability, prediction.DrawProbability, prediction.LossProbability, prediction.ExpectedHomeGoals, prediction.ExpectedAwayGoals, evaluation.Advanced.Level.Value, evaluation.Advanced.Tactic));
             }
         }
         return results;
@@ -154,10 +146,10 @@ public sealed class MotorPipelineService
         var tacticalScore = (0.70 * chance.StructuralChanceIndex) + (0.30 * matchup.OverallScore);
         var tactical = new TacticalCandidate(lineup, scenario.Rating, matchup, tacticalScore);
         var prediction = _m9.Predict(tactical, chance, context.Opponent.Rating, context.RatingContext.MatchLocation, players, context.Opponent.LastMatchLineup, context.Opponent.Players).Prediction;
-        return new ComparisonEvaluation(tactical, advanced, chance, prediction);
+        return new ComparisonEvaluation(tactical, scenario, advanced, chance, prediction);
     }
 
-    private sealed record ComparisonEvaluation(TacticalCandidate Tactical, AdvancedTacticalScenarioResult Advanced, M8ChanceResult Chance, MatchPrediction Prediction);
+    private sealed record ComparisonEvaluation(TacticalCandidate Tactical, RatingScenarioResult Scenario, AdvancedTacticalScenarioResult Advanced, M8ChanceResult Chance, MatchPrediction Prediction);
 
     private static M9EventGoalBreakdown selectedM9ResultOpponentEvents(M9PredictionResult result) => result.OpponentEventGoals;
     private static string FormatFormationCounts(IEnumerable<CandidateEvaluationRecord> records) => string.Join(" | ", records.GroupBy(x => x.Formation, StringComparer.Ordinal).OrderByDescending(x => x.Count()).ThenBy(x => x.Key, StringComparer.Ordinal).Select(x => $"{x.Key}:{x.Count()}"));
