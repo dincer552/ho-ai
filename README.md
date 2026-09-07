@@ -44,7 +44,23 @@
 >
 > DB2'deki XI × 7 taktik sonuçlarını tek matchup veri modelinde toplamak için `TacticalMatchupDatabase` ve builder eklendi. Her kayıt W/D/L, xG, Expected Points, ΔxG, fit/eligibility ve explanation taşır. Bir XI'ın en iyi taktiği Expected Points üzerinden deterministik sıralanabilir. M10/M11 threshold + anti-lock değişmedi.
 >
-> **Sonraki aşama: T5 — DB3'ün gerçek pipeline çıktısına bağlanması ve final taktik seçiminde M9 outcome katmanının kullanılması.**
+> ### T5 — DB3 outcome-driven final tactic — TAMAMLANDI 07.09.2026
+>
+> DB3 gerçek pipeline'a bağlandı. Final taktik artık eligible sonuçlar arasında `ExpectedPoints` üzerinden seçiliyor; suitability/fit yalnızca deterministik tie-break olarak kalıyor. Seçilen taktik `FinalMatchPlan` ve `Analysis` üzerinden kanonik şekilde taşınıyor. M10/M11 threshold + anti-lock değişmedi.
+>
+> ### T6 — DB3 JSON görünürlüğü — TAMAMLANDI 07.09.2026
+>
+> Motor sonucu DB3 matchup kayıtlarını, seçilen taktiği ve seçilen taktiğin Expected Points değerini web/JSON katmanına taşıyor.
+>
+> ### T7 — canlı web DB3 karşılaştırma ekranı — BEKLEMEDE
+>
+> DB3 karşılaştırma UI'ı, önceki denemede acceptance/build zincirini bozduğu için `v5` üzerinde yayınlanmadı. Çalışan deploy tabanı korunuyor; UI yeniden ayrı ve güvenli bir aşamada ele alınacak.
+>
+> ### T8 — tactical outcome edge-case regression — UYGULANDI 07.09.2026
+>
+> DB3 outcome katmanı için yeni acceptance regression eklendi: yedi taktiğin tamamının korunması, W/D/L sonlu ve normalize olması, `ExpectedPoints = 3×W + D` kanonikliği, yüksek fit ama düşük outcome durumunda outcome'un kazanması, ineligible kayıtların dışlanması, duplicate satırların deterministik replacement davranışı ve geçersiz olasılıkların reddedilmesi test ediliyor. Bu katman istatistiksel olarak eğitilmiş bir calibration modeli değildir; mevcut M9 outcome sözleşmesini koruyan regression guard'dır.
+>
+> **Sonraki aşama: T9 — gerçek çoklu maç sonuçlarıyla tactical outcome calibration ve edge analizi.**
 >
 > ## V5 Teknik Manuel PDF Projesi — Çalışma Planı
 >
@@ -54,4 +70,3 @@
 >
 > ### Manuel hazırlama aşamaları
 >
-```
