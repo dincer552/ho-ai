@@ -12,6 +12,8 @@ public static class TacticObjectiveEngine
 
         if (tactic == TeamTactic.Pressing)
             return PressingTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
+        if (tactic == TeamTactic.Creative)
+            return CreativeTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
 
         var own = tacticEvaluation.Chance; var baseline = baselineNormal.Chance; var inputs = tacticEvaluation.Advanced.Inputs;
         var outfieldCount = Math.Max(1, lineup.Slots.Count(s => s.Code != "GK"));
@@ -33,7 +35,6 @@ public static class TacticObjectiveEngine
             TeamTactic.CounterAttack => Math.Clamp(Clamp01(c.CounterAttackChanceExpected / 2.5) * 0.60 + Clamp01((a.CounterAttack?.RelativeCounterInput ?? 0) / 200.0) * 0.20 + PossessionDisadvantage(c) * 0.20, 0, 1),
             TeamTactic.AttackWings => Math.Clamp(WingMatchup(c) * 0.55 + (c.RightChanceShare + c.LeftChanceShare) * 0.25 + Clamp01(c.TacticConversionRate / 0.52) * 0.20, 0, 1),
             TeamTactic.AttackMiddle => Math.Clamp(CentreMatchup(c) * 0.55 + c.CentreChanceShare * 0.25 + Clamp01(c.TacticConversionRate / 0.35) * 0.20, 0, 1),
-            TeamTactic.Creative => Math.Clamp(Clamp01((c.CreativeEventMultiplier - 1.0) / 2.8) * 0.45 + Clamp01((a.PlayCreatively?.CreativeInput ?? 0) / 500.0) * 0.25 + Clamp01(SpecialEventGoals(p.EventGoals) / 1.0) * 0.30, 0, 1),
             TeamTactic.LongShots => Math.Clamp(Clamp01(c.LongShotChanceExpected / 2.0) * 0.45 + Clamp01((a.LongShots?.ShooterInput ?? 0) / 150.0) * 0.25 + KeeperMatchup(opponentPlayers) * 0.30, 0, 1),
             _ => Math.Clamp(0.50 * c.StructuralChanceIndex + 0.50 * p.WinProbability, 0, 1)
         };
@@ -47,7 +48,6 @@ public static class TacticObjectiveEngine
             TeamTactic.CounterAttack => Norm(passing) * 0.55 + Norm(defending) * 0.35 + Norm(stamina) * 0.10,
             TeamTactic.AttackWings => Norm(i.TotalWinger / count) * 0.50 + Norm(passing) * 0.30 + Norm(scoring) * 0.20,
             TeamTactic.AttackMiddle => Norm(passing) * 0.45 + Norm(i.TotalPlaymaking / count) * 0.35 + Norm(scoring) * 0.20,
-            TeamTactic.Creative => Norm(passing) * 0.45 + Norm(experience) * 0.35 + Norm(i.TotalPlaymaking / count) * 0.20,
             TeamTactic.LongShots => Norm(scoring) * 0.60 + Norm(passing) * 0.25 + Norm(experience) * 0.15,
             _ => 0.5
         };
@@ -60,7 +60,6 @@ public static class TacticObjectiveEngine
             TeamTactic.CounterAttack => Clamp01(PossessionDisadvantage(c) * 0.40 + Clamp01(c.CounterAttackChanceExpected / 2.5) * 0.35 + p.WinProbability * 0.25),
             TeamTactic.AttackWings => WingMatchup(c),
             TeamTactic.AttackMiddle => CentreMatchup(c),
-            TeamTactic.Creative => Clamp01((c.CreativeEventMultiplier / 3.8) * 0.45 + p.WinProbability * 0.35 + (1.0 - c.OpponentRegularQuality) * 0.20),
             TeamTactic.LongShots => Clamp01(KeeperMatchup(opponentPlayers) * 0.45 + Clamp01(c.LongShotChanceExpected / 2.0) * 0.30 + p.WinProbability * 0.25),
             _ => p.WinProbability
         };
@@ -73,7 +72,6 @@ public static class TacticObjectiveEngine
             TeamTactic.Pressing => Clamp01(0.70 * ownLoss + 0.30 * Math.Max(0, -opponentGain)),
             TeamTactic.CounterAttack => Clamp01(0.55 * ownLoss + 0.45 * Math.Max(0, baselinePrediction.WinProbability - prediction.WinProbability)),
             TeamTactic.AttackWings or TeamTactic.AttackMiddle or TeamTactic.LongShots => Clamp01(0.70 * ownLoss + 0.30 * Math.Max(0, baselinePrediction.WinProbability - prediction.WinProbability)),
-            TeamTactic.Creative => Clamp01(0.35 * ownLoss + 0.65 * Math.Max(0, baselinePrediction.WinProbability - prediction.WinProbability)),
             _ => 0
         };
     }
@@ -84,7 +82,6 @@ public static class TacticObjectiveEngine
             TeamTactic.Pressing => Clamp01(c.PressingSuppression / 0.41) * 0.75 + NormPerPlayer(a.Inputs.TotalDefending, 10) * 0.25,
             TeamTactic.CounterAttack => Clamp01(c.CounterAttackChanceExpected / 2.5) * 0.75 + NormPerPlayer(a.Inputs.TotalPassing, 10) * 0.25,
             TeamTactic.AttackWings or TeamTactic.AttackMiddle => Clamp01(c.TacticConversionRate / 0.52),
-            TeamTactic.Creative => Clamp01(c.CreativeEventMultiplier / 3.8),
             TeamTactic.LongShots => Clamp01(c.LongShotChanceExpected / 2.0) * 0.75 + NormPerPlayer(a.Inputs.TotalScoring, 10) * 0.25,
             _ => 0.5
         };
@@ -93,7 +90,6 @@ public static class TacticObjectiveEngine
     private static double PossessionDisadvantage(M8ChanceResult c) => Clamp01((0.50 - c.MidfieldShare) / 0.50);
     private static double WingMatchup(M8ChanceResult c) => Clamp01((c.LeftAttackVsRightDefence + c.RightAttackVsLeftDefence) / 2.0);
     private static double CentreMatchup(M8ChanceResult c) => Clamp01(c.CentreAttackVsCentreDefence);
-    private static double SpecialEventGoals(M9EventGoalBreakdown e) => Math.Max(0, e.PlayerBasedSpecialEventGoals + e.TeamBasedSpecialEventGoals + e.PowerfulNormalForwardGoals);
     private static double KeeperMatchup(IReadOnlyList<Player>? players) => players is null ? 0.5 : Clamp01(1.0 - players.Where(p => p.Keeper > 0).Select(p => p.Keeper).DefaultIfEmpty(10).Average() / 20.0);
     private static double RelativeLoss(double baseline, double tactic) => baseline <= 1e-9 ? 0 : Clamp01((baseline - tactic) / baseline);
     private static double Average(double total, int count) => total / Math.Max(1, count);
@@ -107,7 +103,6 @@ public static class TacticObjectiveEngine
             TeamTactic.CounterAttack => $"CA eligible {c.CounterAttackEligible}; CA chances {c.CounterAttackChanceExpected:0.##}; midfield share {c.MidfieldShare:P1}.",
             TeamTactic.AttackWings => $"Wing matchup {WingMatchup(c):P1}; wing conversion {c.TacticConversionRate:P1}; centre trade-off measured.",
             TeamTactic.AttackMiddle => $"Centre matchup {CentreMatchup(c):P1}; centre conversion {c.TacticConversionRate:P1}; wing trade-off measured.",
-            TeamTactic.Creative => $"Creative event multiplier {c.CreativeEventMultiplier:0.##}; passing/experience fit and event output measured.",
             TeamTactic.LongShots => $"Long-shot chances {c.LongShotChanceExpected:0.##}; shooter/passing fit and keeper matchup measured.",
             _ => "Normal: balanced baseline objective."
         };
