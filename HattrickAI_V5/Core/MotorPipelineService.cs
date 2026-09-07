@@ -58,7 +58,7 @@ public sealed class MotorPipelineService
             LogStart(runId, "M11", $"Taktik arama uzayı: {db2.Count} DB2 XI × {Enum.GetValues<TeamTactic>().Length} taktik");
             var tacticComparisons = EvaluateFormationTactics(db2, legalFormations, players, context, runId, ct);
             if (tacticComparisons.Count == 0) throw new InvalidOperationException("Taktik arama uzayı boş kaldı.");
-            var bestTactic = tacticComparisons.OrderByDescending(TacticSelectionScore).ThenByDescending(x => x.WinProbability).ThenByDescending(x => x.TacticalScore).First();
+            var bestTactic = tacticComparisons.Where(x => x.TacticEligible).OrderByDescending(x => x.TacticFitScore).ThenByDescending(x => x.WinProbability).ThenByDescending(x => x.TacticalScore).First();
             LogComplete(runId, "M11", $"Taktik arama tamamlandı • {tacticComparisons.Count} XI×taktik sonucu • FINAL {bestTactic.Formation} + {bestTactic.Tactic}", sw.ElapsedMilliseconds, tacticComparisons.Count);
 
             var selectedKey = bestTactic.CandidateId;
@@ -106,7 +106,13 @@ public sealed class MotorPipelineService
         }
     }
 
-    private List<FormationTacticComparison> EvaluateFormationTactics(IReadOnlyList<CandidateEvaluationRecord> db2, IReadOnlyList<string> legalFormations, IReadOnlyList<Player> players, MatchDataContext context, string? runId, CancellationToken ct)
+    private List<FormationTacticComparison> EvaluateFormationTactics(
+        IReadOnlyList<CandidateEvaluationRecord> db2,
+        IReadOnlyList<string> legalFormations,
+        IReadOnlyList<Player> players,
+        MatchDataContext context,
+        string? runId,
+        CancellationToken ct)
     {
         var tactics = Enum.GetValues<TeamTactic>();
         var results = new List<FormationTacticComparison>(db2.Count * tactics.Length);
@@ -114,25 +120,49 @@ public sealed class MotorPipelineService
         {
             ct.ThrowIfCancellationRequested();
             if (!legalFormations.Contains(candidate.Formation, StringComparer.Ordinal)) continue;
+
+            // Every tactic is evaluated against the same XI baseline. This makes the
+            // tactic-specific trade-off explicit instead of rewarding a tactic merely
+            // because it produced a high generic TacticalScore.
+            var baseline = EvaluateForComparison(candidate.Lineup, players, context, TeamTactic.Normal);
+            var baselineView = new ComparisonEvaluationView(baseline.Chance, baseline.Advanced, baseline.Prediction);
+
             foreach (var tactic in tactics)
             {
                 ct.ThrowIfCancellationRequested();
                 var evaluation = EvaluateForComparison(candidate.Lineup, players, context, tactic);
                 var prediction = evaluation.Prediction;
-                results.Add(new FormationTacticComparison(candidate.Formation, candidate.CandidateId, tactic, evaluation.Tactical.TacticalScore, evaluation.Chance.StructuralChanceIndex, evaluation.Chance.MidfieldShare, evaluation.Chance.OwnRegularChanceExpected, evaluation.Chance.OpponentRegularChanceExpected, prediction.WinProbability, prediction.DrawProbability, prediction.LossProbability, prediction.ExpectedHomeGoals, prediction.ExpectedAwayGoals, evaluation.Advanced.Level.Value, evaluation.Advanced.Tactic));
+                var view = new ComparisonEvaluationView(evaluation.Chance, evaluation.Advanced, evaluation.Prediction);
+                var fit = TacticObjectiveEngine.Evaluate(candidate.Lineup, tactic, baselineView, view, players, context.Opponent.Players);
+
+                results.Add(new FormationTacticComparison(
+                    candidate.Formation,
+                    candidate.CandidateId,
+                    tactic,
+                    evaluation.Tactical.TacticalScore,
+                    evaluation.Chance.StructuralChanceIndex,
+                    evaluation.Chance.MidfieldShare,
+                    evaluation.Chance.OwnRegularChanceExpected,
+                    evaluation.Chance.OpponentRegularChanceExpected,
+                    prediction.WinProbability,
+                    prediction.DrawProbability,
+                    prediction.LossProbability,
+                    prediction.ExpectedHomeGoals,
+                    prediction.ExpectedAwayGoals,
+                    evaluation.Advanced.Level.Value,
+                    evaluation.Advanced.Tactic)
+                {
+                    TacticFitScore = fit.FitScore,
+                    TacticPrimaryMetric = fit.PrimaryMetric,
+                    TacticTradeoffCost = fit.TradeoffCost,
+                    TacticSquadFit = fit.SquadFit,
+                    TacticMatchupFit = fit.MatchupFit,
+                    TacticEligible = fit.Eligible,
+                    TacticExplanation = fit.Explanation
+                });
             }
         }
         return results;
-    }
-
-    private static double TacticSelectionScore(FormationTacticComparison x)
-    {
-        var tactical = 1.0 / (1.0 + Math.Exp(-Math.Clamp(x.TacticalScore, -20.0, 20.0)));
-        var win = Math.Clamp(x.WinProbability, 0.0, 1.0);
-        var draw = Math.Clamp(x.DrawProbability, 0.0, 1.0);
-        var structural = Math.Clamp(x.StructuralChanceIndex, 0.0, 1.0);
-        var riskAdjustedOutcome = win + (0.50 * draw);
-        return (0.35 * tactical) + (0.35 * win) + (0.15 * structural) + 0.05 + (0.10 * riskAdjustedOutcome);
     }
 
     private ComparisonEvaluation EvaluateForComparison(Lineup lineup, IReadOnlyList<Player> players, MatchDataContext context, TeamTactic tactic)
