@@ -39,10 +39,16 @@ public static class M9PredictionRegression
             Check(double.IsFinite(p.WinProbability) && double.IsFinite(p.DrawProbability) && double.IsFinite(p.LossProbability), "M9 W/D/L are finite");
             Check(p.WinProbability >= 0 && p.WinProbability <= 1 && p.DrawProbability >= 0 && p.DrawProbability <= 1 && p.LossProbability >= 0 && p.LossProbability <= 1, "M9 W/D/L are bounded");
             Check(Math.Abs((p.WinProbability + p.DrawProbability + p.LossProbability) - 1.0) <= 1e-9, "M9 W/D/L sum to 1");
+            Check(Math.Abs(p.ExpectedPoints - (3.0 * p.WinProbability + p.DrawProbability)) <= 1e-12, "M9 expected points equals 3W+D");
+            Check(Math.Abs(p.ExpectedGoalDifference - (p.ExpectedHomeGoals - p.ExpectedAwayGoals)) <= 1e-12, "M9 expected goal difference equals xG difference");
             Check(m9.EventGoals is not null && m9.OpponentEventGoals is not null, "M9 event layers are present");
             var simulation = m9.Simulation;
             Check(simulation.Outcome is not null, "M9 Monte Carlo outcome exists");
             Check(Math.Abs(simulation.Outcome.WinProbability + simulation.Outcome.DrawProbability + simulation.Outcome.LossProbability - 1.0) <= 1e-9, "M9 simulation W/D/L sum to 1");
+            var simulationRepeat = new M9SimulationEngine().Simulate(m9, simulation.SimulationCount, 9051);
+            Check(Math.Abs(simulationRepeat.Outcome.WinProbability - simulation.Outcome.WinProbability) <= 1e-12, "M9 Monte Carlo is deterministic for the same seed");
+            Check(Math.Abs(simulationRepeat.Outcome.DrawProbability - simulation.Outcome.DrawProbability) <= 1e-12, "M9 Monte Carlo draw output is deterministic for the same seed");
+            Check(Math.Abs(simulationRepeat.Outcome.LossProbability - simulation.Outcome.LossProbability) <= 1e-12, "M9 Monte Carlo loss output is deterministic for the same seed");
             Check(!string.IsNullOrWhiteSpace(m9.MostLikelyScore), "M9 most-likely score exists");
 
             var finalCandidateId = CandidateId(result.FinalPlan.Lineup);
@@ -60,12 +66,12 @@ public static class M9PredictionRegression
                 Check(double.IsFinite(row.WinProbability) && double.IsFinite(row.DrawProbability) && double.IsFinite(row.LossProbability), $"M9 tactic audit W/D/L finite: {row.Tactic}");
                 Check(Math.Abs(row.WinProbability + row.DrawProbability + row.LossProbability - 1.0) <= 1e-9, $"M9 tactic audit W/D/L sum to 1: {row.Tactic}");
                 Check(double.IsFinite(row.ExpectedHomeGoals) && double.IsFinite(row.ExpectedAwayGoals), $"M9 tactic audit xG finite: {row.Tactic}");
-                Console.WriteLine($"{row.Tactic,-13} | W/D/L={row.WinProbability:P1}/{row.DrawProbability:P1}/{row.LossProbability:P1} | xG={row.ExpectedHomeGoals:0.###}-{row.ExpectedAwayGoals:0.###} | fit={row.TacticFitScore:0.000} | eligible={row.TacticEligible}");
+                Check(double.IsFinite(row.ExpectedPoints), $"M9 tactic audit expected points finite: {row.Tactic}");
+                Check(double.IsFinite(row.ExpectedGoalDifference), $"M9 tactic audit expected goal difference finite: {row.Tactic}");
+                Console.WriteLine($"{row.Tactic,-13} | W/D/L={row.WinProbability:P1}/{row.DrawProbability:P1}/{row.LossProbability:P1} | xG={row.ExpectedHomeGoals:0.###}-{row.ExpectedAwayGoals:0.###} | EP={row.ExpectedPoints:0.###} | GD={row.ExpectedGoalDifference:+0.###;-0.###;0} | fit={row.TacticFitScore:0.000} | eligible={row.TacticEligible}");
             }
             Console.WriteLine($"M9 baseline={normalRow.Tactic} is fixed per XI/opponent; output ceiling remains 0.05..5.00 for current production compatibility.");
 
-            // Rebuild only the selected production candidate. M9 itself consumes lineup + rating
-            // and the explicit opponent rating; Matchup is not consulted on this overload.
             var selectedCandidate = new TacticalCandidate(
                 result.FinalPlan.Lineup,
                 result.FinalPlan.Rating,
@@ -85,8 +91,8 @@ public static class M9PredictionRegression
             Check(Equal(direct.Prediction.WinProbability, p.WinProbability), "M9 direct recalculation matches pipeline win probability");
             Check(Equal(direct.Prediction.DrawProbability, p.DrawProbability), "M9 direct recalculation matches pipeline draw probability");
             Check(Equal(direct.Prediction.LossProbability, p.LossProbability), "M9 direct recalculation matches pipeline loss probability");
-            Console.WriteLine($"M9 formation={m9.Formation} | W/D/L={p.WinProbability:P1}/{p.DrawProbability:P1}/{p.LossProbability:P1} | xG={p.ExpectedHomeGoals:0.###}-{p.ExpectedAwayGoals:0.###} | score={m9.MostLikelyScore}");
-            Console.WriteLine("PASS: C8 M9 prediction continuity + T1 same-XI seven-tactic audit");
+            Console.WriteLine($"M9 formation={m9.Formation} | W/D/L={p.WinProbability:P1}/{p.DrawProbability:P1}/{p.LossProbability:P1} | xG={p.ExpectedHomeGoals:0.###}-{p.ExpectedAwayGoals:0.###} | EP={p.ExpectedPoints:0.###} | ΔxG={p.ExpectedGoalDifference:+0.###;-0.###;0} | score={m9.MostLikelyScore}");
+            Console.WriteLine("PASS: C8 M9 prediction continuity + T1 audit + T3 outcome metrics");
             return 0;
         }
         catch (Exception ex) { MotorRunLogStore.Finish(runId, false, ex.Message); return Fail("C8 exception: " + ex.Message); }
