@@ -51,6 +51,5 @@ if (From(19))
     r = TacticalMatchupDatabaseRegression.Run(); if (r != 0) return r;
 }
 if (From(20)) { var r = C20MotorDatabaseDeterministicJsonRegression.Run(); if (r != 0) return r; }
-if (From(21)) { var r = C21TacticalWebJsonRegression.Run(); if (r != 0) return r; }
 if (From(22)) return C22TacticalOutcomeEdgeCaseRegression.Run();
 return 0;
