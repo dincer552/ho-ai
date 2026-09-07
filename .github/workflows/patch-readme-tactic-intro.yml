@@ -1,0 +1,27 @@
+name: Patch README Tactic Intro
+
+on: push
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout v5
+        uses: actions/checkout@v4
+        with:
+          ref: v5
+          fetch-depth: 0
+      - name: Prepend README block
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -c 'from pathlib import Path; p=Path("README.md"); s=p.read_text(encoding="utf-8"); intro=Path("HattrickAI_V5/Docs/README_TACTIC_INTRO.md").read_text(encoding="utf-8"); marker="# HattrickAI V5\n"; assert s.startswith(marker); p.write_text(marker+"\n"+intro+"\n"+s[len(marker):], encoding="utf-8")'
+          rm -f .github/workflows/patch-readme-tactic-intro.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md HattrickAI_V5/Docs/README_TACTIC_INTRO.md .github/workflows/patch-readme-tactic-intro.yml
+          git commit -m "docs: add dated tactic suitability plan to README [skip ci]"
+          git push origin HEAD:v5
