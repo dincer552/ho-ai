@@ -2,7 +2,7 @@ using HattrickAI.V5.Core;
 
 namespace HattrickAI.V5.OfflineTests;
 
-/// <summary>T9 regression for historical tactical outcome calibration metrics.</summary>
+/// <summary>T9 regression for tactical outcome calibration metrics.</summary>
 public static class C23TacticalOutcomeCalibrationRegression
 {
     public static int Run()
@@ -19,7 +19,8 @@ public static class C23TacticalOutcomeCalibrationRegression
 
         Check(report.InputSamples == 4, "all input samples are counted");
         Check(report.ValidSamples == 3 && report.InvalidSamples == 1, "invalid probability rows are excluded");
-        Check(Math.Abs(report.BrierScore - (0.10 + 0.38 + 0.14) / 3.0) < 1e-12, "multiclass Brier score is deterministic");
+        // m1 Brier = 0.09 + 0.04 + 0.01 = 0.14; m2 = 0.38; m3 = 0.14.
+        Check(Math.Abs(report.BrierScore - (0.14 + 0.38 + 0.14) / 3.0) < 1e-12, "multiclass Brier score is deterministic");
         Check(Math.Abs(report.LogLoss - ((-Math.Log(0.70)) + (-Math.Log(0.50)) + (-Math.Log(0.70))) / 3.0) < 1e-12, "log loss is deterministic");
         Check(Math.Abs(report.Accuracy - 1.0) < 1e-12, "top-probability outcome accuracy is deterministic");
         Check(report.ByTactic.Count == 2, "valid tactics are grouped independently");
