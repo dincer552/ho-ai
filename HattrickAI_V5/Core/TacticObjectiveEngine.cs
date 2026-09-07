@@ -14,6 +14,8 @@ public static class TacticObjectiveEngine
             return PressingTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
         if (tactic == TeamTactic.Creative)
             return CreativeTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
+        if (tactic == TeamTactic.CounterAttack)
+            return CounterAttackTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
 
         var own = tacticEvaluation.Chance; var baseline = baselineNormal.Chance; var inputs = tacticEvaluation.Advanced.Inputs;
         var outfieldCount = Math.Max(1, lineup.Slots.Count(s => s.Code != "GK"));
@@ -100,7 +102,7 @@ public static class TacticObjectiveEngine
         => tactic switch
         {
             TeamTactic.Pressing => $"Opponent suppression {Suppression(c, baseline):P1}; own chance loss {RelativeLoss(baseline.OwnRegularChanceExpected, c.OwnRegularChanceExpected):P1}; DEF/STAM fit evaluated.",
-            TeamTactic.CounterAttack => $"CA eligible {c.CounterAttackEligible}; CA chances {c.CounterAttackChanceExpected:0.##}; midfield share {c.MidfieldShare:P1}.",
+            TeamTactic.CounterAttack => $"CA eligibility {c.CounterAttackEligible}; tactical CA chances {c.CounterAttackChanceExpected:0.##}; midfield share {c.MidfieldShare:P1}.",
             TeamTactic.AttackWings => $"Wing matchup {WingMatchup(c):P1}; wing conversion {c.TacticConversionRate:P1}; centre trade-off measured.",
             TeamTactic.AttackMiddle => $"Centre matchup {CentreMatchup(c):P1}; centre conversion {c.TacticConversionRate:P1}; wing trade-off measured.",
             TeamTactic.LongShots => $"Long-shot chances {c.LongShotChanceExpected:0.##}; shooter/passing fit and keeper matchup measured.",
@@ -109,4 +111,4 @@ public static class TacticObjectiveEngine
 }
 
 public sealed record TacticFitResult(TeamTactic Tactic, double FitScore, double PrimaryMetric, double TradeoffCost, double SquadFit, double MatchupFit, bool Eligible, string Explanation);
-public sealed record ComparisonEvaluationView(M8ChanceResult Chance, AdvancedTacticalScenarioResult Advanced, M9PredictionResult Prediction);
+public sealed record ComparisonEvaluationView(M8ChanceResult Chance, AdvancedTacticalScenarioResult Advanced, M9MatchPredictionView Prediction);
