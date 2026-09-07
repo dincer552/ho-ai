@@ -18,6 +18,8 @@ public static class TacticObjectiveEngine
             return CounterAttackTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
         if (tactic == TeamTactic.AttackMiddle)
             return AttackMiddleTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
+        if (tactic == TeamTactic.AttackWings)
+            return AttackWingsTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
 
         var own = tacticEvaluation.Chance; var baseline = baselineNormal.Chance; var inputs = tacticEvaluation.Advanced.Inputs;
         var outfieldCount = Math.Max(1, lineup.Slots.Count(s => s.Code != "GK"));
