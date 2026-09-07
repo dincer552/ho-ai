@@ -12,8 +12,8 @@
 >
 > 1. **Yaratıcı Oyna (Creative)** — ilk ve en derin uygulama.
 > 2. **Pressing** — savunma/stamina, rakip şans bastırma ve yan etki. **Araştırma + dedicated evaluator kodlandı — 07.09.2026.**
-> 3. **Counter Attack** — eligibility, midfield kaybı, savunma üstünlüğü ve CA fırsat kalitesi.
-> 4. **Attack in the Middle (AiM)** — merkez hücum eşleşmesi, dönüşüm getirisi ve savunma maliyeti.
+> 3. **Counter Attack** — eligibility, midfield kaybı, savunma üstünlüğü ve CA fırsat kalitesi. **Dedicated evaluator kodlandı — 07.09.2026.**
+> 4. **Attack in the Middle (AiM)** — merkez hücum eşleşmesi, dönüşüm getirisi ve savunma maliyeti. **Dedicated evaluator kodlandı — 07.09.2026.**
 > 5. **Attack on Wings (AoW)** — iki kanat eşleşmesi, dönüşüm getirisi ve savunma maliyeti.
 > 6. **Long Shots** — taktik seviyesi, shooter kalitesi, fırsat maliyeti ve rakip GK/defence eşleşmesi.
 > 7. **Normal** — diğer taktiklerin değişmeyen baseline'ı.
@@ -36,11 +36,17 @@
 >
 > Pressing için resmi/ana kaynaklardan doğrulanan çekirdek: tüm outfield XI'ın defending + stamina katkısı, experience katkısı, Powerful oyuncuda defending'in 2× sayılması, normal şansların iki takım için azaltılması ve stamina maliyeti. Özel olaylar Pressing tarafından bastırılmaz. Yeni `PressingTacticEvaluator`, **DEF fit + STAM fit + EXP fit + Powerful katkısı + rakip normal şans bastırması + kendi şans kaybı + stamina riski + rakip saldırı değeri + Normal opportunity cost** katmanlarını ayrı değerlendiriyor.
 >
+> ### Counter Attack üçüncü aşama — 07.09.2026
+>
+> `CounterAttackTacticEvaluator` artık CA'yı genel objective hesabından ayırıyor. **Pre-penalty midfield eligibility + %7 midfield penalty + rakibin kaçırdığı Normal şans hacmi + %4–45 tactical CA conversion + DEF/Passing/Scoring fit + Quick/Technical CA etkileri + Normal opportunity cost** birlikte hesaplanıyor.
+>
+> ### Attack in the Middle dördüncü aşama — 07.09.2026
+>
+> `AttackMiddleTacticEvaluator` artık AiM'i genel objective hesabından ayırıyor. **Outfield Passing/Experience gereksinimi + %20–35 wing→centre conversion + %47–55 merkez payı + merkez hücum/merkez savunma eşleşmesi + kanat fırsat maliyeti + kanat savunma riski + Normal trade-off** birlikte hesaplanıyor. 2026 araştırmasının yayınlamadığı kesin savunma katsayısı için evaluator içinde açıkça bounded bir %10 risk proxy kullanılıyor; bu değer gizli motor katsayısı olarak iddia edilmiyor.
+>
 > Pressing araştırmasının ayrıntılı teknik şartnamesi: `HattrickAI_V5/Docs/PRESSING_TACTIC_RESEARCH_2026-09-07.md`
 >
-> ### Uygulama döngüsü
->
-> `Araştırma → veri modeli → taktiğe özel evaluator → M9/event entegrasyonu → regression → gerçek Motor DB → gerçek maç doğrulaması → kalibrasyon`
+> AiM araştırmasının ayrıntılı teknik şartnamesi: `HattrickAI_V5/Docs/AIM_TACTIC_RESEARCH_2026-09-07.md`
 >
 > **M10/M11 threshold + anti-lock değişmedi.**
 >
@@ -78,20 +84,3 @@ AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [TAMAMLANDI — 06.09.2026]
          9.9 Dokümantasyon / PDF snapshot güncellemesi [TAMAMLANDI — 06.09.2026]
              - A8 temel PDF snapshotı korunarak Stage 9 için tarihli A9 publication supplement oluşturuldu.
              - TECHNICAL_MANUAL_INDEX.md 06.09.2026 snapshot ve yayın dosyasıyla güncellendi.
-
-AŞAMA 10  SSH'SİZ / DÜŞÜK RAM DEPLOYMENT MİMARİSİ [DEVAM EDİYOR — 06.09.2026]
-         Amaç: GitHub Actions'ın Azure VM'ye SSH ile bağlanma, ssh-keyscan, scp ve Docker image taşıma bağımlılığını kaldırmak.
-         VM'de Docker build/test çalıştırılmayacak; böylece düşük RAM'li VM gereksiz build yükü taşımayacak.
-         10.1 Deployment mimarisini sabitle: GitHub Actions → container registry → VM [TAMAMLANDI]
-         10.2 GitHub Container Registry (GHCR) image yayınlama akışını ekle [TAMAMLANDI]
-         10.3 Azure VM'ye self-hosted GitHub Actions runner kurulumu [TAMAMLANDI — 06.09.2026]
-         10.4 VM runner'ın Docker yetkilerini ve servis olarak otomatik başlamasını doğrula [TAMAMLANDI — 06.09.2026]
-         10.5 Workflow'dan SSH / DEPLOY_SSH_KEY / ssh-keyscan / scp bağımlılıklarını kaldır [TAMAMLANDI]
-         10.6 VM runner üzerinden yalnızca image pull + container restart/deploy çalıştır [TAMAMLANDI — 06.09.2026]
-         10.7 CHPP secret aktarımını güvenli şekilde koru [KODLANDI — UÇTAN UCA DOĞRULAMA SONRAKİ RUN'DA]
-         10.8 Health check ve başarısız deployment rollback davranışını doğrula [PLAN]
-         10.9 C20 + Docker build + GHCR + VM deployment uçtan uca regression [TAMAMLANDI — 06.09.2026]
-         10.10 Deployment loglarını ve RAM kullanımını doğrula [PLAN]
-         10.11 README / PROJECT_MEMORY / CHANGE_HISTORY / teknik manuel kaynaklarını güncelle [DEVAM EDİYOR]
-
-```
