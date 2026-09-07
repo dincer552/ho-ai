@@ -2,7 +2,13 @@ using HattrickAI.V5.Core;
 using HattrickAI.V5.OfflineTests;
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
-var path = args.Length > 1 ? args[1] : args.Length > 0 && !args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0] : "TestJSON/HattrickAI_V5_CHPP_FullOffline_2026-09-01.json";
+var path = args.Length > 1
+    ? args[1]
+    : args.Length > 0 && !args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase)
+        ? args[0]
+        : startFrom == "c24"
+            ? "TestJSON/TacticalOutcomeCalibrationCorpus_2026-09-07.json"
+            : "TestJSON/HattrickAI_V5_CHPP_FullOffline_2026-09-01.json";
 var startNumber = startFrom.Length > 1 && int.TryParse(startFrom[1..], out var parsed) ? parsed : 1;
 if (startNumber < 1 || startNumber > 24) throw new ArgumentException($"Geçersiz acceptance başlangıcı: {startFrom}. c1-c24 kullanın.");
 
