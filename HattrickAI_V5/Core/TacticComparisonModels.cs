@@ -1,8 +1,8 @@
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// All supported team tactics evaluated against one representative XI of a legal formation.
-/// This is an inspection/diagnostic result; it does not override M10/M11 selection.
+/// One XI x tactic evaluation. Each tactic is scored by its own objective and squad-fit model;
+/// TacticalScore remains available as a diagnostic signal and is not the tactic selector.
 /// </summary>
 public sealed record FormationTacticComparison(
     string Formation,
@@ -19,4 +19,13 @@ public sealed record FormationTacticComparison(
     double ExpectedHomeGoals,
     double ExpectedAwayGoals,
     double TacticalLevel,
-    AdvancedTactic AdvancedTactic);
+    AdvancedTactic AdvancedTactic)
+{
+    public double TacticFitScore { get; init; }
+    public double TacticPrimaryMetric { get; init; }
+    public double TacticTradeoffCost { get; init; }
+    public double TacticSquadFit { get; init; }
+    public double TacticMatchupFit { get; init; }
+    public bool TacticEligible { get; init; }
+    public string TacticExplanation { get; init; } = string.Empty;
+}
