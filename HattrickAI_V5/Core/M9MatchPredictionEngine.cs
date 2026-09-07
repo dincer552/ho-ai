@@ -28,12 +28,25 @@ public sealed class M9MatchPredictionEngine
         var ownNormalChanceVolume = chance.NormalRegularChanceExpectedAfterLongShots; var ownCounterAttackGoals = chance.CounterAttackChanceExpected * ownRegularQuality;
         var ownSetPieceExpected = 10.0 * PaperSetPieceShare * ownChanceShare; var opponentSetPieceExpected = 10.0 * PaperSetPieceShare * opponentChanceShare;
         var ownSetPieceGoals = ownSetPieceExpected * SetPieceNeutralConversion; var opponentSetPieceGoals = opponentSetPieceExpected * SetPieceNeutralConversion;
+
+        // T2: the event engine receives the actual team tactic only for the team being evaluated.
+        // The opponent perspective is Normal unless an explicit opponent tactic is supplied by a
+        // future matchup layer; passing our tactic here would incorrectly make Creative/Pressing
+        // boost or suppress the opponent as well.
         var ownEvents = players is not null && players.Count > 0
             ? new M9EventGoalEngine().Calculate(candidate.Lineup, players, candidate.Rating.Midfield, opponent.Midfield, chance.Tactic, chance.CreativeEventMultiplier, ownNormalChanceVolume, chance.OpponentRegularChanceExpected, ownRegularQuality, opponentRegularQuality, opponentCentralDefenders: CentralDefenderCount(opponentLineup, fallback: 3))
             : M9EventGoalBreakdown.Empty;
         var opponentEvents = opponentLineup is not null && opponentPlayers is not null && opponentPlayers.Count > 0
-            ? new M9EventGoalEngine().Calculate(opponentLineup, opponentPlayers, opponent.Midfield, candidate.Rating.Midfield, chance.Tactic, chance.CreativeEventMultiplier, chance.OpponentRegularChanceExpected, ownNormalChanceVolume, opponentRegularQuality, ownRegularQuality, opponentCentralDefenders: CentralDefenderCount(candidate.Lineup, fallback: 3))
+            ? new M9EventGoalEngine().Calculate(opponentLineup, opponentPlayers, opponent.Midfield, candidate.Rating.Midfield, AdvancedTactic.Normal, 1.0, chance.OpponentRegularChanceExpected, ownNormalChanceVolume, opponentRegularQuality, ownRegularQuality, opponentCentralDefenders: CentralDefenderCount(candidate.Lineup, fallback: 3))
             : M9EventGoalBreakdown.Empty;
+
+        // T2: LS is an M8 opportunity conversion first, then a shooter-vs-GK goal check.
+        // The public Wiki formula is used only as the published mechanism; it is not claimed
+        // to be a hidden live-engine calibration coefficient.
+        var ownLongShotGoals = CalculateLongShotGoals(chance, players, opponentPlayers, candidate.Lineup);
+        if (ownLongShotGoals > 0.0)
+            ownEvents = ownEvents with { LongShotGoals = ownLongShotGoals };
+
         var ownNormalVolumeAfterPdim = ownNormalChanceVolume * (1.0 - opponentEvents.PressingSuppressionSignal);
         var opponentNormalVolumeAfterPdim = chance.OpponentRegularChanceExpected * (1.0 - ownEvents.PressingSuppressionSignal);
         var ownNormalGoals = ownNormalVolumeAfterPdim * ownRegularQuality; var opponentNormalGoals = opponentNormalVolumeAfterPdim * opponentRegularQuality;
@@ -44,6 +57,50 @@ public sealed class M9MatchPredictionEngine
         var prediction = new MatchPrediction(chance.MidfieldShare, ownExpected, opponentExpected, probabilities.Win, probabilities.Draw, probabilities.Loss) { Location = location, EventGoals = ownEvents };
         var structuralChance = Clamp01(ownChanceShare * ownRegularQuality + chance.SetPieceChanceShare * SetPieceNeutralConversion);
         return new M9PredictionResult(candidate.Lineup.Formation, CandidateId(candidate.Lineup), prediction, structuralChance, ownChanceShare, opponentChanceShare, ownRegularQuality, opponentRegularQuality, ownLeft, ownCentre, ownRight, opponentLeft, opponentCentre, opponentRight, location, M9CalibrationStatus.StructuralModelAwaitingHistoricalCalibration) { EventGoals = ownEvents, OpponentEventGoals = opponentEvents };
+    }
+
+    private static double CalculateLongShotGoals(M8ChanceResult chance, IReadOnlyList<Player>? players, IReadOnlyList<Player>? opponentPlayers, Lineup lineup)
+    {
+        if (chance.Tactic != AdvancedTactic.LongShots || chance.LongShotChanceExpected <= 0 || players is null || players.Count == 0 || opponentPlayers is null || opponentPlayers.Count == 0)
+            return 0.0;
+
+        var byId = players.ToDictionary(p => p.Id);
+        var shooters = lineup.Slots
+            .Where(s => s.PlayerId > 0 && s.Code != "GK" && byId.ContainsKey(s.PlayerId))
+            .Select(s => (Slot: s, Player: byId[s.PlayerId]))
+            .GroupBy(x => x.Player.Id)
+            .Select(g => g.First())
+            .ToArray();
+        if (shooters.Length == 0) return 0.0;
+
+        var keepers = opponentPlayers.Where(p => p.Keeper > 0).ToArray();
+        if (keepers.Length == 0) return 0.0;
+        var keeper = keepers.OrderByDescending(p => p.Keeper + p.SetPiecesSkill).First();
+        var keeperRating = KeeperRatings(keeper.Keeper, keeper.SetPiecesSkill);
+        double weightedProbability = 0.0, totalWeight = 0.0;
+        foreach (var shooter in shooters)
+        {
+            var weight = shooter.Slot.Code is "IM-L" or "IM-C" or "IM-R" or "W-L" or "W-R" ? 2.0 : 1.0;
+            var shooterRating = ShooterRatings(shooter.Player.Scoring, shooter.Player.SetPiecesSkill);
+            var probability = shooterRating + keeperRating <= 0.0 ? 0.0 : shooterRating / (shooterRating + keeperRating);
+            weightedProbability += weight * Clamp01(probability);
+            totalWeight += weight;
+        }
+        var averageProbability = totalWeight <= 0.0 ? 0.0 : Clamp01(weightedProbability / totalWeight);
+        return chance.LongShotChanceExpected * averageProbability;
+    }
+
+    private static double ShooterRatings(double scoring, double setPieces)
+    {
+        var sc = Math.Max(0.0, scoring); var sp = Math.Max(0.0, setPieces);
+        if (sc <= 0.0 || sp <= 0.0) return 0.0;
+        return 0.0643 * Math.Pow(sc, 2.3808) * Math.Pow(sp, 2.7720);
+    }
+
+    private static double KeeperRatings(double goalkeeping, double setPieces)
+    {
+        var gk = Math.Max(0.0, goalkeeping); var sp = Math.Max(0.0, setPieces);
+        return 1977.4524 * Math.Pow(gk, 0.9) + 31.4827 * Math.Pow(sp, 2.3262);
     }
 
     public M9PredictionResult Predict(TacticalCandidate candidate, M8ChanceResult chance, MatchLocation location) => Predict(candidate, chance, InferOpponent(candidate), location, null, null, null);
