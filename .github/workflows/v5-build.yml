@@ -19,11 +19,11 @@ jobs:
     steps:
       - name: Checkout V5
         uses: actions/checkout@v4
-      - name: Offline acceptance regression C20
+      - name: Offline acceptance regression C22
         shell: bash
         run: |
           set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c20
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c22
       - name: Remove fragile root HTML middleware
         shell: bash
         run: |
@@ -45,9 +45,13 @@ jobs:
           docker build --pull --build-arg BUILD_SHA="${GITHUB_SHA}" -t "${IMAGE}:${GITHUB_SHA}" -t "${IMAGE}:v5" -f HattrickAI_V5/Dockerfile .
       - name: Login to GHCR
         shell: bash
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+          GHCR_USER: ${{ github.actor }}
         run: |
           set -Eeuo pipefail
-          echo "${{ github.token }}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
+          unset GHCR_TOKEN GHCR_USER
       - name: Push Docker image to GHCR
         shell: bash
         run: |
