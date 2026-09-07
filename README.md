@@ -59,6 +59,114 @@
 > Creative araştırmasının ayrıntılı teknik şartnamesi: `HattrickAI_V5/Docs/CREATIVE_TACTIC_RESEARCH_2026-09-07.md`
 
 
+## 07.09.2026 — TAKTİK → M9 → RAKİP MAÇUP OPTİMİZASYONU / DB3 ÇALIŞMA PLANI
+
+Amaç: Motorun yalnızca “bu kadro bu taktiğe uygun mu?” sorusunu değil, **“bu XI ile bu rakibe karşı hangi taktik gerçek W/D/L sonucunu en çok iyileştiriyor?”** sorusunu cevaplaması.
+
+Bu aşamada taktik uygunluk skoru tek başına final karar kriteri olmayacak. Her DB2 XI için 7 taktik ayrı ayrı M7 → M7.2 → M8 → M9 zincirinden geçirilecek ve M9'un rakibe karşı ürettiği sonuçlar karşılaştırılacak.
+
+**Kritik sınırlar:**
+- M10/M11 threshold ve anti-lock mekanizmasına dokunulmayacak.
+- Mevcut M8 chance-pool conservation korunacak.
+- Yayınlanmamış/gizli Hattrick katsayıları uydurulmayacak; paper/wiki/formül kaynakları ile heuristic/proxy açıkça ayrılacak.
+- M9 kalibrasyonu tamamlanmadan `WinProbability` tek başına “gerçek maç motoru” diye sunulmayacak.
+- Son DB, inceleme amacıyla indirilebilir JSON olarak üretilecek.
+
+### AŞAMA T1 — Mevcut M9 audit ve baseline [PLAN]
+- [ ] M9'un bugün hangi M8 alanlarını kullandığını tek tek çıkart.
+- [ ] Normal'i değişmeyen baseline olarak sabitle.
+- [ ] Aynı XI + aynı rakip için 7 taktiğin mevcut M8/M9 çıktısını yan yana kaydet.
+- [ ] `ExpectedGoals` 5.00 tavanının karşılaştırmayı bozup bozmadığını kontrol et; gerekiyorsa fiziksel/analitik sınırı koruyarak iç hesap hassasiyetini düzelt.
+- [ ] Mevcut M9 regressionlarını baseline olarak koru.
+
+### AŞAMA T2 — 7 taktiğin M9'a gerçek etki zinciri [PLAN]
+Her taktiğin M9'a taşıdığı mekanik ayrı doğrulanacak:
+- [ ] **Normal:** neutral baseline.
+- [ ] **Creative:** event üretimi, event ownership, specialty pozitif/negatif etkileri ve savunma trade-off'u.
+- [ ] **Pressing:** iki tarafın normal chance suppression etkisi, stamina etkisinin temsil edilmesi ve special event'lerin korunması.
+- [ ] **Counter Attack:** midfield penalty, rakibin kaçırdığı normal şans, CA conversion ve CA goal katkısı.
+- [ ] **AiM:** centre'a taşınan fırsatlar, centre-vs-centre sonucu ve wing defence/opportunity cost.
+- [ ] **AoW:** iki kanada taşınan fırsatlar, iki yönlü matchup ve centre defence/opportunity cost.
+- [ ] **Long Shots:** normal saldırıdan LS dönüşümü, shooter quality, Scoring + Set Pieces, rakip GK/defence etkileşimi ve normal chance kaybı.
+- [ ] Her taktiğin pozitif ve negatif etkilerinin aynı M9 total expected-goals/W-D-L hesabında birlikte görünmesini sağla.
+
+### AŞAMA T3 — M9 W/D/L ve maç sonucu motoru [PLAN]
+- [ ] Her XI × taktik için `ExpectedHomeGoals`, `ExpectedAwayGoals`, `WinProbability`, `DrawProbability`, `LossProbability` üret.
+- [ ] Poisson/Monte Carlo çıktısının aynı senaryo için tutarlı olduğunu doğrula.
+- [ ] `ExpectedPoints = 3×Win + Draw` metriğini ekle.
+- [ ] `ExpectedGoalDifference` ve gerekirse en olası skor dağılımını sakla.
+- [ ] W/D/L değerlerinin Normal'e göre farkını hesapla: `ΔWin`, `ΔDraw`, `ΔLoss`, `ΔxG`, `ΔExpectedPoints`.
+- [ ] M9 çıktısını kalibrasyon durumu ile birlikte sakla; tahmin ile doğrulanmış motor gerçeğini karıştırma.
+
+### AŞAMA T4 — DB3: Taktik Matchup Database [PLAN]
+DB2'den gelen her XI için 7 taktiğin tam matchup sonucu DB3'e yazılacak.
+
+**Hedef uzay:** `DB2 XI × 7 TeamTactic`.
+
+Her DB3 kaydı en az şunları içerecek:
+- [ ] CandidateId / Formation / XI.
+- [ ] Tactic.
+- [ ] TacticalLevel ve M8 chance dağılımı.
+- [ ] Own/opp expected goals.
+- [ ] W/D/L probabilities.
+- [ ] ExpectedPoints.
+- [ ] ExpectedGoalDifference.
+- [ ] TacticFitScore / SquadFit / MatchupFit / TradeoffCost.
+- [ ] M9 event/xG breakdown (Creative, Pressing, CA, LS, PNF vb.).
+- [ ] CalibrationStatus / source-proxy bilgisi.
+- [ ] Rakibe karşı rank ve karar açıklaması.
+
+DB3, yalnızca final seçimi için değil, **motoru incelemek ve hangi taktiğin neden kazandığını görmek için ham hesap alanı** olarak korunacak.
+
+### AŞAMA T5 — Rakibe karşı taktik seçim motoru [PLAN]
+- [ ] DB3'te yalnızca `TacticEligible == true` adayları yarıştırsın.
+- [ ] Birincil karar: rakibe karşı en yüksek `WinProbability`.
+- [ ] İkincil karar: `ExpectedPoints`.
+- [ ] Üçüncül karar: `ExpectedGoalDifference`.
+- [ ] Sonraki karar: `TacticFitScore`.
+- [ ] Son karar: `TacticalScore`.
+- [ ] Seçilen taktiğin açıklamasında “neden bu rakibe karşı?” farklarını göster.
+- [ ] Aynı XI içinde taktik farklarını ve farklı XI'lar arasında taktik farklarını ayrı raporla.
+
+### AŞAMA T6 — DB3 çıktı / indirme / Motor Panel [PLAN]
+Mevcut Motor DB JSON indirme özelliği yeni DB3'ü de kapsayacak.
+- [ ] Mevcut `📥 Motor DB JSON İndir` butonunun archive endpointinden aldığı JSON'a DB3'ü dahil et.
+- [ ] DB3 ayrı bir bölüm/collection olarak export edilsin; DB1/DB2 verisi kaybolmasın.
+- [ ] Export içinde runId, timestamp, formation, XI, tactic, M8, M9 ve final decision ilişkisi korunmalı.
+- [ ] Büyük DB3 çıktısında veri kaybı/truncation olmadığını test et.
+- [ ] İndirilen JSON'u offline acceptance ile tekrar okunabilir/doğrulanabilir hale getir.
+- [ ] Motor Panel'de DB3 sonucu incelenebilir olsun: en iyi taktik, W/D/L, xG ve alternatiflerin farkı.
+
+### AŞAMA T7 — Acceptance / regression / performans [PLAN]
+- [ ] DB3 deterministic JSON regression testi ekle.
+- [ ] 7 taktiğin tamamı için taktik routing regression testi ekle.
+- [ ] M9 W/D/L conservation / probability sum testleri ekle.
+- [ ] DB3 candidate/tactic count testleri ekle.
+- [ ] Export edilen DB3 ile API'deki DB3 aynı sonucu verdiğini doğrula.
+- [ ] Hesap süresini ölç; gerekirse DB3 hesaplamasını paralelleştir/optimize et, fakat doğruluk pahasına kısaltma yapma.
+- [ ] M10/M11 threshold + anti-lock regressionlarını aynen çalıştır.
+- [ ] GitHub Actions offline acceptance geçmeden production build/deploy başarılı kabul edilmesin.
+
+### AŞAMA T8 — Gerçek maç doğrulaması ve kalibrasyon [PLAN]
+- [ ] DB3'te saklanan W/D/L/xG sonuçlarını gerçek maç sonuçlarıyla karşılaştıracak veri seti oluştur.
+- [ ] Taktik bazında calibration error ölç.
+- [ ] Sistematik sapmaları yalnızca yeterli tarihsel veriyle düzelt.
+- [ ] Gizli production katsayısı varsaymak yerine ölçülmüş kalibrasyon kullan.
+- [ ] Kalibrasyon tamamlanana kadar UI'da modelin calibration status'unu göstermeye devam et.
+
+### BİTİŞ KRİTERİ
+
+Bu çalışma ancak şu koşulların tamamı sağlandığında tamamlanmış sayılacak:
+
+1. Her DB2 XI için 7 taktik M7 → M7.2 → M8 → M9 zincirinden geçmiş olacak.
+2. DB3 tüm bu sonuçları ham hesap olarak saklayacak.
+3. M9 gerçek W/D/L etkisini üretecek ve taktikler rakibe karşı bunun üzerinden sıralanacak.
+4. Final seçim “kadroya uygun taktik” yerine **rakibe karşı beklenen maç sonucunu optimize eden XI + taktik** olacak.
+5. Motor Paneli seçilen taktiğin yanı sıra alternatif taktiklerin W/D/L ve xG farklarını gösterecek.
+6. `📥 Motor DB JSON İndir` mevcut DB'lerin tamamını ve DB3 matchup sonuçlarını indirecek.
+7. Deterministic/offline acceptance regressionları geçecek.
+8. M10/M11 threshold + anti-lock davranışı değişmeden kalacak.
+
 ## V5 Teknik Manuel PDF Projesi — Çalışma Planı
 
 Bu bölüm HattrickAI V5'in gerçek kod, test ve kaynak dokümanlarından oluşturulacak teknik manuel PDF çalışmasının takip alanıdır.
@@ -90,3 +198,4 @@ AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [TAMAMLANDI — 06.09.2026]
          9.9 Dokümantasyon / PDF snapshot güncellemesi [TAMAMLANDI — 06.09.2026]
              - A8 temel PDF snapshotı korunarak Stage 9 için tarihli A9 publication supplement oluşturuldu.
              - TECHNICAL_MANUAL_INDEX.md 06.09.2026 snapshot ve yayın dosyasıyla güncellendi.
+```
