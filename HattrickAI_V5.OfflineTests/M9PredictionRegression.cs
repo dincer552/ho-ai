@@ -45,6 +45,25 @@ public static class M9PredictionRegression
             Check(Math.Abs(simulation.Outcome.WinProbability + simulation.Outcome.DrawProbability + simulation.Outcome.LossProbability - 1.0) <= 1e-9, "M9 simulation W/D/L sum to 1");
             Check(!string.IsNullOrWhiteSpace(m9.MostLikelyScore), "M9 most-likely score exists");
 
+            var finalCandidateId = CandidateId(result.FinalPlan.Lineup);
+            var tacticRows = result.TacticComparisons
+                .Where(x => x.CandidateId == finalCandidateId)
+                .OrderBy(x => x.Tactic)
+                .ToList();
+            Check(tacticRows.Count == Enum.GetValues<TeamTactic>().Length, "M9 audit has exactly one row for each tactic on the same final XI");
+            Check(tacticRows.Select(x => x.Tactic).Distinct().Count() == Enum.GetValues<TeamTactic>().Length, "M9 audit contains all seven tactics");
+            var normalRow = tacticRows.Single(x => x.Tactic == TeamTactic.Normal);
+            Check(normalRow.TacticEligible, "Normal remains an eligible baseline tactic");
+            Console.WriteLine("--- M9 TACTIC AUDIT: SAME XI + SAME OPPONENT ---");
+            foreach (var row in tacticRows)
+            {
+                Check(double.IsFinite(row.WinProbability) && double.IsFinite(row.DrawProbability) && double.IsFinite(row.LossProbability), $"M9 tactic audit W/D/L finite: {row.Tactic}");
+                Check(Math.Abs(row.WinProbability + row.DrawProbability + row.LossProbability - 1.0) <= 1e-9, $"M9 tactic audit W/D/L sum to 1: {row.Tactic}");
+                Check(double.IsFinite(row.ExpectedHomeGoals) && double.IsFinite(row.ExpectedAwayGoals), $"M9 tactic audit xG finite: {row.Tactic}");
+                Console.WriteLine($"{row.Tactic,-13} | W/D/L={row.WinProbability:P1}/{row.DrawProbability:P1}/{row.LossProbability:P1} | xG={row.ExpectedHomeGoals:0.###}-{row.ExpectedAwayGoals:0.###} | fit={row.TacticFitScore:0.000} | eligible={row.TacticEligible}");
+            }
+            Console.WriteLine($"M9 baseline={normalRow.Tactic} is fixed per XI/opponent; output ceiling remains 0.05..5.00 for current production compatibility.");
+
             // Rebuild only the selected production candidate. M9 itself consumes lineup + rating
             // and the explicit opponent rating; Matchup is not consulted on this overload.
             var selectedCandidate = new TacticalCandidate(
@@ -67,7 +86,7 @@ public static class M9PredictionRegression
             Check(Equal(direct.Prediction.DrawProbability, p.DrawProbability), "M9 direct recalculation matches pipeline draw probability");
             Check(Equal(direct.Prediction.LossProbability, p.LossProbability), "M9 direct recalculation matches pipeline loss probability");
             Console.WriteLine($"M9 formation={m9.Formation} | W/D/L={p.WinProbability:P1}/{p.DrawProbability:P1}/{p.LossProbability:P1} | xG={p.ExpectedHomeGoals:0.###}-{p.ExpectedAwayGoals:0.###} | score={m9.MostLikelyScore}");
-            Console.WriteLine("PASS: C8 M9 prediction continuity");
+            Console.WriteLine("PASS: C8 M9 prediction continuity + T1 same-XI seven-tactic audit");
             return 0;
         }
         catch (Exception ex) { MotorRunLogStore.Finish(runId, false, ex.Message); return Fail("C8 exception: " + ex.Message); }
