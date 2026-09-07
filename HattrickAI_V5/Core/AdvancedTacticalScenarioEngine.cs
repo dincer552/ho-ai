@@ -26,16 +26,17 @@ public sealed class AdvancedTacticalScenarioEngine
         if (outfield.Length == 0) return Empty(state, opponentAverageMainSkill);
         var totalPassing = outfield.Sum(p => Math.Max(0, p.Passing));
         var totalDefending = outfield.Sum(p => Math.Max(0, p.Defending));
+        var weightedPressingDefending = outfield.Sum(p => p.Specialty == PlayerSpecialty.Powerful ? 2.0 * Math.Max(0, p.Defending) : Math.Max(0, p.Defending));
         var totalPlaymaking = outfield.Sum(p => Math.Max(0, p.Playmaking));
         var totalScoring = outfield.Sum(p => Math.Max(0, p.Scoring));
         var totalWinger = outfield.Sum(p => Math.Max(0, p.Winger));
         var totalStamina = outfield.Sum(p => Math.Max(0, p.Stamina));
         var totalExperience = outfield.Sum(p => Math.Max(0, p.Experience));
         var tactic = Map(state.TeamTactic);
-        var tacticSkill = CalculateTacticSkill(tactic, totalPassing, totalDefending, totalScoring, totalStamina, totalExperience, outfield.Length);
+        var tacticSkill = CalculateTacticSkill(tactic, totalPassing, totalDefending, weightedPressingDefending, totalScoring, totalStamina, totalExperience, outfield.Length);
         var level = TacticalLevel.FromAggregate(tactic, tacticSkill, opponentAverageMainSkill);
         var distribution = ChanceDistributionEffect.For(tactic, level);
-        var pressure = tactic == AdvancedTactic.Pressing ? new TacticalPressureProfile(totalDefending, totalStamina, level.Value) : null;
+        var pressure = tactic == AdvancedTactic.Pressing ? new TacticalPressureProfile(weightedPressingDefending, totalStamina, level.Value) : null;
         var counter = tactic == AdvancedTactic.CounterAttack ? new CounterAttackProfile(totalDefending, totalPassing, level.Value) : null;
         var longShots = tactic == AdvancedTactic.LongShots ? new LongShotsProfile(totalScoring, totalPassing, level.Value) : null;
         var creative = tactic == AdvancedTactic.Creative ? new CreativeProfile(totalPassing, totalExperience, level.Value) : null;
@@ -72,17 +73,17 @@ public sealed class AdvancedTacticalScenarioEngine
         return new AdvancedTacticalScenarioResult(state.CandidateId, tactic, 0, level, inputs, distribution, null, null, null, null, opponentAverageMainSkill, CalibrationStatus.ResearchBackedStructureNeedsMatchCalibration, m8);
     }
 
-    private static double CalculateTacticSkill(AdvancedTactic tactic, double passing, double defending, double scoring, double stamina, double experience, int count)
+    private static double CalculateTacticSkill(AdvancedTactic tactic, double passing, double defending, double pressingDefending, double scoring, double stamina, double experience, int count)
     {
         if (count <= 0) return 0;
-        var p = passing / count; var d = defending / count; var s = scoring / count; var st = stamina / count; var e = experience / count;
+        var p = passing / count; var d = defending / count; var pd = pressingDefending / count; var s = scoring / count; var st = stamina / count; var e = experience / count;
         var skill = tactic switch
         {
             AdvancedTactic.AttackMiddle or AdvancedTactic.AttackWings => p,
             AdvancedTactic.CounterAttack => (d + (2.0 * p)) / 3.0,
             AdvancedTactic.Creative => (p + e) / 2.0,
             AdvancedTactic.LongShots => (3.0 * s + p) / 4.0,
-            AdvancedTactic.Pressing => (d + st) / 2.0,
+            AdvancedTactic.Pressing => (pd + st) / 2.0,
             _ => 0d
         };
         return Math.Clamp(skill / 2.0, 0.0, 10.0);
