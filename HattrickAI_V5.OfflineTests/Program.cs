@@ -45,6 +45,10 @@ if (From(18))
     r = HistoricalMultiMatchProductionAcceptance.Run(path); if (r != 0) return r;
     r = await FullPipelineRegressionRunner.RunAsync(path); if (r != 0) return r;
 }
-if (From(19)) { var r = C19MotorDatabaseJsonRegression.Run(); if (r != 0) return r; }
+if (From(19))
+{
+    var r = C19MotorDatabaseJsonRegression.Run(); if (r != 0) return r;
+    r = TacticalMatchupDatabaseRegression.Run(); if (r != 0) return r;
+}
 if (From(20)) return C20MotorDatabaseDeterministicJsonRegression.Run();
 return 0;
