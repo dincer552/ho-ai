@@ -4,7 +4,7 @@ using HattrickAI.V5.OfflineTests;
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1 ? args[1] : args.Length > 0 && !args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0] : "TestJSON/HattrickAI_V5_CHPP_FullOffline_2026-09-01.json";
 var startNumber = startFrom.Length > 1 && int.TryParse(startFrom[1..], out var parsed) ? parsed : 1;
-if (startNumber < 1 || startNumber > 22) throw new ArgumentException($"Geçersiz acceptance başlangıcı: {startFrom}. c1-c22 kullanın.");
+if (startNumber < 1 || startNumber > 23) throw new ArgumentException($"Geçersiz acceptance başlangıcı: {startFrom}. c1-c23 kullanın.");
 
 bool From(int c) => startNumber <= c;
 
@@ -51,5 +51,6 @@ if (From(19))
     r = TacticalMatchupDatabaseRegression.Run(); if (r != 0) return r;
 }
 if (From(20)) { var r = C20MotorDatabaseDeterministicJsonRegression.Run(); if (r != 0) return r; }
-if (From(22)) return C22TacticalOutcomeEdgeCaseRegression.Run();
+if (From(22)) { var r = C22TacticalOutcomeEdgeCaseRegression.Run(); if (r != 0) return r; }
+if (From(23)) return C23TacticalOutcomeCalibrationRegression.Run();
 return 0;
