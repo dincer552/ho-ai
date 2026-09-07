@@ -35,7 +35,7 @@ public static class C24TacticalOutcomeCalibrationCorpusRegression
 
         var report = TacticalOutcomeCalibration.Analyze(samples);
         Check(report.ValidSamples == samples.Count, "all supplied rows are valid");
-        Check(report.ByTactic.Keys.Count == 7, "all seven tactics are represented");
+        Check(report.ByTactic.Count == 7, "all seven tactics are represented");
         foreach (var tactic in Enum.GetValues<TeamTactic>())
             Check(report.ByTactic[tactic].Samples > 0, $"tactic {tactic} has calibration samples");
         Check(double.IsFinite(report.BrierScore) && double.IsFinite(report.LogLoss) && double.IsFinite(report.Accuracy), "global metrics are finite");
