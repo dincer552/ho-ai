@@ -14,7 +14,7 @@
 > 2. **Pressing** — savunma/stamina, rakip şans bastırma ve yan etki. **Araştırma + dedicated evaluator kodlandı — 07.09.2026.**
 > 3. **Counter Attack** — eligibility, midfield kaybı, savunma üstünlüğü ve CA fırsat kalitesi. **Dedicated evaluator kodlandı — 07.09.2026.**
 > 4. **Attack in the Middle (AiM)** — merkez hücum eşleşmesi, dönüşüm getirisi ve savunma maliyeti. **Dedicated evaluator kodlandı — 07.09.2026.**
-> 5. **Attack on Wings (AoW)** — iki kanat eşleşmesi, dönüşüm getirisi ve savunma maliyeti.
+> 5. **Attack on Wings (AoW)** — iki kanat eşleşmesi, dönüşüm getirisi ve merkezi savunma maliyeti. **Dedicated evaluator + araştırma kodlandı — 07.09.2026.**
 > 6. **Long Shots** — taktik seviyesi, shooter kalitesi, fırsat maliyeti ve rakip GK/defence eşleşmesi.
 > 7. **Normal** — diğer taktiklerin değişmeyen baseline'ı.
 >
@@ -44,9 +44,15 @@
 >
 > `AttackMiddleTacticEvaluator` artık AiM'i genel objective hesabından ayırıyor. **Outfield Passing/Experience gereksinimi + %20–35 wing→centre conversion + %47–55 merkez payı + merkez hücum/merkez savunma eşleşmesi + kanat fırsat maliyeti + kanat savunma riski + Normal trade-off** birlikte hesaplanıyor. 2026 araştırmasının yayınlamadığı kesin savunma katsayısı için evaluator içinde açıkça bounded bir %10 risk proxy kullanılıyor; bu değer gizli motor katsayısı olarak iddia edilmiyor.
 >
+> ### Attack on Wings beşinci aşama — 07.09.2026
+>
+> `AttackWingsTacticEvaluator` artık AoW'u genel objective hesabından ayırıyor. **Outfield Passing/Experience gereksinimi + %34–52 centre→wing conversion + %63–70 wing share + iki kanat hücum/defans eşleşmesi + wing-vs-centre directional gain + merkez savunma riski + merkez fırsat maliyeti + Normal trade-off** birlikte hesaplanıyor. 2026 paper Appendix C Eq. C.2'deki AoW conversion curve M8 tarafından uygulanıyor; evaluator bu gerçek sonucu tüketiyor. Yayınlanmış kesin merkez-savunma katsayısı olmadığı için açıkça bounded %10 risk proxy kullanılıyor.
+>
 > Pressing araştırmasının ayrıntılı teknik şartnamesi: `HattrickAI_V5/Docs/PRESSING_TACTIC_RESEARCH_2026-09-07.md`
 >
 > AiM araştırmasının ayrıntılı teknik şartnamesi: `HattrickAI_V5/Docs/AIM_TACTIC_RESEARCH_2026-09-07.md`
+>
+> AoW araştırmasının ayrıntılı teknik şartnamesi: `HattrickAI_V5/Docs/AOW_TACTIC_RESEARCH_2026-09-07.md`
 >
 > **M10/M11 threshold + anti-lock değişmedi.**
 >
