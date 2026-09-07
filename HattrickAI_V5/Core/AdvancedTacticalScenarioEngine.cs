@@ -48,7 +48,7 @@ public sealed class AdvancedTacticalScenarioEngine
     {
         ArgumentNullException.ThrowIfNull(lineup); ArgumentNullException.ThrowIfNull(players);
         var byId = players.ToDictionary(p => p.Id);
-        var mapped = lineup.Slots.Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId)).Select(s => ToRegionalPlayer(s, byId[s.Id])).ToList();
+        var mapped = lineup.Slots.Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId)).Select(s => ToRegionalPlayer(s, byId[s.PlayerId])).ToList();
         return Calculate(mapped, state, opponentAverageMainSkill);
     }
 
@@ -96,7 +96,7 @@ public sealed class AdvancedTacticalScenarioEngine
 
 public enum AdvancedTactic { Normal, Pressing, CounterAttack, AttackMiddle, AttackWings, LongShots, Creative }
 public sealed record AdvancedTacticalScenarioResult(string CandidateId, AdvancedTactic Tactic, double TacticalSkillAggregate, TacticalLevel Level, TacticalInputTotals Inputs, ChanceDistributionEffect ChanceDistribution, TacticalPressureProfile? Pressing, CounterAttackProfile? CounterAttack, LongShotsProfile? LongShots, CreativeProfile? PlayCreatively, double OpponentAverageMainSkill, CalibrationStatus CalibrationStatus, M8TacticalContext M8Context);
-public sealed record M8TacticalContext(string CandidateId, AdvancedTactic Tactic, TacticalLevel Level, ChanceDistributionEffect ChanceDistribution, TacticalPressureProfile? Pressing, CounterAttackProfile? CounterAttack, LongShotsProfile? LongShots, CreativeProfile? PlayCreatively, TacticalInputTotals Inputs, MatchLocation MatchLocation, TeamAttitude TeamAttitude, double TeamSpirit, int MatchMinute, int GoalDifference);
+public sealed record M8TacticalContext(string CandidateId, AdvancedTactic Tactic, TacticalLevel Level, ChanceDistributionEffect ChanceDistribution, TacticalPressureProfile? Pressing, CounterAttackProfile? CounterAttack, LongShotsProfile? LongShots, CreativeProfile? CreativeProfile, TacticalInputTotals Inputs, MatchLocation MatchLocation, TeamAttitude TeamAttitude, double TeamSpirit, int MatchMinute, int GoalDifference);
 public sealed record M8TacticalMatchupInput(string CandidateId, string FormationId, string LineupId, string BehaviourSetId, RegionalRatingSnapshot OwnRating, MatchLocation MatchLocation, TeamAttitude TeamAttitude, double TeamSpirit, AdvancedTactic Tactic, TacticalLevel TacticalLevel, ChanceDistributionEffect ChanceDistribution, TacticalPressureProfile? Pressing, CounterAttackProfile? CounterAttack, LongShotsProfile? LongShots, CreativeProfile? CreativeProfile, TacticalInputTotals TacticalInputs, CalibrationStatus CalibrationStatus, RatingConfidence RatingConfidence)
 {
     public CreativeProfile? PlayCreatively => CreativeProfile;
