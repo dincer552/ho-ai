@@ -1,0 +1,306 @@
+name: Patch Creative Tactic Research
+
+on:
+  push:
+    branches: [v5]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v5
+          fetch-depth: 0
+
+      - name: Patch README and research document
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          readme = Path('README.md')
+          text = readme.read_text(encoding='utf-8')
+          marker = '# HattrickAI V5\n'
+          if not text.startswith(marker):
+              raise SystemExit('README.md header not found')
+
+          intro = r'''# HattrickAI V5
+
+> **Tarih: 07.09.2026 — TAKTİK UYGUNLUK MOTORU / GERÇEK TAKTİK SEÇİMİ ÇALIŞMA PLANI**
+>
+> Amaç: Her `TeamTactic` için tek bir genel `TacticalScore` kullanmak yerine, taktiğin Hattrick match-engine mekanizmasına özgü gereksinimlerini, XI oyuncu yerleşimini, rakip eşleşmesini, taktiğin sağladığı faydayı ve taktiğin karşılanmayan koşullarda oluşturduğu zararı ayrı ayrı hesaplamak.
+>
+> **Temel kural:** M10/M11 eşik ve anti-lock mekanizması değiştirilmeyecek. Yeni çalışma katmanı taktik uygunluğunu daha doğru ölçmek için kullanılacak; mevcut eşiklerin yerine yeni keyfi eşikler konulmayacak.
+>
+> ### Taktik uygunluk geliştirme sırası
+>
+> 1. **Yaratıcı Oyna (Creative)** — ilk ve en derin uygulama.
+>    - Tactical level: Passing ağırlığı Experience'tan 4×; Unpredictable oyuncuların katkısı 2×.
+>    - XI specialty portföyü: Quick, Head, Technical, Powerful, Unpredictable oyuncuların doğru pozisyonlardaki event üretme kapasitesi.
+>    - Rakip specialty karşılaştırması: bireysel special event'lerde rakibin daha uzman olması halinde Creative'in geri tepme riskini ölç.
+>    - Pozisyon + skill gereksinimleri: event'in oluşması ile event'in gole dönüşmesini ayrı değerlendir; Scoring, Passing, Defending, Experience, Playmaking, Stamina, Set Pieces ve GK eşleşmelerini ilgili event'e göre kullan.
+>    - Negatif event riski: Unpredictable Mistake/Own Goal, Inexperienced Defender, Tired Defender ve Technical-vs-Head gibi rakibin avantaj sağlayabileceği eventleri hesaba kat.
+>    - Taktik defans cezası: Creative ile savunmanın %7.5 azalmasını net fayda/zarar hesabına dahil et.
+>    - Special-event tavanı ve event üretim artışı: tek takım Creative ise +1 maksimum event; iki takım Creative ise +2; event üretim ve event'in hangi takıma gideceği mekanizmasını rakip specialty yapısıyla birlikte değerlendir.
+>    - Sonuç: `CreativeFit` yalnızca "Creative multiplier yüksek" demeyecek; **SE net avantajı + event kalitesi + rakip riski + savunma kaybı + normal oyuna göre trade-off** üzerinden hesaplanacak.
+>
+> 2. **Pressing** — savunma/stamina gücü, rakip normal şanslarını bastırma, kendi şans kaybı ve rakip attack-vs-defence eşleşmeleri.
+> 3. **Counter Attack** — önce CA eligibility, ardından rakibin midfield üstünlüğü, üç sektör savunma üstünlüğü, CA fırsatı ve bu fırsatları bitirecek hücum kalitesi; ayrıca %7 midfield kaybının net etkisi.
+> 4. **Attack in the Middle (AiM)** — merkez hücum kalitesi, kanat→merkez dönüşümünün gerçek getirisi ve merkez savunma kaybının rakip hücumuyla birlikte hesabı.
+> 5. **Attack on Wings (AoW)** — iki kanat hücum eşleşmesi, merkez→kanat dönüşüm getirisi ve merkez savunma kaybı.
+> 6. **Long Shots** — Long Shot tactical level, Scoring/Passing shooter kalitesi, normal şansın LS'ye çevrilmesinin fırsat maliyeti ve özellikle rakip GK/defence eşleşmesi.
+> 7. **Normal** — diğer taktiklerin karşılaştırılacağı değişmeyen baseline; ayrı bir "özel taktik bonusu" değil.
+>
+> ### Her taktik için uygulanacak ortak kod mimarisi
+>
+> Her taktik için ayrı objective/evaluator sınıfı kullanılacak. Ortak `TacticObjectiveEngine` yalnızca orkestrasyon yapacak; taktiğe özgü mantık tek bir switch bloğunda eritilmeyecek.
+>
+> Her evaluator şu katmanları üretmeli:
+>
+> - **Requirements** — taktiğin çalışması için gerekli oyuncu/skill/pozisyon koşulları.
+> - **Benefit** — koşullar sağlandığında taktiğin gerçek match-engine avantajı.
+> - **Penalty** — taktiğin yapısal yan etkisi.
+> - **Opponent interaction** — rakibin bu taktiği ne kadar etkisizleştirdiği veya cezalandırdığı.
+> - **Opportunity cost** — aynı XI'ın Normal senaryosuna göre kaybedilen değer.
+> - **Suitability** — bu XI + rakip için 0–1 arası taktik uygunluğu.
+> - **Explanation** — UI/JSON'da hangi koşulların sonucu belirlediğini açıkça anlatan makine üretimli açıklama.
+>
+> ### Creative için doğrulama sırası
+>
+> **Araştırma → veri modeli → evaluator → M9 event entegrasyonu → regression → gerçek Motor DB → gerçek maç karşılaştırması → kalibrasyon.**
+>
+> İlk aşamada Hattrick'in açıkça doğrulanmış mekanikleri kullanılacak; formülün resmi olarak açıklanmadığı yerlerde kod içine uydurma kesin formül yazılmayacak. Özellikle Creative tactical-level formülünün tam matematiği resmi olarak yayımlanmadığı için mevcut kaynakta doğrulanmayan bir formül "kesin gerçek" olarak kodlanmayacak.
+>
+> ### Creative sonrası taktik sırası
+>
+> `Creative → Pressing → CounterAttack → AttackMiddle → AttackWings → LongShots → Normal baseline`
+>
+> Her aşamada:
+>
+> 1. internet + mevcut HattrickAI kaynaklarıyla mekanik araştırması,
+> 2. gereksinim/fayda/zarar matrisi,
+> 3. taktiğe özel kod,
+> 4. unit/pipeline regression,
+> 5. DB2 XI × 7 tactic gerçek çıktı kontrolü,
+> 6. yalnızca veri destekliyorsa ağırlık kalibrasyonu yapılacak.
+>
+> **07.09.2026 Creative araştırmasının sonucu:** Hattrick'in resmi geliştirici kaynakları Creative'in Passing'i Experience'tan 4× daha önemli yaptığını, Unpredictable oyuncuların tactic-level katkısını 2× saydığını; special event sayısını ve oluşma olasılığını artırdığını ve event'i alma ihtimalini de etkilediğini doğruluyor. Aynı kaynaklar Creative'in doğru specialty portföyü olmayan ve rakibi daha uzman olan takımlarda geri tepebileceğini söylüyor. Ayrıca Creative savunmayı %7.5 azaltıyor. Bu nedenle mevcut `CreativeEventMultiplier + passing/experience` yaklaşımı tek başına yeterli değildir; yeni evaluator'ın rakip specialty ve negatif event riskini de içermesi gerekmektedir.
+
+'''
+          readme.write_text(intro + text[len(marker):], encoding='utf-8')
+          PY
+
+          cat > HattrickAI_V5/Docs/CREATIVE_TACTIC_RESEARCH_2026-09-07.md <<'EOF'
+# Creative / Play Creatively — Research Specification
+
+**Research date:** 07.09.2026  
+**Scope:** HattrickAI V5 tactic suitability engine  
+**Status:** Research complete; implementation specification ready.
+
+## 1. Verified Hattrick mechanics
+
+### Tactical level
+
+Hattrick's official developer material states that Play Creatively has a tactical level and that Passing is weighted four times as much as Experience. Unpredictable players contribute twice as much to the tactic as other players. The exact current formula is not officially published, so V5 must not present an invented formula as authoritative.
+
+### What Creative changes
+
+Play Creatively affects three separate parts of the special-event process:
+
+1. The decision to create a special event instead of another event.
+2. The maximum number of special events: +1 when one team uses Creative; +2 when both teams use it.
+3. The team-selection step for individual special events: the Creative team receives an additional advantage in getting the event; if both teams use Creative, this ownership bonus is void.
+
+It also slightly affects weather special events.
+
+### Why the lineup matters
+
+The official developer description states that individual special events use the actual players, specialties and positions of both teams. The event type can therefore be evaluated against the opponent's lineup rather than treating Creative as a generic team bonus.
+
+Examples explicitly documented by Hattrick include:
+
+- Quick: Winger / Inner Midfielder / Forward.
+- Technical-vs-Head: Technical Winger / IM / Forward against Head Defender / WB / IM.
+- Unpredictable long pass: GK / WB / Defender; Passing vs midfield defending and then receiver Scoring vs GK.
+- Unpredictable score on his own: Winger / IM / Forward; Scoring vs GK.
+- Unpredictable special action: Unpredictable player creates an opening pass; Passing and Experience matter, with a Winger/Forward receiver.
+- Unpredictable mistake: WB / Defender / IM; own Defending and Experience are compared with opponent Scoring and Experience.
+- Unpredictable own goal: Winger / Forward; lower Passing increases the negative risk.
+- Powerful Forward / Sitting Midfielder: Playmaking/Defending/Scoring/GK or Defending/Scoring/Stamina interactions.
+- Winger-to-anyone / Winger-to-Head: Winger skill, receiver Scoring, opponent defence and GK matter.
+- Corner events: Set Pieces, defensive set pieces, and Head-specialist balance matter.
+- Experienced Forward / Inexperienced Defender / Tired Defender are non-specialty team events that also become more relevant when the global event volume is increased.
+
+## 2. The key Creative failure mode
+
+Creative is not automatically good because the team's Creative tactical level is high.
+
+If the opponent has the more useful specialty portfolio, increasing the number of special events can increase the opponent's positive events as well. Hattrick explicitly warns that a specialized opponent can make Creative backfire.
+
+Therefore V5 must calculate **net special-event advantage**, not simply own special-event volume.
+
+## 3. Negative mechanisms to model
+
+The evaluator must include:
+
+- Creative's defensive rating reduction: 7.5%.
+- Unpredictable mistakes from vulnerable defensive/IM players.
+- Unpredictable own-goal risk from low-Passing Wingers/Forwards.
+- Inexperienced defender events.
+- Tired defender events.
+- Technical-vs-Head interactions that can be exploited by the opponent.
+- Weather exposure where the current match model provides weather input.
+- Lost regular-play value compared with the same XI under Normal.
+
+The evaluator must not invent a universal hard threshold such as "minimum 3 specialists" because the official material describes the effect as matchup-dependent and the event probabilities are dynamic.
+
+## 4. Proposed V5 Creative suitability model
+
+For each **DB2 XI × Creative** evaluation:
+
+### A. Tactical-level strength
+
+Use the existing M7.2 Creative tactical level as an input. Keep the official relationship explicit:
+
+`CreativeInput = 4 × total outfield Passing + total outfield Experience`
+
+and apply the documented Unpredictable contribution modifier in the tactic-level calculation when player-level data is available.
+
+The existing V5 `CreativeProfile` already exposes a `CreativeInput` based on `4 × Passing + Experience`; the tactic-level calculation itself must be audited so the 4× relationship is not lost before reaching the tactical level.
+
+### B. Specialty portfolio
+
+Build a lineup profile from actual XI slots and specialties, not only aggregate player totals.
+
+Track at least:
+
+- Quick offensive / defensive.
+- Head offensive / defensive.
+- Technical offensive / defensive.
+- Powerful Forward / Powerful IM.
+- Unpredictable offensive.
+- Unpredictable long-pass sources.
+- Unpredictable mistake exposure.
+- Unpredictable own-goal exposure.
+- Experienced Forward potential.
+- Inexperienced Defender exposure.
+- Tired Defender exposure.
+- Corner / Head event potential.
+
+### C. Opponent specialty comparison
+
+For individual events, compare the own and opponent eligible player pools for the event. The model should use the actual event's relevant skill comparisons where available.
+
+The important quantity is not:
+
+`own_specialties`
+
+but:
+
+`own_event_edge = own_eligible_event_strength / (own_eligible_event_strength + opponent_eligible_event_strength)`
+
+where `event_strength` is based on the event's documented skills and positions.
+
+This is a model input, not a claim that Hattrick publishes this exact equation.
+
+### D. Positive event quality
+
+Separate:
+
+- event creation potential,
+- event ownership probability,
+- event conversion/goal quality.
+
+Do not turn every special event into a goal. The M9 event engine's event contribution and goal-conversion inputs remain the downstream scoring layer.
+
+### E. Negative event risk
+
+Calculate a separate negative-event exposure score. A team with many Unpredictable players is not automatically better: vulnerable Defending, Experience, Passing, or opponent skill can turn the increased event volume against the team.
+
+### F. Defensive penalty
+
+Apply Creative's documented 7.5% defence reduction to the suitability trade-off using the actual XI's defensive ratings and opponent attack strength.
+
+This is a real tactic penalty and must not be hidden inside the generic TacticalScore.
+
+### G. Normal opportunity cost
+
+Compare the exact same XI under Normal and Creative:
+
+- own regular chance volume,
+- opponent regular chance volume,
+- win probability,
+- expected goals,
+- defensive ratings.
+
+Creative should only receive a high suitability score when the special-event benefit compensates for its regular-play and defensive costs.
+
+## 5. Implementation boundaries
+
+Do not change:
+
+- M10/M11 thresholds.
+- Anti-lock formation coverage.
+- DB2 candidate generation.
+- Existing acceptance thresholds.
+
+Change only the tactic-specific objective layer and the event inputs required to evaluate it correctly.
+
+## 6. Validation plan
+
+### Unit / pipeline regression
+
+A Creative-specific regression must verify:
+
+1. A high Creative multiplier alone cannot force a high Creative suitability score.
+2. Removing all useful specialties materially reduces Creative suitability.
+3. Adding relevant specialties in the correct positions improves suitability.
+4. A highly specialized opponent can reduce or reverse Creative's suitability.
+5. Low Passing on Unpredictable Wingers/Forwards increases negative-event exposure.
+6. Low Defending/Experience on Unpredictable defensive players increases negative-event exposure.
+7. Creative's 7.5% defensive penalty is visible in the trade-off.
+8. Normal and Creative are evaluated on the exact same XI.
+9. No M10/M11 threshold changes are required for the Creative evaluator.
+
+### Real Motor DB validation
+
+For every DB2 XI, store and inspect:
+
+- Creative tactical level.
+- Creative input.
+- specialty portfolio.
+- own positive event potential.
+- opponent positive event potential.
+- negative event risk.
+- defence penalty signal.
+- regular-play opportunity cost.
+- final CreativeFit score.
+- explanation.
+
+Only after these fields are stable will Creative weights be calibrated against real matches.
+
+## 7. Sources
+
+- Hattrick Developer Blog — *Specialties and Special Events* (09.05.2017).
+- Hattrick Developer Blog — *A new Match Engine Odyssey* (18.12.2017).
+- Hattrick Wiki — *Play creatively*.
+- Hattrick Wiki — *Special Event*.
+- Hattrick Wiki — *Specialty*.
+
+The official developer sources are used for mechanics; the current Hattrick Wiki is used to cross-check current descriptions. Where the official source does not publish a complete formula, this document explicitly treats the value as a model input rather than a discovered exact game formula.
+EOF
+
+          rm -f .github/workflows/patch-creative-research.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md HattrickAI_V5/Docs/CREATIVE_TACTIC_RESEARCH_2026-09-07.md .github/workflows/patch-creative-research.yml
+          git commit -m "docs: add creative tactic research and staged plan [skip ci]"
+          git push origin HEAD:v5
