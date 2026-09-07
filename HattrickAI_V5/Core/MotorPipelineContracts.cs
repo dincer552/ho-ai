@@ -79,6 +79,8 @@ public sealed record MatchPrediction(
 {
     public MatchLocation Location { get; init; } = MatchLocation.Home;
     public M9EventGoalBreakdown EventGoals { get; init; } = M9EventGoalBreakdown.Empty;
+    public double ExpectedPoints => 3.0 * WinProbability + DrawProbability;
+    public double ExpectedGoalDifference => ExpectedHomeGoals - ExpectedAwayGoals;
     private M9SimulationResult? _simulation;
     public M9SimulationResult Simulation => _simulation ??= M9SimulationEngine.Simulate(this);
 }
