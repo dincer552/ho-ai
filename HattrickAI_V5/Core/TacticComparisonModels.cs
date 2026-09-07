@@ -28,4 +28,6 @@ public sealed record FormationTacticComparison(
     public double TacticMatchupFit { get; init; }
     public bool TacticEligible { get; init; }
     public string TacticExplanation { get; init; } = string.Empty;
+    public double ExpectedPoints => 3.0 * WinProbability + DrawProbability;
+    public double ExpectedGoalDifference => ExpectedHomeGoals - ExpectedAwayGoals;
 }
