@@ -45,7 +45,9 @@ public static class C20MotorDatabaseDeterministicJsonRegression
             MotorResultArchive.Save(runId, analysis, pipeline, new { motor = "C20" }, "c20-build");
             var first = File.ReadAllText(Path.Combine(temp, "latest.json"));
 
-            Thread.Sleep(2);
+            // savedAt is persisted with second-level precision. Sleep beyond a full
+            // clock-second boundary so the metadata assertion is not timing-flaky.
+            Thread.Sleep(1100);
             MotorResultArchive.Save(runId, analysis, pipeline, new { motor = "C20" }, "c20-build");
             var second = File.ReadAllText(Path.Combine(temp, "latest.json"));
 
