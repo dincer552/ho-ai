@@ -101,7 +101,8 @@ public static class MotorResultArchive
             {
                 candidateDatabase1Count = pipeline.CandidateDatabase1Count,
                 candidateDatabase2Count = pipeline.CandidateDatabase2Count,
-                selectedMatchApproach = pipeline.SelectedMatchApproach
+                selectedMatchApproach = pipeline.SelectedMatchApproach,
+                tacticComparisons = pipeline.TacticComparisons
             },
             new
             {
