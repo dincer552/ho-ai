@@ -20,6 +20,8 @@ public static class TacticObjectiveEngine
             return AttackMiddleTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
         if (tactic == TeamTactic.AttackWings)
             return AttackWingsTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
+        if (tactic == TeamTactic.LongShots)
+            return LongShotsTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
 
         var own = tacticEvaluation.Chance; var baseline = baselineNormal.Chance; var inputs = tacticEvaluation.Advanced.Inputs;
         var outfieldCount = Math.Max(1, lineup.Slots.Count(s => s.Code != "GK"));
@@ -109,7 +111,7 @@ public static class TacticObjectiveEngine
             TeamTactic.CounterAttack => $"CA eligibility {c.CounterAttackEligible}; tactical CA chances {c.CounterAttackChanceExpected:0.##}; midfield share {c.MidfieldShare:P1}.",
             TeamTactic.AttackWings => $"Wing matchup {WingMatchup(c):P1}; wing conversion {c.TacticConversionRate:P1}; centre trade-off measured.",
             TeamTactic.AttackMiddle => $"Centre matchup {CentreMatchup(c):P1}; centre conversion {c.TacticConversionRate:P1}; wing trade-off measured.",
-            TeamTactic.LongShots => $"Long-shot chances {c.LongShotChanceExpected:0.##}; shooter/passing fit and keeper matchup measured.",
+            TeamTactic.LongShots => $"Long-shot chances {c.LongShotChanceExpected:0.##}; dedicated shooter/SP fit, keeper matchup and regular-attack opportunity cost measured.",
             _ => "Normal: balanced baseline objective."
         };
 }
