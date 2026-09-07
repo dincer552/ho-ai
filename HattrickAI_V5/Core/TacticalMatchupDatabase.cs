@@ -34,12 +34,33 @@ public sealed class TacticalMatchupDatabase
         .ToList();
 
     public IReadOnlyList<TacticalMatchupRecord> BestByExpectedPoints() => Records
+        .Where(x => x.Eligible)
         .GroupBy(x => x.CandidateId, StringComparer.Ordinal)
-        .Select(g => g.OrderByDescending(x => x.ExpectedPoints).ThenByDescending(x => x.WinProbability).ThenBy(x => x.Tactic).First())
+        .Select(g => g.OrderByDescending(x => x.ExpectedPoints)
+            .ThenByDescending(x => x.WinProbability)
+            .ThenBy(x => x.Tactic)
+            .First())
         .OrderByDescending(x => x.ExpectedPoints)
         .ThenByDescending(x => x.WinProbability)
         .ThenBy(x => x.CandidateId, StringComparer.Ordinal)
         .ToList();
+
+    /// <summary>
+    /// T5 final tactic selector: eligibility first, then the canonical M9 outcome
+    /// metric (ExpectedPoints), with deterministic tie-breakers. Suitability remains
+    /// a diagnostic / tie-break input and never overrides the outcome metric.
+    /// </summary>
+    public TacticalMatchupRecord BestEligible()
+    {
+        return Records
+            .Where(x => x.Eligible)
+            .OrderByDescending(x => x.ExpectedPoints)
+            .ThenByDescending(x => x.WinProbability)
+            .ThenByDescending(x => x.TacticFitScore)
+            .ThenBy(x => x.CandidateId, StringComparer.Ordinal)
+            .ThenBy(x => x.Tactic)
+            .First();
+    }
 }
 
 public sealed record TacticalMatchupRecord(
