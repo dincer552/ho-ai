@@ -64,6 +64,9 @@ public static class CounterAttackTacticEvaluator
             0.20 * Clamp01(technicalCaRate / PaperTechnicalCaFourPlusDefenders) +
             0.15 * Clamp01(nonTacticalCaRate / PaperNonTacticalCaFiveDefenders));
 
+        // The core CA upside comes from converting the opponent's missed Normal chances.
+        // Defence is already represented in missedNormal, but remains explicit here because
+        // a CA lineup must also survive long enough to benefit from the generated chances.
         var primary = Clamp01(
             0.35 * opportunityValue +
             0.30 * conversionValue +
@@ -71,16 +74,15 @@ public static class CounterAttackTacticEvaluator
             0.10 * defenseFit +
             0.05 * specialtyValue);
 
-        // We do not reconstruct the opponent's exact midfield rating here because the
-        // comparison view exposes the already validated M8 eligibility. MidfieldShare is
-        // used only as a bounded indicator of how deeply CA is operating from a possession
-        // disadvantage; the binary eligibility remains authoritative.
+        // M8 owns the binary eligibility test against the pre-penalty opponent midfield.
+        // Here we use possession share only as a bounded measure of how much CA is being
+        // played from a genuine midfield disadvantage; no opponent midfield is guessed.
         var midfieldDisadvantage = eligible ? Clamp01((0.50 - own.MidfieldShare) / 0.25) : 0.0;
         var matchup = Clamp01(
-            0.35 * midfieldDisadvantage +
-            0.25 * Clamp01(own.OpponentRegularQuality) +
-            0.25 * attackFinish +
-            0.15 * specialtyValue);
+            0.40 * midfieldDisadvantage +
+            0.30 * opportunityValue +
+            0.20 * attackFinish +
+            0.10 * specialtyValue);
 
         var ownChanceLoss = RelativeLoss(baseline.OwnRegularChanceExpected, own.OwnRegularChanceExpected);
         var winProbabilityLoss = Math.Max(0.0,
