@@ -52,12 +52,20 @@ public static class MotorResultArchive
 
         var savedAt = DateTimeOffset.UtcNow;
 
-        // Do not serialize the complete MotorPipelineResult here. It contains the
-        // large M3/M4/M5/M6 search graphs and candidate objects. Serializing that
-        // graph synchronously after the motors finish can keep /api/v5/analysis
-        // open indefinitely even though all motors are already completed.
-        // Analysis already exposes the production M7-M10 outputs; the archive
-        // keeps bounded candidate summaries for DB inspection/download.
+        // Keep the existing archive contract, but only persist the small, stable
+        // inspection data needed by the web UI. Never walk the full analysis graph,
+        // M3-M6 search graphs, candidate lineups or runtime motor telemetry here.
+        // This keeps the final archive allocation tiny on the 900 MiB production VM.
+        var analysisSummary = new
+        {
+            analysis.Build,
+            analysis.TeamName,
+            analysis.OpponentName,
+            analysis.MatchTitle,
+            OwnFormation = analysis.Own.Formation,
+            OpponentFormation = analysis.Opponent.Formation
+        };
+
         var candidateDb1 = pipeline.CandidateDatabase1.Select(x => new
         {
             x.CandidateId,
@@ -67,24 +75,7 @@ public static class MotorResultArchive
             x.TacticalScore,
             x.Rating,
             x.RankingScore,
-            x.Stage,
-            Lineup = new
-            {
-                x.Lineup.TeamName,
-                x.Lineup.Formation,
-                Slots = x.Lineup.Slots.Select(s => new
-                {
-                    s.Code,
-                    s.Label,
-                    s.PlayerName,
-                    s.PlayerId,
-                    s.Rating,
-                    s.X,
-                    s.Y,
-                    s.Order,
-                    s.HistoricalStars
-                }).ToArray()
-            }
+            x.Stage
         }).ToArray();
 
         var candidateDb2 = pipeline.CandidateDatabase2.Select(x => new
@@ -96,24 +87,7 @@ public static class MotorResultArchive
             x.TacticalScore,
             x.Rating,
             x.RankingScore,
-            x.Stage,
-            Lineup = new
-            {
-                x.Lineup.TeamName,
-                x.Lineup.Formation,
-                Slots = x.Lineup.Slots.Select(s => new
-                {
-                    s.Code,
-                    s.Label,
-                    s.PlayerName,
-                    s.PlayerId,
-                    s.Rating,
-                    s.X,
-                    s.Y,
-                    s.Order,
-                    s.HistoricalStars
-                }).ToArray()
-            }
+            x.Stage
         }).ToArray();
 
         var payload = new MotorResultArchiveSnapshot(
@@ -122,14 +96,12 @@ public static class MotorResultArchive
             build,
             runId,
             "HattrickAI V5 web analysis",
-            analysis,
+            analysisSummary,
             new
             {
                 candidateDatabase1Count = pipeline.CandidateDatabase1Count,
                 candidateDatabase2Count = pipeline.CandidateDatabase2Count,
-                selectedMatchApproach = pipeline.SelectedMatchApproach,
-                m6bFormationBudgets = pipeline.M6BFormationBudgets,
-                finalPlan = pipeline.FinalPlan
+                selectedMatchApproach = pipeline.SelectedMatchApproach
             },
             new
             {
@@ -138,8 +110,9 @@ public static class MotorResultArchive
                 db1Count = candidateDb1.Length,
                 db2Count = candidateDb2.Length
             },
-            motorLog);
+            null);
 
+        // Serialize only this deliberately small summary payload.
         var json = JsonSerializer.Serialize(payload, JsonOptions);
         Directory.CreateDirectory(RootDirectory);
         var fileName = $"{savedAt:yyyyMMdd_HHmmssfff}_{safeRunId}.json";
@@ -258,12 +231,22 @@ public static class MotorResultArchive
             return false;
         }
 
-        json = File.ReadAllText(path);
-        return true;
+        try
+        {
+            json = File.ReadAllText(path);
+            return true;
+        }
+        catch (IOException)
+        {
+            json = string.Empty;
+            return false;
+        }
     }
 
-    private static string GetString(JsonElement root, string propertyName)
-        => root.TryGetProperty(propertyName, out var value) && value.ValueKind == JsonValueKind.String
+    private static string GetString(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out var value)
             ? value.GetString() ?? string.Empty
             : string.Empty;
+    }
 }
