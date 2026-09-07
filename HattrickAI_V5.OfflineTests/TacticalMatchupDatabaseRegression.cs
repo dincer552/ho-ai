@@ -31,7 +31,24 @@ public static class TacticalMatchupDatabaseRegression
         Check(best.Count == 3, "DB3 produces one best tactic per XI");
         Check(best[0].ExpectedPoints >= best[1].ExpectedPoints, "DB3 best-tactic ranking is expected-points descending");
         Check(best.All(x => Math.Abs(x.ExpectedPoints - (3 * x.WinProbability + x.DrawProbability)) < 1e-12), "DB3 expected points are canonical");
-        Console.WriteLine("PASS: DB3 tactical matchup database coverage + ranking");
+
+        // T5 contract: outcome must outrank raw suitability. The higher-fit row
+        // deliberately loses on ExpectedPoints and therefore must not be selected.
+        var selectorDb = new TacticalMatchupDatabase();
+        selectorDb.Add(new TacticalMatchupRecord(
+            "winner", "4-4-2", TeamTactic.Creative, true, 0.99, 0.9, 0.9, 0.1, 0.9,
+            1.1, 0.9, 0.40, 0.20, 0.40, 1.40, 0.20, "higher fit / lower outcome"));
+        selectorDb.Add(new TacticalMatchupRecord(
+            "outcome", "3-5-2", TeamTactic.Pressing, true, 0.40, 0.5, 0.5, 0.5, 0.5,
+            1.4, 0.8, 0.55, 0.20, 0.25, 1.85, 0.60, "lower fit / higher outcome"));
+        selectorDb.Add(new TacticalMatchupRecord(
+            "ineligible", "5-3-2", TeamTactic.Normal, false, 1.0, 1.0, 1.0, 0, 1,
+            2.0, 0.5, 0.90, 0.05, 0.05, 2.75, 1.50, "must be ignored"));
+        var selected = selectorDb.BestEligible();
+        Check(selected.CandidateId == "outcome" && selected.Tactic == TeamTactic.Pressing, "T5 selector chooses highest expected points, not highest fit");
+        Check(selectorDb.BestByExpectedPoints().All(x => x.Eligible), "DB3 best-per-XI excludes ineligible tactics");
+
+        Console.WriteLine("PASS: DB3 tactical matchup database + T5 outcome-driven selector");
         return 0;
     }
 
