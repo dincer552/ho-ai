@@ -59,6 +59,39 @@
 > Creative araştırmasının ayrıntılı teknik şartnamesi: `HattrickAI_V5/Docs/CREATIVE_TACTIC_RESEARCH_2026-09-07.md`
 
 
+## V5 Teknik Manuel PDF Projesi — Çalışma Planı
+
+Bu bölüm HattrickAI V5'in gerçek kod, test ve kaynak dokümanlarından oluşturulacak teknik manuel PDF çalışmasının takip alanıdır.
+
+Amaç: V5 motorlarının yaptığı işlemleri, kullanılan matematikleri, katsayıları, veri akışlarını ve web kullanımını sadece mevcut kaynaklara dayanarak dokümante etmek.
+
+### Manuel hazırlama aşamaları
+
+```
+AŞAMA 0  Kaynak envanteri
+AŞAMA 0.5 Motor / Kod Konum Haritası
+AŞAMA 1  Sistem mimarisi [TAMAMLANDI]
+AŞAMA 2  Veri modeli [TAMAMLANDI]
+AŞAMA 3  Hattrick matematik modeli [TAMAMLANDI]
+AŞAMA 4  Motor teknik dokümanları [TAMAMLANDI]
+AŞAMA 5  Gerçek maç örnek analizi [TAMAMLANDI]
+AŞAMA 6  Web arayüzü ve kullanıcı manueli [TAMAMLANDI]
+AŞAMA 7  Developer/API manueli [TAMAMLANDI]
+AŞAMA 8  Teknik Manuel PDF birleştirme ve yayın hazırlığı [TAMAMLANDI]
+AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [TAMAMLANDI — 06.09.2026]
+         9.1 JSON veri sözleşmesi [TAMAMLANDI — 06.09.2026]
+         9.2 JSON archive backend [TAMAMLANDI — 06.09.2026]
+         9.3 Backend analysis entegrasyonu [TAMAMLANDI — 06.09.2026]
+         9.4 Motor DB API [TAMAMLANDI — 06.09.2026]
+         9.5 Motor Panel [TAMAMLANDI — 06.09.2026]
+         9.6 Gerçek web JSON doğrulaması [PLAN — ayrı doğrulama gerektiriyor]
+         9.7 C19 JSON regression [TAMAMLANDI — 06.09.2026]
+         9.8 Deterministic JSON kontrolü [TAMAMLANDI — 06.09.2026]
+         9.9 Dokümantasyon / PDF snapshot güncellemesi [TAMAMLANDI — 06.09.2026]
+             - A8 temel PDF snapshotı korunarak Stage 9 için tarihli A9 publication supplement oluşturuldu.
+             - TECHNICAL_MANUAL_INDEX.md 06.09.2026 snapshot ve yayın dosyasıyla güncellendi.
+```
+
 ## 07.09.2026 — TAKTİK → M9 → RAKİP MAÇUP OPTİMİZASYONU / DB3 ÇALIŞMA PLANI
 
 Amaç: Motorun yalnızca “bu kadro bu taktiğe uygun mu?” sorusunu değil, **“bu XI ile bu rakibe karşı hangi taktik gerçek W/D/L sonucunu en çok iyileştiriyor?”** sorusunu cevaplaması.
@@ -72,12 +105,12 @@ Bu aşamada taktik uygunluk skoru tek başına final karar kriteri olmayacak. He
 - M9 kalibrasyonu tamamlanmadan `WinProbability` tek başına “gerçek maç motoru” diye sunulmayacak.
 - Son DB, inceleme amacıyla indirilebilir JSON olarak üretilecek.
 
-### AŞAMA T1 — Mevcut M9 audit ve baseline [PLAN]
-- [ ] M9'un bugün hangi M8 alanlarını kullandığını tek tek çıkart.
-- [ ] Normal'i değişmeyen baseline olarak sabitle.
-- [ ] Aynı XI + aynı rakip için 7 taktiğin mevcut M8/M9 çıktısını yan yana kaydet.
-- [ ] `ExpectedGoals` 5.00 tavanının karşılaştırmayı bozup bozmadığını kontrol et; gerekiyorsa fiziksel/analitik sınırı koruyarak iç hesap hassasiyetini düzelt.
-- [ ] Mevcut M9 regressionlarını baseline olarak koru.
+### AŞAMA T1 — Mevcut M9 audit ve baseline [TAMAMLANDI — 07.09.2026]
+- [x] M9'un bugün hangi M8 alanlarını kullandığını tek tek çıkart.
+- [x] Normal'i değişmeyen baseline olarak sabitle.
+- [x] Aynı XI + aynı rakip için 7 taktiğin mevcut M8/M9 çıktısını yan yana kaydet.
+- [x] `ExpectedGoals` 5.00 tavanının karşılaştırmayı bozup bozmadığını kontrol et; mevcut üretim sınırı korunarak T1 kapsamında sınır değişikliğine gidilmedi.
+- [x] Mevcut M9 regressionlarını baseline olarak koru; C8 regressionına aynı final XI üzerinde yedi taktik audit kontrolü eklendi.
 
 ### AŞAMA T2 — 7 taktiğin M9'a gerçek etki zinciri [PLAN]
 Her taktiğin M9'a taşıdığı mekanik ayrı doğrulanacak:
@@ -153,49 +186,3 @@ Mevcut Motor DB JSON indirme özelliği yeni DB3'ü de kapsayacak.
 - [ ] Sistematik sapmaları yalnızca yeterli tarihsel veriyle düzelt.
 - [ ] Gizli production katsayısı varsaymak yerine ölçülmüş kalibrasyon kullan.
 - [ ] Kalibrasyon tamamlanana kadar UI'da modelin calibration status'unu göstermeye devam et.
-
-### BİTİŞ KRİTERİ
-
-Bu çalışma ancak şu koşulların tamamı sağlandığında tamamlanmış sayılacak:
-
-1. Her DB2 XI için 7 taktik M7 → M7.2 → M8 → M9 zincirinden geçmiş olacak.
-2. DB3 tüm bu sonuçları ham hesap olarak saklayacak.
-3. M9 gerçek W/D/L etkisini üretecek ve taktikler rakibe karşı bunun üzerinden sıralanacak.
-4. Final seçim “kadroya uygun taktik” yerine **rakibe karşı beklenen maç sonucunu optimize eden XI + taktik** olacak.
-5. Motor Paneli seçilen taktiğin yanı sıra alternatif taktiklerin W/D/L ve xG farklarını gösterecek.
-6. `📥 Motor DB JSON İndir` mevcut DB'lerin tamamını ve DB3 matchup sonuçlarını indirecek.
-7. Deterministic/offline acceptance regressionları geçecek.
-8. M10/M11 threshold + anti-lock davranışı değişmeden kalacak.
-
-## V5 Teknik Manuel PDF Projesi — Çalışma Planı
-
-Bu bölüm HattrickAI V5'in gerçek kod, test ve kaynak dokümanlarından oluşturulacak teknik manuel PDF çalışmasının takip alanıdır.
-
-Amaç: V5 motorlarının yaptığı işlemleri, kullanılan matematikleri, katsayıları, veri akışlarını ve web kullanımını sadece mevcut kaynaklara dayanarak dokümante etmek.
-
-### Manuel hazırlama aşamaları
-
-```
-AŞAMA 0  Kaynak envanteri
-AŞAMA 0.5 Motor / Kod Konum Haritası
-AŞAMA 1  Sistem mimarisi [TAMAMLANDI]
-AŞAMA 2  Veri modeli [TAMAMLANDI]
-AŞAMA 3  Hattrick matematik modeli [TAMAMLANDI]
-AŞAMA 4  Motor teknik dokümanları [TAMAMLANDI]
-AŞAMA 5  Gerçek maç örnek analizi [TAMAMLANDI]
-AŞAMA 6  Web arayüzü ve kullanıcı manueli [TAMAMLANDI]
-AŞAMA 7  Developer/API manueli [TAMAMLANDI]
-AŞAMA 8  Teknik Manuel PDF birleştirme ve yayın hazırlığı [TAMAMLANDI]
-AŞAMA 9  MOTOR ÇIKTI JSON VERİTABANI [TAMAMLANDI — 06.09.2026]
-         9.1 JSON veri sözleşmesi [TAMAMLANDI — 06.09.2026]
-         9.2 JSON archive backend [TAMAMLANDI — 06.09.2026]
-         9.3 Backend analysis entegrasyonu [TAMAMLANDI — 06.09.2026]
-         9.4 Motor DB API [TAMAMLANDI — 06.09.2026]
-         9.5 Motor Panel [TAMAMLANDI — 06.09.2026]
-         9.6 Gerçek web JSON doğrulaması [PLAN — ayrı doğrulama gerektiriyor]
-         9.7 C19 JSON regression [TAMAMLANDI — 06.09.2026]
-         9.8 Deterministic JSON kontrolü [TAMAMLANDI — 06.09.2026]
-         9.9 Dokümantasyon / PDF snapshot güncellemesi [TAMAMLANDI — 06.09.2026]
-             - A8 temel PDF snapshotı korunarak Stage 9 için tarihli A9 publication supplement oluşturuldu.
-             - TECHNICAL_MANUAL_INDEX.md 06.09.2026 snapshot ve yayın dosyasıyla güncellendi.
-```
