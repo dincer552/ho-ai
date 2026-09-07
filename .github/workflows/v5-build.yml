@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
   packages: write
 
 jobs:
@@ -19,129 +19,6 @@ jobs:
     steps:
       - name: Checkout V5
         uses: actions/checkout@v4
-
-      - name: Apply tactic-aware search-space migration
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path('HattrickAI_V5/Core/MotorPipelineService.cs')
-          s = p.read_text(encoding='utf-8')
-
-          old = '''            // Diagnostic comparison: every legal formation gets its best DB2 XI tested
-            // against every supported TeamTactic. This does not change M10/M11 selection.
-            sw.Restart();
-            LogStart(runId, "M11", $"Taktik karşılaştırması: {legalFormations.Count} formasyon × {Enum.GetValues<TeamTactic>().Length} taktik");
-            var tacticComparisons = EvaluateFormationTactics(db2, legalFormations, players, context, runId, ct);
-            LogComplete(runId, "M11", $"Taktik karşılaştırması tamamlandı • {tacticComparisons.Count} sonuç • {legalFormations.Count} formasyon", sw.ElapsedMilliseconds, tacticComparisons.Count);
-
-            var selectedKey = Signature(m11.BestPlan.Lineup); var selectedRecord = db2.First(x => x.CandidateId == selectedKey); var selected = finalists.First(x => Signature(x.TacticalCandidate.Lineup) == selectedKey); var selectedEval = cache["B:" + selectedKey]; var selectedM9 = selectedRecord.Prediction ?? m11.Prediction; var selectedM9Result = new M9PredictionResult(selected.TacticalCandidate.Lineup.Formation, selectedKey, selectedM9, selectedEval.Chance.StructuralChanceIndex, ComputeM9OwnChanceShare(selectedEval.Chance), 1.0 - ComputeM9OwnChanceShare(selectedEval.Chance), ComputeM9OwnAttackQuality(selectedEval.Tactical.Rating, context.Opponent.Rating, selectedEval.Chance), ComputeM9OpponentAttackQuality(selectedEval.Tactical.Rating, context.Opponent.Rating, selectedEval.Chance), ComputeM9OwnLeft(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OwnCentre(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OwnRight(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OpponentLeft(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OpponentCentre(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OpponentRight(selectedEval.Tactical.Rating, context.Opponent.Rating), context.RatingContext.MatchLocation, M9CalibrationStatus.StructuralModelAwaitingHistoricalCalibration) { EventGoals = selectedM9.EventGoals, OpponentEventGoals = selectedM9ResultOpponentEvents(selectedM9) };
-            return new MotorPipelineResult(m3, m4, m5, m6, selectedEval.Scenario, selectedEval.Advanced, selectedEval.Chance, selectedM9Result, m10, m11.BestPlan, m11.Prediction) { M11 = m11, CandidateDatabase1Count = databases.FirstPass.Count, CandidateDatabase2Count = databases.SecondPass.Count, CandidateDatabase1 = db1, CandidateDatabase2 = db2, SelectedMatchApproach = context.RatingContext.Attitude == TeamAttitude.Auto ? TeamAttitude.Normal : context.RatingContext.Attitude, M6BFormationBudgets = m6bBudgets, TacticComparisons = tacticComparisons };
-'''
-          new = '''            // Expanded tactic search space: every DB2 XI is evaluated under every supported TeamTactic.
-            // The actual decision space is XI × tactic, not one tactic representative per formation.
-            sw.Restart();
-            LogStart(runId, "M11", $"Taktik arama uzayı: {db2.Count} DB2 XI × {Enum.GetValues<TeamTactic>().Length} taktik");
-            var tacticComparisons = EvaluateFormationTactics(db2, legalFormations, players, context, runId, ct);
-            if (tacticComparisons.Count == 0) throw new InvalidOperationException("Taktik arama uzayı boş kaldı.");
-            var bestTactic = tacticComparisons.OrderByDescending(TacticSelectionScore)
-                .ThenByDescending(x => x.WinProbability)
-                .ThenByDescending(x => x.TacticalScore)
-                .First();
-            LogComplete(runId, "M11", $"Taktik arama tamamlandı • {tacticComparisons.Count} XI×taktik sonucu • FINAL {bestTactic.Formation} + {bestTactic.Tactic}", sw.ElapsedMilliseconds, tacticComparisons.Count);
-
-            var selectedKey = bestTactic.CandidateId;
-            var selectedRecord = db2.First(x => x.CandidateId == selectedKey);
-            var selectedEval = EvaluateForComparison(selectedRecord.Lineup, players, context, bestTactic.Tactic);
-            var selectedM9 = selectedEval.Prediction;
-            var selectedM9Result = new M9PredictionResult(selectedRecord.Formation, selectedKey, selectedM9, selectedEval.Chance.StructuralChanceIndex, ComputeM9OwnChanceShare(selectedEval.Chance), 1.0 - ComputeM9OwnChanceShare(selectedEval.Chance), ComputeM9OwnAttackQuality(selectedEval.Tactical.Rating, context.Opponent.Rating, selectedEval.Chance), ComputeM9OpponentAttackQuality(selectedEval.Tactical.Rating, context.Opponent.Rating, selectedEval.Chance), ComputeM9OwnLeft(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OwnCentre(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OwnRight(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OpponentLeft(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OpponentCentre(selectedEval.Tactical.Rating, context.Opponent.Rating), ComputeM9OpponentRight(selectedEval.Tactical.Rating, context.Opponent.Rating), context.RatingContext.MatchLocation, M9CalibrationStatus.StructuralModelAwaitingHistoricalCalibration) { EventGoals = selectedM9.EventGoals, OpponentEventGoals = selectedM9ResultOpponentEvents(selectedM9) };
-            var finalPlan = new FinalMatchPlan(selectedRecord.Formation, selectedRecord.Lineup, selectedEval.Tactical.Rating, selectedEval.Tactical.Matchup, selectedEval.Tactical.TacticalScore);
-            return new MotorPipelineResult(m3, m4, m5, m6, selectedEval.Scenario, selectedEval.Advanced, selectedEval.Chance, selectedM9Result, m10, finalPlan, selectedM9) { M11 = m11, CandidateDatabase1Count = databases.FirstPass.Count, CandidateDatabase2Count = databases.SecondPass.Count, CandidateDatabase1 = db1, CandidateDatabase2 = db2, SelectedMatchApproach = context.RatingContext.Attitude == TeamAttitude.Auto ? TeamAttitude.Normal : context.RatingContext.Attitude, M6BFormationBudgets = m6bBudgets, TacticComparisons = tacticComparisons };
-'''
-          if old not in s:
-              raise SystemExit('pipeline selection block not found')
-          s = s.replace(old, new, 1)
-
-          start = s.index('    private static List<FormationTacticComparison> EvaluateFormationTactics(')
-          end = s.index('    private ComparisonEvaluation EvaluateForComparison(', start)
-          replacement = '''    private List<FormationTacticComparison> EvaluateFormationTactics(
-        IReadOnlyList<CandidateEvaluationRecord> db2,
-        IReadOnlyList<string> legalFormations,
-        IReadOnlyList<Player> players,
-        MatchDataContext context,
-        string? runId,
-        CancellationToken ct)
-    {
-        var tactics = Enum.GetValues<TeamTactic>();
-        var results = new List<FormationTacticComparison>(db2.Count * tactics.Length);
-        foreach (var representative in db2)
-        {
-            ct.ThrowIfCancellationRequested();
-            if (!legalFormations.Contains(representative.Formation, StringComparer.Ordinal)) continue;
-            foreach (var tactic in tactics)
-            {
-                ct.ThrowIfCancellationRequested();
-                var evaluation = EvaluateForComparison(representative.Lineup, players, context, tactic);
-                var prediction = evaluation.Prediction;
-                results.Add(new FormationTacticComparison(
-                    representative.Formation,
-                    representative.CandidateId,
-                    tactic,
-                    evaluation.Tactical.TacticalScore,
-                    evaluation.Chance.StructuralChanceIndex,
-                    evaluation.Chance.MidfieldShare,
-                    evaluation.Chance.OwnRegularChanceExpected,
-                    evaluation.Chance.OpponentRegularChanceExpected,
-                    prediction.WinProbability,
-                    prediction.DrawProbability,
-                    prediction.LossProbability,
-                    prediction.ExpectedHomeGoals,
-                    prediction.ExpectedAwayGoals,
-                    evaluation.Advanced.Level.Value,
-                    evaluation.Advanced.Tactic));
-            }
-        }
-        return results;
-    }
-
-    private static double TacticSelectionScore(FormationTacticComparison x)
-    {
-        var tactical = 1.0 / (1.0 + Math.Exp(-Math.Clamp(x.TacticalScore, -20.0, 20.0)));
-        var win = Math.Clamp(x.WinProbability, 0.0, 1.0);
-        var draw = Math.Clamp(x.DrawProbability, 0.0, 1.0);
-        var structural = Math.Clamp(x.StructuralChanceIndex, 0.0, 1.0);
-        var riskAdjustedOutcome = win + (0.50 * draw);
-        return (0.35 * tactical) + (0.35 * win) + (0.15 * structural) + 0.05 + (0.10 * riskAdjustedOutcome);
-    }
-
-'''
-          s = s[:start] + replacement + s[end:]
-          p.write_text(s, encoding='utf-8')
-
-          readme = Path('README.md')
-          marker = '## Taktik Arama Uzayı — 07.09.2026'
-          text = readme.read_text(encoding='utf-8')
-          if marker not in text:
-              text += '''\n\n## Taktik Arama Uzayı — 07.09.2026\n\nÖnceki uygulamada taktik karşılaştırması yalnızca her formasyon için tek bir temsilci DB2 XI üzerinde yapılıyordu. Bu, taktiği dizilişten bağımsız bir seçim uzayına indirgediği için yeterli değildir.\n\nYeni kural: taktik değerlendirme uzayı **XI × TeamTactic** olarak ele alınır. M6-B ile oluşan DB2 içindeki her geçerli XI, desteklenen tüm `TeamTactic` değerleriyle ayrı ayrı M7 → M7.2 → M8 → M9 zincirinden geçirilir. Böylece aynı dizilişin Normal, Pressing, CounterAttack, AttackMiddle, AttackWings, Creative ve LongShots senaryoları gerçek oyuncu yerleşimiyle birlikte değerlendirilir.\n\nTaktik seçiminde kullanılan mevcut M11 final-score mantığı korunur; yeni katman yalnızca aday uzayını genişletir ve aynı skor mantığını XI+taktik çiftleri üzerinde uygular. **M10/M11 eşik mekanizması değiştirilmemiştir.**\n\nTaktiklerin mekanik anlamları sonuç yorumunda korunmalıdır: Pressing iki tarafın potansiyel normal şanslarını azaltan; CounterAttack orta sahadan feragat edip kontra fırsatı arayan; AttackMiddle kanat hücumlarını merkeze kaydıran; AttackWings merkez hücumlarını kanatlara kaydıran; Creative özel olay üretimini artırmaya odaklanan; LongShots normal hücumların bir kısmını uzun şutlara dönüştüren mekanizmalardır. Bu nedenle yalnızca ham `TacticalScore` değil, taktiğin ürettiği M7.2/M8/M9 çıktıları birlikte değerlendirilmelidir.\n\nBu genişletme, önceki `formation × 7 tactic` teşhis karşılaştırmasının yerine gerçek `DB2 XI × 7 tactic` aramasını koyar.\n'''
-              readme.write_text(text, encoding='utf-8')
-
-          wf = Path('.github/workflows/v5-build.yml')
-          w = wf.read_text(encoding='utf-8')
-          a = w.index('      - name: Apply tactic-aware search-space migration')
-          b = w.index('      - name: Offline acceptance regression C20', a)
-          w = w[:a] + w[b:]
-          w = w.replace('permissions:\n  contents: write\n  packages: write', 'permissions:\n  contents: read\n  packages: write')
-          wf.write_text(w, encoding='utf-8')
-
-          PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add HattrickAI_V5/Core/MotorPipelineService.cs README.md .github/workflows/v5-build.yml
-          git commit -m "feat(v5): expand lineup x tactic search space"
-          git push origin v5
-
       - name: Offline acceptance regression C20
         shell: bash
         run: |
@@ -200,10 +77,14 @@ jobs:
           NEXT_CONTAINER="hattrick-v5-next"
           DEPLOY_COMMITTED=0
           HAD_OLD=0
+
           mkdir -p "${LOG_DIR}"
           touch "${LOG_FILE}"
           log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" | tee -a "${LOG_FILE}"; }
-          cleanup_secrets() { docker logout ghcr.io >/dev/null 2>&1 || true; unset GHCR_TOKEN GHCR_USER CHPP_CONSUMER_SECRET; }
+          cleanup_secrets() {
+            docker logout ghcr.io >/dev/null 2>&1 || true
+            unset GHCR_TOKEN GHCR_USER CHPP_CONSUMER_SECRET
+          }
           rollback_deploy() {
             local rc=$?
             cleanup_secrets
@@ -213,40 +94,75 @@ jobs:
               if [ "${HAD_OLD}" -eq 1 ]; then
                 docker rename "${ROLLBACK_CONTAINER}" "${OLD_CONTAINER}" >/dev/null 2>&1 || true
                 docker start "${OLD_CONTAINER}" >/dev/null 2>&1 || true
-                if curl --fail --silent --show-error http://127.0.0.1:10000/health >/dev/null 2>&1; then log "🟢 Eski container rollback sonrası sağlıklı."; else log "❌ Eski container rollback sonrası health check geçemedi."; fi
-              else log "⚠️ Önceki çalışan container bulunmadı; geri alınacak sürüm yok."; fi
+                if curl --fail --silent --show-error http://127.0.0.1:10000/health >/dev/null 2>&1; then
+                  log "🟢 Eski container rollback sonrası sağlıklı."
+                else
+                  log "❌ Eski container rollback sonrası health check geçemedi."
+                fi
+              else
+                log "⚠️ Önceki çalışan container bulunmadı; geri alınacak sürüm yok."
+              fi
             fi
             if [ "${rc}" -ne 0 ]; then log "❌ DEPLOY FAILED (exit code ${rc})"; fi
             exit "${rc}"
           }
           trap rollback_deploy EXIT
+
           log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           log "🚀 GHCR VM deployment başladı"
           log "Branch: ${GITHUB_REF_NAME}"
           log "Commit: ${GITHUB_SHA:0:7}"
           log "Image: ${IMAGE}:${TAG}"
+
           log "🔐 GHCR login..."
           printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
           log "📥 GHCR image çekiliyor..."
           docker pull "${IMAGE}:${TAG}"
           docker logout ghcr.io >/dev/null 2>&1 || true
           unset GHCR_TOKEN GHCR_USER
+
           if docker ps -a --format '{{.Names}}' | grep -qx "${ROLLBACK_CONTAINER}"; then
-            if docker ps -a --format '{{.Names}}' | grep -qx "${OLD_CONTAINER}"; then docker rm -f "${ROLLBACK_CONTAINER}" >/dev/null 2>&1 || true; else docker rename "${ROLLBACK_CONTAINER}" "${OLD_CONTAINER}"; docker start "${OLD_CONTAINER}" >/dev/null 2>&1 || true; fi
+            if docker ps -a --format '{{.Names}}' | grep -qx "${OLD_CONTAINER}"; then
+              docker rm -f "${ROLLBACK_CONTAINER}" >/dev/null 2>&1 || true
+            else
+              docker rename "${ROLLBACK_CONTAINER}" "${OLD_CONTAINER}"
+              docker start "${OLD_CONTAINER}" >/dev/null 2>&1 || true
+            fi
           fi
-          if docker ps -a --format '{{.Names}}' | grep -qx "${OLD_CONTAINER}"; then log "📦 Mevcut sürüm rollback için korunuyor..."; docker rename "${OLD_CONTAINER}" "${ROLLBACK_CONTAINER}"; docker stop "${ROLLBACK_CONTAINER}" >/dev/null; HAD_OLD=1; fi
+
+          if docker ps -a --format '{{.Names}}' | grep -qx "${OLD_CONTAINER}"; then
+            log "📦 Mevcut sürüm rollback için korunuyor..."
+            docker rename "${OLD_CONTAINER}" "${ROLLBACK_CONTAINER}"
+            docker stop "${ROLLBACK_CONTAINER}" >/dev/null
+            HAD_OLD=1
+          fi
+
           docker rm -f "${NEXT_CONTAINER}" >/dev/null 2>&1 || true
           log "▶️ Yeni container başlatılıyor: ${NEXT_CONTAINER}"
           docker run -d --name "${NEXT_CONTAINER}" --restart unless-stopped -p 10000:10000 -e CHPP_CONSUMER_SECRET="${CHPP_CONSUMER_SECRET}" -v "${LOG_FILE}:/app/deploy.log:ro" "${IMAGE}:${TAG}"
           unset CHPP_CONSUMER_SECRET
+
           healthy=0
           for attempt in $(seq 1 12); do
-            if docker ps --filter "name=${NEXT_CONTAINER}" --filter "status=running" | grep -q "${NEXT_CONTAINER}" && curl --fail --silent --show-error http://127.0.0.1:10000/health >/dev/null; then healthy=1; log "❤️ Health check başarılı (deneme ${attempt}/12)."; break; fi
-            log "⏳ Health check bekleniyor (deneme ${attempt}/12)."; sleep 5
+            if docker ps --filter "name=${NEXT_CONTAINER}" --filter "status=running" | grep -q "${NEXT_CONTAINER}" && curl --fail --silent --show-error http://127.0.0.1:10000/health >/dev/null; then
+              healthy=1
+              log "❤️ Health check başarılı (deneme ${attempt}/12)."
+              break
+            fi
+            log "⏳ Health check bekleniyor (deneme ${attempt}/12)."
+            sleep 5
           done
-          if [ "${healthy}" -ne 1 ]; then log "❌ Yeni container health check başarısız."; exit 1; fi
-          if ! curl --fail --silent --show-error --max-time 10 http://127.0.0.1:10000/ -o /dev/null; then log "❌ Homepage smoke test başarısız: / cevap vermiyor."; exit 1; fi
+          if [ "${healthy}" -ne 1 ]; then
+            log "❌ Yeni container health check başarısız."
+            exit 1
+          fi
+
+          if ! curl --fail --silent --show-error --max-time 10 http://127.0.0.1:10000/ -o /dev/null; then
+            log "❌ Homepage smoke test başarısız: / cevap vermiyor."
+            exit 1
+          fi
           log "🟢 Homepage smoke test başarılı."
+
           health="$(curl --fail --silent --show-error http://127.0.0.1:10000/health)"
           log "❤️ Health: ${health}"
           docker rename "${NEXT_CONTAINER}" "${OLD_CONTAINER}"
