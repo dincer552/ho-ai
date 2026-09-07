@@ -184,3 +184,15 @@ Sonuç: UI'da `ORTADAN ATAK`, `KANATTAN ATAK` vb. değerleri motorun hesapladı�
 - `HattrickAI_V5/Docs/M8_PHASE_D_PDF_CALIBRATION.md`
 - `HattrickAI_V5/Docs/TECHNICAL_MANUAL_INDEX.md`
 - `HattrickAI_V5/Docs/MOTOR_OUTPUT_JSON_SCHEMA.md`
+
+## TAKTİK ARAMA UZAYI — 07.09.2026
+
+Önceki uygulamada taktik karşılaştırması yalnızca her formasyon için tek bir temsilci DB2 XI üzerinde yapılıyordu. Bu yaklaşım taktiği gerçek oyuncu yerleşiminden kopardığı için karar uzayını gereksiz şekilde daraltıyordu.
+
+Yeni kural: taktik değerlendirme uzayı **XI × TeamTactic** olarak ele alınır. M6-B ile oluşan DB2 içindeki her geçerli XI, desteklenen tüm `TeamTactic` değerleriyle ayrı ayrı M7 → M7.2 → M8 → M9 zincirinden geçirilir. Böylece aynı dizilişin Normal, Pressing, CounterAttack, AttackMiddle, AttackWings, Creative ve LongShots senaryoları gerçek oyuncu yerleşimiyle birlikte değerlendirilir.
+
+Taktik seçiminde kullanılan mevcut M11 final-score mantığı korunur; yeni katman aday uzayını genişletir ve aynı karar mantığını XI+taktik çiftleri üzerinde uygular. **M10/M11 eşik mekanizması değiştirilmez.**
+
+Taktiklerin mekanik anlamları sonuç yorumunda korunmalıdır: Pressing iki tarafın potansiyel normal şanslarını azaltan; CounterAttack orta sahadan feragat edip kontra fırsatı arayan; AttackMiddle kanat hücumlarını merkeze kaydıran; AttackWings merkez hücumlarını kanatlara kaydıran; Creative özel olay üretimini artırmaya odaklanan; LongShots normal hücumların bir kısmını uzun şutlara dönüştüren mekanizmalardır. Bu nedenle yalnızca ham `TacticalScore` değil, taktiğin ürettiği M7.2/M8/M9 çıktıları birlikte değerlendirilmelidir.
+
+Bu genişletme önceki `formation × 7 tactic` teşhis karşılaştırmasının yerine gerçek **DB2 XI × 7 tactic** aramasını koyar. Taktik sonuçları ayrıca Motor DB içinde saklanmaya devam eder.
