@@ -2,15 +2,16 @@ namespace HattrickAI.V5.Core;
 
 /// <summary>
 /// CounterAttack-specific suitability evaluation.
-/// Uses the 2026 Hattrick research model as the behavioural baseline:
-/// lower pre-penalty midfield is required, 7% midfield reduction is paid,
-/// opponent missed Normal chances create CA opportunities, and CA conversion
-/// is bounded by the research-derived tactic curve. The evaluator then judges
-/// whether the XI has enough defence and finishing power to make those chances useful.
+/// Research-backed mechanics used here:
+/// - CA is eligible only when own midfield is lower before the 7% penalty.
+/// - The tactic then reduces own midfield by 7%.
+/// - Tactical CA converts the opponent's missed Normal chances, with a research-derived
+///   conversion range of 4%-45% depending on tactic skill.
+/// - Defence, finishing and relevant player specialties determine whether the generated
+///   counterattacks are actually useful for this XI.
 /// </summary>
 public static class CounterAttackTacticEvaluator
 {
-    private const double PaperNormalNonTacticalCaRate = 0.038;
     private const double PaperNonTacticalCaTwoDefenders = 0.0175;
     private const double PaperNonTacticalCaThreeDefenders = 0.0363;
     private const double PaperNonTacticalCaFourDefenders = 0.0604;
@@ -35,12 +36,9 @@ public static class CounterAttackTacticEvaluator
         var baseline = baselineNormal.Chance;
         var xi = LineupPlayers(lineup, players);
         var opponent = opponentPlayers ?? Array.Empty<Player>();
+        var eligible = own.CounterAttackEligible;
 
-        var ownMidfield = OwnMidfield(tacticEvaluation);
-        var opponentMidfield = OpponentMidfield(tacticEvaluation);
-        var eligible = own.CounterAttackEligible && ownMidfield < opponentMidfield;
         var conversion = Math.Clamp(own.CounterAttackConversionRate, 0.0, 1.0);
-
         var averageDefending = Average(xi.Select(p => p.Defending));
         var averagePassing = Average(xi.Select(p => p.Passing));
         var averageScoring = Average(xi.Select(p => p.Scoring));
@@ -54,17 +52,18 @@ public static class CounterAttackTacticEvaluator
         var quickBoost = SpecialtyInteractionEngine.CounterAttackSpecialtyBoostPercent(quickOwn, quickOpponentDefenders);
         var technicalDefenders = DefensivePlayers(lineup, xi).Count(p => p.Specialty == PlayerSpecialty.Technical);
         var technicalCaRate = TechnicalCounterAttackRate(defenders, technicalDefenders);
+        var nonTacticalCaRate = NonTacticalCounterAttackRate(defenders);
 
         var missedNormal = Math.Max(0.0, own.MissedOpponentNormalChanceExpected);
-        var tacticalCaExpected = eligible ? Math.Max(0.0, missedNormal * conversion) : 0.0;
+        var tacticalCaExpected = eligible ? missedNormal * conversion : 0.0;
         var attackFinish = CounterAttackFinishQuality(own, averageScoring, averagePassing);
         var conversionValue = Clamp01(conversion / M8ChanceAllocationEngine.CounterAttackMaxConversion);
-        var opportunityValue = Clamp01(missedNormal / 8.745);
-        var specialtyValue = Clamp01(0.70 * Clamp01(quickBoost / 0.14) + 0.30 * Clamp01(technicalCaRate / 0.0311));
+        var opportunityValue = Clamp01(missedNormal / M8ChanceAllocationEngine.PaperExpectedRegularSectorChances);
+        var specialtyValue = Clamp01(
+            0.65 * Clamp01(quickBoost / SpecialtyInteractionEngine.QuickCounterAttackEightPlayerBoost) +
+            0.20 * Clamp01(technicalCaRate / PaperTechnicalCaFourPlusDefenders) +
+            0.15 * Clamp01(nonTacticalCaRate / PaperNonTacticalCaFiveDefenders));
 
-        // The core CA upside comes from converting the opponent's missed Normal chances.
-        // Defence is already represented in missedNormal, but remains explicit here because
-        // a CA lineup must also survive long enough to benefit from the generated chances.
         var primary = Clamp01(
             0.35 * opportunityValue +
             0.30 * conversionValue +
@@ -72,27 +71,30 @@ public static class CounterAttackTacticEvaluator
             0.10 * defenseFit +
             0.05 * specialtyValue);
 
-        var midfieldOpportunity = Clamp01((opponentMidfield - ownMidfield) / Math.Max(1.0, opponentMidfield));
+        // We do not reconstruct the opponent's exact midfield rating here because the
+        // comparison view exposes the already validated M8 eligibility. MidfieldShare is
+        // used only as a bounded indicator of how deeply CA is operating from a possession
+        // disadvantage; the binary eligibility remains authoritative.
+        var midfieldDisadvantage = eligible ? Clamp01((0.50 - own.MidfieldShare) / 0.25) : 0.0;
         var matchup = Clamp01(
-            0.30 * midfieldOpportunity +
-            0.25 * Clamp01(1.0 - own.MidfieldShare) +
-            0.25 * Clamp01(opponent.OpponentRegularQuality <= 0 ? own.OpponentRegularQuality : own.OpponentRegularQuality) +
-            0.20 * attackFinish);
+            0.35 * midfieldDisadvantage +
+            0.25 * Clamp01(own.OpponentRegularQuality) +
+            0.25 * attackFinish +
+            0.15 * specialtyValue);
 
         var ownChanceLoss = RelativeLoss(baseline.OwnRegularChanceExpected, own.OwnRegularChanceExpected);
-        var winProbabilityLoss = Math.Max(0, baselineNormal.Prediction.Prediction.WinProbability - tacticEvaluation.Prediction.Prediction.WinProbability);
-        var midfieldPenaltyCost = Clamp01((ownMidfield - own.EffectiveOwnMidfield()) / Math.Max(1.0, ownMidfield));
+        var winProbabilityLoss = Math.Max(0.0,
+            baselineNormal.Prediction.Prediction.WinProbability - tacticEvaluation.Prediction.Prediction.WinProbability);
+        var midfieldPenaltyCost = M8ChanceAllocationEngine.CounterAttackMidfieldPenalty;
         var tradeoff = Clamp01(
             0.45 * ownChanceLoss +
             0.30 * midfieldPenaltyCost +
             0.25 * winProbabilityLoss);
 
-        // CA is intentionally penalised when the tactic creates little usable volume,
-        // when the XI has weak finishing, or when the 7% midfield sacrifice buys little.
         var suitability = Clamp01(
             0.55 * primary +
             0.20 * defenseFit +
-            0.15 * passingFit +
+            0.15 * scoringFit +
             0.10 * specialtyValue -
             0.35 * tradeoff);
 
@@ -106,15 +108,17 @@ public static class CounterAttackTacticEvaluator
                 Clamp01(0.55 * defenseFit + 0.25 * passingFit + 0.20 * scoringFit),
                 0.0,
                 false,
-                $"CA uygun değil: 7% midfield penalty öncesi own MF {ownMidfield:0.##} >= opponent MF {opponentMidfield:0.##}.");
+                "CA uygun değil: M8 pre-penalty midfield eligibility şartı sağlanmıyor.");
         }
 
-        var score = Clamp01(0.70 * suitability + 0.30 * Clamp01(tacticEvaluation.Prediction.Prediction.WinProbability));
+        var score = Clamp01(0.70 * suitability + 0.30 * tacticEvaluation.Prediction.Prediction.WinProbability);
         var explanation =
-            $"CA: pre-penalty MF {ownMidfield:0.##} vs {opponentMidfield:0.##}; 7% MF cost paid; " +
-            $"missed opponent Normal {missedNormal:0.##}; tactical CA rate {conversion:P1}; expected CA {tacticalCaExpected:0.##}; " +
-            $"DEF fit {defenseFit:P0}; finishing fit {attackFinish:P0}; Quick CA boost {quickBoost:P1}; " +
-            $"Technical CA support {technicalCaRate:P1}; opportunity cost {tradeoff:P0}.";
+            $"CA: pre-penalty midfield eligibility OK; 7% MF penalty applied; " +
+            $"missed opponent Normal {missedNormal:0.##}; tactical CA rate {conversion:P1}; " +
+            $"expected tactical CA {tacticalCaExpected:0.##}; DEF fit {defenseFit:P0}; " +
+            $"finishing fit {attackFinish:P0}; Quick CA boost {quickBoost:P1}; " +
+            $"Technical CA support {technicalCaRate:P1}; non-tactical CA baseline {nonTacticalCaRate:P1}; " +
+            $"opportunity cost {tradeoff:P0}.";
 
         return new TacticFitResult(
             TeamTactic.CounterAttack,
@@ -125,24 +129,6 @@ public static class CounterAttackTacticEvaluator
             matchup,
             true,
             explanation);
-    }
-
-    private static double OwnMidfield(ComparisonEvaluationView evaluation)
-        => evaluation.Chance.Allocation.EffectiveOwnMidfield > 0
-            ? evaluation.Chance.Allocation.EffectiveOwnMidfield / 0.93
-            : 0.0;
-
-    private static double OpponentMidfield(ComparisonEvaluationView evaluation)
-        => evaluation.Chance.Allocation.EffectiveOwnMidfield > 0
-            ? evaluation.Chance.Allocation.EffectiveOwnMidfield / Math.Max(0.01, 1.0 - M8ChanceAllocationEngine.CounterAttackMidfieldPenalty)
-            : InferOpponentMidfieldFromPossession(evaluation.Chance.MidfieldShare);
-
-    private static double InferOpponentMidfieldFromPossession(double possession)
-    {
-        if (possession <= 0.0 || possession >= 1.0) return 0.0;
-        // Only a fallback when direct opponent midfield is unavailable from the comparison view.
-        // The primary eligibility path uses M8's CounterAttackEligible flag.
-        return Math.Max(0.0, possession < 0.5 ? possession * 20.0 : possession * 10.0);
     }
 
     private static double CounterAttackFinishQuality(M8ChanceResult chance, double averageScoring, double averagePassing)
@@ -176,7 +162,7 @@ public static class CounterAttackTacticEvaluator
         };
 
     private static int RelevantQuickAttackers(Lineup lineup, IReadOnlyList<Player> players)
-        => players.Count(p => p.Specialty == PlayerSpecialty.Quick && SlotFor(lineup, p.Id) is not null && !IsDefensiveSlot(SlotFor(lineup, p.Id)!));
+        => players.Count(p => p.Specialty == PlayerSpecialty.Quick && SlotFor(lineup, p.Id) is { } slot && !IsDefensiveSlot(slot));
 
     private static int RelevantQuickDefenders(IReadOnlyList<Player> players)
         => players.Count(p => p.Specialty == PlayerSpecialty.Quick && p.Defending >= p.Scoring && p.Defending >= p.Playmaking);
