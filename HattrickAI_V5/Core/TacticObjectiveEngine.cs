@@ -24,7 +24,7 @@ public static class TacticObjectiveEngine
         var inputs = tacticEvaluation.Advanced.Inputs;
         var outfieldCount = Math.Max(1, lineup.Slots.Count(s => s.Code != "GK"));
         var fit = SquadFit(tactic, inputs, outfieldCount);
-        var matchup = MatchupFit(tactic, own, tacticEvaluation.Prediction, opponentPlayers);
+        var matchup = MatchupFit(tactic, own, tacticEvaluation.Prediction, baseline, opponentPlayers);
         var tradeoff = Tradeoff(tactic, baseline, own, baselineNormal.Prediction, tacticEvaluation.Prediction);
         var primary = PrimaryMetric(tactic, own, tacticEvaluation.Advanced, tacticEvaluation.Prediction, baseline, opponentPlayers);
         var eligible = tactic != TeamTactic.CounterAttack || own.CounterAttackEligible;
@@ -39,12 +39,12 @@ public static class TacticObjectiveEngine
     {
         return tactic switch
         {
-            TeamTactic.Pressing => Math.Clamp((Suppression(c, baseline) * 0.65) + (Clamp01(a.Inputs.TotalDefending / 100.0) * 0.20) + (Clamp01(a.Inputs.TotalStamina / 100.0) * 0.15), 0, 1),
-            TeamTactic.CounterAttack => Math.Clamp((Clamp01(c.CounterAttackChanceExpected / 2.5) * 0.60) + (Clamp01(a.CounterAttack?.RelativeCounterInput / 200.0 ?? 0) * 0.20) + (PossessionDisadvantage(c) * 0.20), 0, 1),
+            TeamTactic.Pressing => Math.Clamp((Suppression(c, baseline) * 0.65) + (NormPerPlayer(a.Inputs.TotalDefending, 10) * 0.20) + (NormPerPlayer(a.Inputs.TotalStamina, 10) * 0.15), 0, 1),
+            TeamTactic.CounterAttack => Math.Clamp((Clamp01(c.CounterAttackChanceExpected / 2.5) * 0.60) + (Clamp01((a.CounterAttack?.RelativeCounterInput ?? 0) / 200.0) * 0.20) + (PossessionDisadvantage(c) * 0.20), 0, 1),
             TeamTactic.AttackWings => Math.Clamp((WingMatchup(c) * 0.55) + (c.RightChanceShare + c.LeftChanceShare) * 0.25 + (Clamp01(c.TacticConversionRate / 0.52) * 0.20), 0, 1),
             TeamTactic.AttackMiddle => Math.Clamp((CentreMatchup(c) * 0.55) + (c.CentreChanceShare * 0.25) + (Clamp01(c.TacticConversionRate / 0.35) * 0.20), 0, 1),
-            TeamTactic.Creative => Math.Clamp((Clamp01((c.CreativeEventMultiplier - 1.0) / 2.8) * 0.45) + (Clamp01(a.PlayCreatively?.CreativeInput / 500.0 ?? 0) * 0.25) + (Clamp01(SpecialEventGoals(p.EventGoals) / 1.0) * 0.30), 0, 1),
-            TeamTactic.LongShots => Math.Clamp((Clamp01(c.LongShotChanceExpected / 2.0) * 0.45) + (Clamp01(a.LongShots?.ShooterInput / 150.0 ?? 0) * 0.25) + (KeeperMatchup(opponentPlayers) * 0.30), 0, 1),
+            TeamTactic.Creative => Math.Clamp((Clamp01((c.CreativeEventMultiplier - 1.0) / 2.8) * 0.45) + (Clamp01((a.PlayCreatively?.CreativeInput ?? 0) / 500.0) * 0.25) + (Clamp01(SpecialEventGoals(p.EventGoals) / 1.0) * 0.30), 0, 1),
+            TeamTactic.LongShots => Math.Clamp((Clamp01(c.LongShotChanceExpected / 2.0) * 0.45) + (Clamp01((a.LongShots?.ShooterInput ?? 0) / 150.0) * 0.25) + (KeeperMatchup(opponentPlayers) * 0.30), 0, 1),
             _ => Math.Clamp((0.50 * c.StructuralChanceIndex) + (0.50 * p.WinProbability), 0, 1)
         };
     }
@@ -68,10 +68,10 @@ public static class TacticObjectiveEngine
         };
     }
 
-    private static double MatchupFit(TeamTactic tactic, M8ChanceResult c, MatchPrediction p, IReadOnlyList<Player>? opponentPlayers)
+    private static double MatchupFit(TeamTactic tactic, M8ChanceResult c, MatchPrediction p, M8ChanceResult baseline, IReadOnlyList<Player>? opponentPlayers)
         => tactic switch
         {
-            TeamTactic.Pressing => Clamp01((Suppression(c, c) * 0.35) + (1.0 - c.OpponentRegularQuality) * 0.35 + p.WinProbability * 0.30),
+            TeamTactic.Pressing => Clamp01((Suppression(c, baseline) * 0.45) + (1.0 - c.OpponentRegularQuality) * 0.30 + p.WinProbability * 0.25),
             TeamTactic.CounterAttack => Clamp01((PossessionDisadvantage(c) * 0.40) + Clamp01(c.CounterAttackChanceExpected / 2.5) * 0.35 + p.WinProbability * 0.25),
             TeamTactic.AttackWings => WingMatchup(c),
             TeamTactic.AttackMiddle => CentreMatchup(c),
@@ -97,11 +97,11 @@ public static class TacticObjectiveEngine
     private static double MechanicValue(TeamTactic tactic, M8ChanceResult c, AdvancedTacticalScenarioResult a)
         => tactic switch
         {
-            TeamTactic.Pressing => Clamp01(c.PressingSuppression / 0.41) * 0.75 + Norm(a.Inputs.TotalDefending / 10.0) * 0.25,
-            TeamTactic.CounterAttack => Clamp01(c.CounterAttackChanceExpected / 2.5) * 0.75 + Norm(a.Inputs.TotalPassing / 10.0) * 0.25,
+            TeamTactic.Pressing => Clamp01(c.PressingSuppression / 0.41) * 0.75 + NormPerPlayer(a.Inputs.TotalDefending, 10) * 0.25,
+            TeamTactic.CounterAttack => Clamp01(c.CounterAttackChanceExpected / 2.5) * 0.75 + NormPerPlayer(a.Inputs.TotalPassing, 10) * 0.25,
             TeamTactic.AttackWings or TeamTactic.AttackMiddle => Clamp01(c.TacticConversionRate / 0.52),
             TeamTactic.Creative => Clamp01(c.CreativeEventMultiplier / 3.8),
-            TeamTactic.LongShots => Clamp01(c.LongShotChanceExpected / 2.0) * 0.75 + Norm(a.Inputs.TotalScoring / 10.0) * 0.25,
+            TeamTactic.LongShots => Clamp01(c.LongShotChanceExpected / 2.0) * 0.75 + NormPerPlayer(a.Inputs.TotalScoring, 10) * 0.25,
             _ => 0.5
         };
 
@@ -112,10 +112,11 @@ public static class TacticObjectiveEngine
     private static double WingMatchup(M8ChanceResult c) => Clamp01((c.LeftAttackVsRightDefence + c.RightAttackVsLeftDefence) / 2.0);
     private static double CentreMatchup(M8ChanceResult c) => Clamp01(c.CentreAttackVsCentreDefence);
     private static double SpecialEventGoals(M9EventGoalBreakdown e) => Math.Max(0, e.PlayerBasedSpecialEventGoals + e.TeamBasedSpecialEventGoals + e.PowerfulNormalForwardGoals);
-    private static double KeeperMatchup(IReadOnlyList<Player>? players) => players is null ? 0.5 : Clamp01((players.Where(p => p.Keeper > 0).Select(p => p.Keeper).DefaultIfEmpty(0).Average()) / 20.0);
+    private static double KeeperMatchup(IReadOnlyList<Player>? players) => players is null ? 0.5 : Clamp01(1.0 - ((players.Where(p => p.Keeper > 0).Select(p => p.Keeper).DefaultIfEmpty(10).Average()) / 20.0));
     private static double RelativeLoss(double baseline, double tactic) => baseline <= 1e-9 ? 0 : Clamp01((baseline - tactic) / baseline);
     private static double Average(double total, int count) => total / Math.Max(1, count);
     private static double Norm(double value) => Clamp01(value / 10.0);
+    private static double NormPerPlayer(double total, int count) => Norm(Average(total, count));
     private static double Clamp01(double value) => Math.Clamp(value, 0, 1);
     private static string Explain(TeamTactic tactic, M8ChanceResult c, AdvancedTacticalScenarioResult a, M8ChanceResult baseline)
         => tactic switch
