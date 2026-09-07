@@ -9,6 +9,10 @@ public static class TacticObjectiveEngine
     public static TacticFitResult Evaluate(Lineup lineup, TeamTactic tactic, ComparisonEvaluationView baselineNormal, ComparisonEvaluationView tacticEvaluation, IReadOnlyList<Player> players, IReadOnlyList<Player>? opponentPlayers = null)
     {
         ArgumentNullException.ThrowIfNull(lineup); ArgumentNullException.ThrowIfNull(baselineNormal); ArgumentNullException.ThrowIfNull(tacticEvaluation); ArgumentNullException.ThrowIfNull(players);
+
+        if (tactic == TeamTactic.Pressing)
+            return PressingTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
+
         var own = tacticEvaluation.Chance; var baseline = baselineNormal.Chance; var inputs = tacticEvaluation.Advanced.Inputs;
         var outfieldCount = Math.Max(1, lineup.Slots.Count(s => s.Code != "GK"));
         var fit = SquadFit(tactic, inputs, outfieldCount);
