@@ -80,7 +80,10 @@ public sealed class AdvancedTacticalScenarioEngine
         {
             AdvancedTactic.AttackMiddle or AdvancedTactic.AttackWings => p,
             AdvancedTactic.CounterAttack => (d + (2.0 * p)) / 3.0,
-            AdvancedTactic.Creative => (p + e) / 2.0,
+            // Published Creative mechanics document a 4x Passing + Experience input.
+            // Divide by five only to keep the resulting aggregate on the same skill scale;
+            // this is not claimed as the hidden live-engine level formula.
+            AdvancedTactic.Creative => ((4.0 * p) + e) / 5.0,
             AdvancedTactic.LongShots => (3.0 * s + p) / 4.0,
             AdvancedTactic.Pressing => (d + st) / 2.0,
             _ => 0d
@@ -127,12 +130,12 @@ public sealed record ChanceDistributionEffect(double LeftShare, double CentreSha
     public static ChanceDistributionEffect For(AdvancedTactic tactic, TacticalLevel level)
     {
         var strength = Math.Clamp(level.Value, 0.0, 10.0);
-        var aiM = Range(PdfAiMMin, PdfAiMMax, strength);
-        var aoW = Range(PdfAoWMin, PdfAoWMax, strength);
+        var aiM = Range(M8ChanceAllocationEngine.AiMMinWingConversion, M8ChanceAllocationEngine.AiMMaxWingConversion, strength);
+        var aoW = Range(M8ChanceAllocationEngine.AoWMinCentreConversion, M8ChanceAllocationEngine.AoWMaxCentreConversion, strength);
         var exactTcr = M8ChanceAllocationEngine.CalculateTacticConversionRate(tactic, strength);
-        var ca = tactic == AdvancedTactic.CounterAttack ? exactTcr : Range(PdfCaMin, PdfCaMax, strength);
-        var ls = tactic == AdvancedTactic.LongShots ? exactTcr : Range(PdfLongShotsMin, PdfLongShotsMax, strength);
-        var press = tactic == AdvancedTactic.Pressing ? exactTcr : Range(PdfPressingMin, PdfPressingMax, strength);
+        var ca = tactic == AdvancedTactic.CounterAttack ? exactTcr : Range(M8ChanceAllocationEngine.CounterAttackMinConversion, M8ChanceAllocationEngine.CounterAttackMaxConversion, strength);
+        var ls = tactic == AdvancedTactic.LongShots ? exactTcr : Range(M8ChanceAllocationEngine.LongShotsMinConversion, M8ChanceAllocationEngine.LongShotsMaxConversion, strength);
+        var press = tactic == AdvancedTactic.Pressing ? exactTcr : Range(M8ChanceAllocationEngine.PressingMinSuppression, M8ChanceAllocationEngine.PressingMaxSuppression, strength);
         var left = M8ChanceAllocationEngine.PaperLeftAttackShare; var centre = M8ChanceAllocationEngine.PaperCentreAttackShare; var right = M8ChanceAllocationEngine.PaperRightAttackShare; var setPiece = M8ChanceAllocationEngine.PaperDirectFreeKickShare + M8ChanceAllocationEngine.PaperIndirectFreeKickShare + M8ChanceAllocationEngine.PaperPenaltyKickShare;
         switch (tactic)
         {
