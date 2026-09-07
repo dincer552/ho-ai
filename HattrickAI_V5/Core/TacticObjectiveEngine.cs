@@ -111,4 +111,4 @@ public static class TacticObjectiveEngine
 }
 
 public sealed record TacticFitResult(TeamTactic Tactic, double FitScore, double PrimaryMetric, double TradeoffCost, double SquadFit, double MatchupFit, bool Eligible, string Explanation);
-public sealed record ComparisonEvaluationView(M8ChanceResult Chance, AdvancedTacticalScenarioResult Advanced, M9MatchPredictionView Prediction);
+public sealed record ComparisonEvaluationView(M8ChanceResult Chance, AdvancedTacticalScenarioResult Advanced, M9PredictionResult Prediction);
