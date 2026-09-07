@@ -40,7 +40,7 @@ public static class CreativeTacticEvaluator
             0.40 * Clamp01((own.CreativeEventMultiplier - 1.0) / 2.8) +
             0.25 * tacticalInput +
             0.20 * diversity +
-            0.15 * Clamp01(SpecialEventGoals(tacticEvaluation.Prediction.Prediction.EventGoals));
+            0.15 * Clamp01(SpecialEventGoals(tacticEvaluation.Prediction.Prediction.EventGoals)));
 
         var negativeRisk = Clamp01(
             0.45 * UnpredictableRisk(ownXi) +
