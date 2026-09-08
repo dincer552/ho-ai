@@ -1,8 +1,8 @@
 # HattrickAI V5
 
-# README TOP BLOCK — 07.09.2026
+# README TOP BLOCK — 08.09.2026
 
-> **07.09.2026 — TAKTİK UYGUNLUK MOTORU ÇALIŞMA PLANI**
+> **08.09.2026 — TAKTİK UYGUNLUK MOTORU ÇALIŞMA PLANI**
 >
 > Amaç: Her `TeamTactic` için tek bir genel `TacticalScore` kullanmak yerine, taktiğin gerçek Hattrick match-engine gereksinimlerini, XI oyuncu yerleşimini, rakip eşleşmesini, faydasını ve karşılanmayan koşullarda oluşturduğu zararı ayrı ayrı hesaplamak.
 >
@@ -10,12 +10,12 @@
 >
 > ## Taktik geliştirme sırası
 >
-> 1. **Yaratıcı Oyna (Creative)** — ilk ve en derin uygulama.
-> 2. **Pressing** — savunma/stamina, rakip şans bastırma ve yan etki. **Araştırma + dedicated evaluator kodlandı — 07.09.2026.**
-> 3. **Counter Attack** — eligibility, midfield kaybı, savunma üstünlüğü ve CA fırsat kalitesi. **Dedicated evaluator kodlandı — 07.09.2026.**
-> 4. **Attack in the Middle (AiM)** — merkez hücum eşleşmesi, dönüşüm getirisi ve savunma maliyeti. **Dedicated evaluator kodlandı — 07.09.2026.**
-> 5. **Attack on Wings (AoW)** — iki kanat eşleşmesi, dönüşüm getirisi ve merkezi savunma maliyeti. **Dedicated evaluator + araştırma kodlandı — 07.09.2026.**
-> 6. **Long Shots** — taktik seviyesi, shooter kalitesi, fırsat maliyeti ve rakip GK/defence eşleşmesi. **Dedicated evaluator + M9 scoring zinciri kodlandı — 07.09.2026.**
+> 1. **Yaratıcı Oyna (Creative)** — **DENETİM TAMAMLANDI 08.09.2026.**
+> 2. **Pressing** — savunma/stamina, rakip şans bastırma ve yan etki. **Sıradaki tam katsayı denetimi.**
+> 3. **Counter Attack** — eligibility, midfield kaybı, savunma üstünlüğü ve CA fırsat kalitesi.
+> 4. **Attack in the Middle (AiM)** — merkez hücum eşleşmesi, dönüşüm getirisi ve savunma maliyeti.
+> 5. **Attack on Wings (AoW)** — iki kanat eşleşmesi, dönüşüm getirisi ve merkezi savunma maliyeti.
+> 6. **Long Shots** — taktik seviyesi, shooter kalitesi, fırsat maliyeti ve rakip GK/defence eşleşmesi.
 > 7. **Normal** — diğer taktiklerin değişmeyen baseline'ı.
 >
 > Her taktik için ortak çıktı katmanları:
@@ -28,13 +28,25 @@
 > - **Suitability:** XI + rakip için taktik uygunluğu.
 > - **Explanation:** sonucu belirleyen koşulların açıklaması.
 >
+> ### Creative audit — TAMAMLANDI 08.09.2026
+>
+> Creative katmanında katsayı ve double-counting denetimi tamamlandı.
+>
+> - Hattrick'in yayımladığı mekanikler esas kaynak olarak tutuldu: taktik seviyesinde Passing 4× Experience ağırlığı, Unpredictable oyuncuların 2× katkısı, özel olay hacmi/ownership etkisi ve %7.5 savunma azaltımı. Kesin canlı taktik-seviye formülü yayımlanmadığı için V5 sahte bir exact formula iddia etmiyor.
+> - `CreativeTacticEvaluator` artık `CreativeEventMultiplier` değerini ikinci kez ödül olarak uygulamıyor. Özel olay faydası M9'un gerçek çıktı katmanından okunuyor; böylece M9'da uygulanan event-volume mekanizması evaluator'da tekrar sayılmıyor.
+> - Rakip özel olay etkisi artık oyuncu/yedek sayısından türetilen ikinci bir gizli formülle uydurulmuyor. Evaluator, M9'un own/opponent special-event goal çıktısından sınırlı bir event-edge sinyali çıkarıyor.
+> - Creative uygunluğu; taktik seviyesi, gerçekleşen özel olay gol dengesi, specialty diversity, negatif özel olay riski, aynı XI için Normal fırsat maliyeti ve %7.5 savunma trade-off'u üzerinden hesaplanıyor. Bu ağırlıkların V5 heuristiği olduğu açıkça kodda belirtiliyor; Hattrick'in gizli formülü olarak sunulmuyor.
+> - Goalkeeper Creative taktik seviyesi hesabına dahil edilmiyor; oyuncu ağırlıkları başlangıçtaki outfield oyuncular üzerinden yürütülüyor.
+> - Yedek oyuncular Creative specialty hesabına dahil edilmiyor; event karşılaştırması M9'un gerçek rakip XI bağlamına bırakılıyor.
+> - Kritik sınır: Hattrick'in exact Creative tactical-level ve special-event allocation formülleri yayımlanmış değildir. Bu nedenle Creative sonucu historical match corpus ile kalibre edilene kadar "source-derived mechanics + bounded V5 heuristic" olarak kabul edilecek.
+>
 > ### T1 — M9 audit — TAMAMLANDI 07.09.2026
 >
 > Aynı XI + aynı rakip için yedi taktiğin M9 W/D/L ve xG çıktıları doğrulanıyor; Normal değişmeyen baseline olarak korunuyor. Mevcut xG clamp ve M10/M11 mekanizmaları değiştirilmedi.
 >
 > ### T2 — M9 tactic effect chain — TAMAMLANDI 07.09.2026
 >
-> Taktiklerin M8 → M9 zincirleri bağlandı: Creative yalnızca kendi event katmanını etkiler, Pressing normal chance volume'u bastırır, CA kaçırılan rakip Normal şansından fırsat üretir, AiM/AoW gerçek sektör paylarını M9 weighted quality'ye taşır, Long Shots public shooter-vs-GK formülüyle M9'a gerçek event goal katkısı verir. Rakip event hesabında own-tactic sızıntısı düzeltildi.
+> Taktiklerin M8 → M9 zincirleri bağlandı: Creative kendi event katmanını etkiler, Pressing normal chance volume'u bastırır, CA kaçırılan rakip Normal şansından fırsat üretir, AiM/AoW gerçek sektör paylarını M9 weighted quality'ye taşır, Long Shots public shooter-vs-GK formülüyle M9'a gerçek event goal katkısı verir. Rakip event hesabında own-tactic sızıntısı düzeltildi.
 >
 > ### T3 — M9 outcome layer — TAMAMLANDI 07.09.2026
 >
@@ -60,7 +72,7 @@
 >
 > DB3 outcome katmanı için yeni acceptance regression eklendi: yedi taktiğin tamamının korunması, W/D/L sonlu ve normalize olması, `ExpectedPoints = 3×W + D` kanonikliği, yüksek fit ama düşük outcome durumunda outcome'un kazanması, ineligible kayıtların dışlanması, duplicate satırların deterministik replacement davranışı ve geçersiz olasılıkların reddedilmesi test ediliyor. Bu katman istatistiksel olarak eğitilmiş bir calibration modeli değildir; mevcut M9 outcome sözleşmesini koruyan regression guard'dır.
 >
-> **Sonraki aşama: T9 — gerçek çoklu maç sonuçlarıyla tactical outcome calibration ve edge analizi.**
+> **Sonraki operasyon: Pressing taktiğinin aynı source-vs-heuristic katsayı denetimi.**
 >
 > ## V5 Teknik Manuel PDF Projesi — Çalışma Planı
 >
