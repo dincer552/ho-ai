@@ -6,14 +6,14 @@ namespace HattrickAI.V5.Core;
 /// </summary>
 public static class TacticObjectiveEngine
 {
-    public static TacticFitResult Evaluate(Lineup lineup, TeamTactic tactic, ComparisonEvaluationView baselineNormal, ComparisonEvaluationView tacticEvaluation, IReadOnlyList<Player> players, IReadOnlyList<Player>? opponentPlayers = null)
+    public static TacticFitResult Evaluate(Lineup lineup, TeamTactic tactic, ComparisonEvaluationView baselineNormal, ComparisonEvaluationView tacticEvaluation, IReadOnlyList<Player> players, IReadOnlyList<Player>? opponentPlayers = null, Lineup? opponentLineup = null)
     {
         ArgumentNullException.ThrowIfNull(lineup); ArgumentNullException.ThrowIfNull(baselineNormal); ArgumentNullException.ThrowIfNull(tacticEvaluation); ArgumentNullException.ThrowIfNull(players);
 
         if (tactic == TeamTactic.Pressing)
             return PressingTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
         if (tactic == TeamTactic.Creative)
-            return CreativeTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
+            return CreativeTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers, opponentLineup);
         if (tactic == TeamTactic.CounterAttack)
             return CounterAttackTacticEvaluator.Evaluate(lineup, baselineNormal, tacticEvaluation, players, opponentPlayers);
         if (tactic == TeamTactic.AttackMiddle)
