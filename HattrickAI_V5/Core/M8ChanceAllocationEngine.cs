@@ -95,7 +95,7 @@ public static class M8ChanceAllocationEngine
 
     /// <summary>Entry point used by V5. Its tacticStrength is the V5 0-10 internal scale.</summary>
     public static double CalculateTacticConversionRate(AdvancedTactic tactic, double tacticStrength)
-        => CalculateTacticConversionRateFromPaperRt(tactic, TacticPaperMappingEngine.ToPaperRt(tacticStrength));
+        => TacticPaperMappingEngine.PaperTacticConversionRate(tactic, tacticStrength);
 
     /// <summary>Equation B.2 from Constantinou et al. (2026), accepting paper RT directly.</summary>
     public static double CalculateTacticConversionRateFromPaperRt(AdvancedTactic tactic, double tacticRating)
