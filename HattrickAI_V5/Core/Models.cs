@@ -52,10 +52,22 @@ public sealed record Analysis(string Build,string TeamName,string OpponentName,s
     public Lineup OwnLineup=>Own; public Lineup OpponentLineup=>Opponent; public string OwnFormation=>Own.Formation; public string OpponentFormation=>Opponent.Formation;
     public RegionalRatingPair RegionalRatings=>new(OwnRating,OpponentRating); public OpponentThreatMap OpponentThreat=>new OpponentThreatEngine().Analyze(OpponentRating);
     public string SelectedTactic => MotorPipeline?.TacticComparisons.Where(x => x.TacticEligible).OrderByDescending(x => x.TacticFitScore).ThenByDescending(x => x.WinProbability).ThenByDescending(x => x.TacticalScore).Select(x => x.Tactic.ToString()).FirstOrDefault() ?? "Normal";
+    public IReadOnlyList<FormationTacticComparison> TacticComparisons => MotorPipeline is null
+        ? []
+        : MotorPipeline.TacticComparisons
+            .Where(x => x.CandidateId.Equals(FinalPlanCandidateId(MotorPipeline.FinalPlan.Lineup), StringComparison.Ordinal))
+            .OrderBy(x => x.Tactic)
+            .ToList();
     public RatingScenarioResult? M7Scenario { get; init; }
     public AdvancedTacticalScenarioResult? M72Scenario { get; init; }
     public M8ChanceResult? M8Chance { get; init; }
     public M9PredictionResult? M9Prediction { get; init; }
     public M10DecisionResult? M10Decision { get; init; }
     [JsonIgnore] public MotorPipelineResult? MotorPipeline { get; init; }
+
+    private static string FinalPlanCandidateId(Lineup lineup)
+        => string.Join(";", lineup.Slots
+            .OrderBy(s => s.Code, StringComparer.Ordinal)
+            .ThenBy(s => s.PlayerId)
+            .Select(s => $"{s.Code}:{s.PlayerId}:{(int)s.Order}"));
 }
