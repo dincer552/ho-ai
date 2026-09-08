@@ -1,11 +1,15 @@
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// Creative-specific suitability evaluation. This is deliberately separate from the
-/// generic tactic objective because Creative depends on the specialty portfolio,
-/// opponent specialty interaction, event upside/risk and the defence trade-off.
-/// Exact live-engine Creative formula is not public, so the evaluator uses documented
-/// mechanics and bounded suitability heuristics rather than inventing an exact formula.
+/// Creative-specific suitability evaluation.
+///
+/// Source discipline:
+/// - Official Hattrick material supports the 4x Passing weighting, 2x Unpredictable
+///   contribution, the special-event ownership effect and the 7.5% defence reduction.
+/// - The live tactical-level formula is not public, so V5 does not claim an exact formula.
+/// - M9 already calculates the predicted own/opponent special-event goal layer. This
+///   evaluator consumes that result instead of multiplying CreativeEventMultiplier again.
+/// - Any bounded suitability weights below are V5 heuristics, not hidden-engine formulas.
 /// </summary>
 public static class CreativeTacticEvaluator
 {
@@ -26,69 +30,85 @@ public static class CreativeTacticEvaluator
         var baseline = baselineNormal.Chance;
         var ownXi = LineupPlayers(lineup, players);
         var ownOutfield = LineupOutfieldPlayers(lineup, players);
-        var opponentXi = opponentLineup is not null && opponentPlayers is not null
-            ? LineupPlayers(opponentLineup, opponentPlayers)
-            : Array.Empty<Player>();
 
+        // M7.2 already preserves the documented Creative inputs. Use the resulting
+        // tactical level once here rather than reconstructing another pseudo-formula.
         var tacticalLevel = Math.Clamp(tacticEvaluation.Advanced.Level.Value, 0, 10);
-
-        // Official developer documentation: PC level uses the starting 10 outfield
-        // players; Passing has 4x the weight of Experience; Unpredictable contributes 2x.
-        // The goalkeeper is explicitly excluded from PC tactical-level calculation.
-        var passing = WeightedAverage(ownOutfield, p => p.Passing, p => p.Specialty == PlayerSpecialty.Unpredictable ? 2.0 : 1.0);
-        var experience = WeightedAverage(ownOutfield, p => p.Experience, p => p.Specialty == PlayerSpecialty.Unpredictable ? 2.0 : 1.0);
-        var tacticalInput = Clamp01(((4.0 * passing) + experience) / 50.0);
+        var tacticalInput = Clamp01(tacticalLevel / 10.0);
 
         var portfolio = SpecialtyPortfolio(ownXi);
-        var opponentPortfolio = SpecialtyPortfolio(opponentXi);
         var diversity = SpecialtyDiversity(ownXi);
-        var opponentInteraction = OpponentSpecialtyInteraction(portfolio, opponentPortfolio);
 
+        // M9 is the canonical forecast layer for the actual match. It already receives
+        // the opponent XI and produces both own and opponent special-event goals. Using
+        // those outputs here avoids bench contamination and avoids inventing a second
+        // opponent-specialty ownership formula.
+        var ownSpecialGoals = Math.Max(0.0, SpecialEventGoals(tacticEvaluation.Prediction.Prediction.EventGoals));
+        var opponentSpecialGoals = Math.Max(0.0, SpecialEventGoals(tacticEvaluation.Prediction.Prediction.OpponentEventGoals));
+        var totalSpecialGoals = ownSpecialGoals + opponentSpecialGoals;
+        var opponentInteraction = totalSpecialGoals <= 1e-9
+            ? 0.50
+            : Clamp01(ownSpecialGoals / totalSpecialGoals);
+
+        // Do not reuse CreativeEventMultiplier here: M9 already applies its Creative
+        // event-volume mechanism. This is a composition signal from the resulting
+        // forecast, not a second event multiplier.
+        var eventBalance = opponentInteraction;
         var eventUpside = Clamp01(
-            0.35 * Clamp01((own.CreativeEventMultiplier - 1.0) / 2.8) +
+            0.55 * eventBalance +
             0.25 * tacticalInput +
-            0.20 * diversity +
-            0.20 * Clamp01(SpecialEventGoals(tacticEvaluation.Prediction.Prediction.EventGoals)));
+            0.20 * diversity);
 
+        var ownGoalEventNegative = Math.Max(0.0, own.ExpectedGoalsConcededFromOwnGoalEvents);
+        var negativeEventShare = totalSpecialGoals <= 1e-9
+            ? 0.0
+            : Clamp01(ownGoalEventNegative / totalSpecialGoals);
+        var defensiveUnpredictableExposure = DefensiveNegativeEventExposure(ownXi);
         var negativeRisk = Clamp01(
-            0.45 * UnpredictableRisk(ownXi) +
-            0.25 * DefensiveNegativeEventRisk(ownXi) +
-            0.15 * WeatherNeutralRisk(ownXi) +
-            0.15 * Clamp01(portfolio.Total * 0.03));
+            0.70 * negativeEventShare +
+            0.20 * defensiveUnpredictableExposure +
+            0.10 * Clamp01(portfolio.Total * 0.03));
 
-        // The paper/official mechanics document a 7.5% defence reduction. It is a
-        // real trade-off, not a generic bonus, so keep it explicit and bounded.
-        var defencePenalty = 0.075;
+        // The 7.5% defence reduction is a documented mechanic. Keep it visible as a
+        // trade-off, but do not pretend it is an independent exact goal multiplier.
+        const double documentedDefencePenalty = 0.075;
         var defenceQuality = Clamp01(Average(ownOutfield.Select(p => p.Defending)) / 10.0);
+        var normalOpportunityLoss = RelativeLoss(baseline.OwnRegularChanceExpected, own.OwnRegularChanceExpected);
+        var winProbabilityLoss = Math.Max(0.0,
+            baselineNormal.Prediction.Prediction.WinProbability - tacticEvaluation.Prediction.Prediction.WinProbability);
         var tradeoff = Clamp01(
-            0.55 * RelativeLoss(baseline.OwnRegularChanceExpected, own.OwnRegularChanceExpected) +
-            0.30 * Math.Max(0, baselineNormal.Prediction.Prediction.WinProbability - tacticEvaluation.Prediction.Prediction.WinProbability) +
-            0.15 * defencePenalty * (1.0 - defenceQuality));
+            0.60 * normalOpportunityLoss +
+            0.25 * winProbabilityLoss +
+            0.15 * documentedDefencePenalty * (1.0 - defenceQuality));
 
+        // These weights are V5 suitability heuristics. The live Creative suitability
+        // function is not public; final tactic choice must use the outcome layer.
         var suitability = Clamp01(
-            0.28 * eventUpside +
-            0.22 * tacticalInput +
+            0.35 * eventUpside +
+            0.20 * tacticalInput +
             0.15 * opponentInteraction +
-            0.12 * diversity +
-            0.13 * Clamp01(defenceQuality + tacticalLevel / 20.0) -
+            0.10 * diversity +
+            0.10 * defenceQuality -
             0.35 * negativeRisk -
             0.25 * tradeoff);
 
-        // Keep Creative as one tactical option, not a blanket winner. Outcome
-        // probability remains a substantial part of the fit score.
-        var score = Clamp01(0.55 * suitability + 0.45 * Clamp01(tacticEvaluation.Prediction.Prediction.WinProbability));
+        var score = Clamp01(
+            0.55 * suitability +
+            0.45 * Clamp01(tacticEvaluation.Prediction.Prediction.WinProbability));
+
         var explanation =
-            $"Creative: level {tacticalLevel:0.##}; 4x Passing+Experience input {tacticalInput:P0}; " +
-            $"specialty diversity {diversity:P0}; opponent XI specialty interaction {opponentInteraction:P0}; " +
-            $"event upside {eventUpside:P0}; negative-event risk {negativeRisk:P0}; " +
-            $"7.5% defence penalty applied; Normal opportunity cost {tradeoff:P0}.";
+            $"Creative: level {tacticalLevel:0.##}; M9 own SE goals {ownSpecialGoals:0.###}; " +
+            $"opponent SE goals {opponentSpecialGoals:0.###}; event edge {opponentInteraction:P0}; " +
+            $"tactical input {tacticalInput:P0}; specialty diversity {diversity:P0}; " +
+            $"negative-event share {negativeEventShare:P0}; 7.5% defence penalty; " +
+            $"Normal opportunity loss {normalOpportunityLoss:P0}.";
 
         return new TacticFitResult(
             TeamTactic.Creative,
             score,
             eventUpside,
             tradeoff,
-            Clamp01(0.60 * tacticalInput + 0.40 * diversity),
+            Clamp01(0.65 * tacticalInput + 0.35 * diversity),
             opponentInteraction,
             true,
             explanation);
@@ -124,53 +144,24 @@ public static class CreativeTacticEvaluator
         return Clamp01(types / 5.0);
     }
 
-    private static double OpponentSpecialtyInteraction(SpecialtyCounts own, SpecialtyCounts opponent)
-    {
-        if (own.Total == 0 || opponent.Total == 0) return 0.50;
-
-        // Hattrick allocates individual SEs using the number of relevant specialists
-        // on each starting XI. We do not have the hidden event-allocation formula, so
-        // this is intentionally a narrow 0.25..0.75 bounded ownership signal rather
-        // than the previous unbounded additive heuristic that frequently hit 100%.
-        var ownRelevant = own.Technical + own.Quick + own.Powerful + own.Unpredictable + own.Head;
-        var opponentRelevant = opponent.Technical + opponent.Quick + opponent.Powerful + opponent.Unpredictable + opponent.Head;
-        var share = ownRelevant / (double)(ownRelevant + opponentRelevant);
-        return Clamp01(0.50 + 0.50 * (share - 0.50));
-    }
-
-    private static double UnpredictableRisk(IEnumerable<Player> players)
+    private static double DefensiveNegativeEventExposure(IEnumerable<Player> players)
     {
         var list = players.ToArray();
         if (list.Length == 0) return 0;
-        return Clamp01(list.Count(p => p.Specialty == PlayerSpecialty.Unpredictable) / 5.0);
+        var vulnerable = list.Count(p =>
+            p.Specialty == PlayerSpecialty.Unpredictable &&
+            p.Defending > 0 &&
+            p.Defending < Math.Max(1, Math.Max(p.Experience, p.Stamina)));
+        return Clamp01(vulnerable / 3.0);
     }
-
-    private static double DefensiveNegativeEventRisk(IEnumerable<Player> players)
-    {
-        var list = players.ToArray();
-        if (list.Length == 0) return 0;
-        var relevant = list.Count(p => p.Specialty == PlayerSpecialty.Unpredictable && IsDefender(p));
-        return Clamp01(relevant / 3.0);
-    }
-
-    private static bool IsDefender(Player p)
-        => p.Defending >= p.Scoring && p.Defending >= p.Playmaking;
-
-    private static double WeatherNeutralRisk(IEnumerable<Player> players)
-        => 0.0; // Match weather is not currently carried into TacticObjectiveEngine.
 
     private static double SpecialEventGoals(M9EventGoalBreakdown e)
-        => Math.Max(0, e.PlayerBasedSpecialEventGoals + e.TeamBasedSpecialEventGoals + e.PowerfulNormalForwardGoals);
+        => Math.Max(0.0, e.PlayerBasedSpecialEventGoals +
+                         e.TeamBasedSpecialEventGoals +
+                         e.PowerfulNormalForwardGoals);
 
     private static double RelativeLoss(double baseline, double tactic)
         => baseline <= 1e-9 ? 0 : Clamp01((baseline - tactic) / baseline);
-
-    private static double WeightedAverage(IEnumerable<Player> players, Func<Player, int> selector, Func<Player, double> weightSelector)
-    {
-        var rows = players.Select(p => (Value: selector(p), Weight: weightSelector(p))).Where(x => x.Weight > 0).ToArray();
-        var weight = rows.Sum(x => x.Weight);
-        return weight <= 0 ? 0 : rows.Sum(x => x.Value * x.Weight) / weight;
-    }
 
     private static double Average(IEnumerable<int> values)
     {
