@@ -51,6 +51,20 @@ This is the current stable V5 baseline. It was obtained without fixture-specific
 
 The live analysis path uses `RegionalRatingEngineFixed`, as wired by `AnalysisService`.
 
+### Regional rating source hierarchy
+
+The regional/team-rating calculation uses the strongest public source chain currently available:
+
+1. Hattrick's Rules explain the seven team-rating sectors and the match-engine relationship between midfield, attack and defence.
+2. Hattrick Wiki's `Contribution` table supplies the numeric per-skill/per-position sector coefficients used by V5.
+3. That Contribution page explicitly documents that its numeric table is research-derived from Andreac's 2015 research/simulator work and updated for the 2017 match-engine changes. It is therefore not presented as an official Hattrick coefficient publication.
+4. V5 keeps a separate empirical calibration layer only where the direct S4MSUNFC Hattrick reference demonstrates a reproducible sector gap. Calibration values must never be described as source coefficients.
+
+Sources:
+- https://wiki.hattrick.org/wiki/Rules
+- https://wiki.hattrick.org/wiki/Contribution
+- https://wiki.hattrick.org/wiki/Skill_contribution
+
 ### Position/skill contribution coefficients
 
 The implemented coefficients were rechecked against the researched Hattrick Contribution table:
@@ -79,9 +93,42 @@ Sources: Hattrick Team Spirit, Attack, Defence and Confidence pages.
 
 ### Player state formulas
 
-The engine keeps form and experience relative to the published coefficient baseline rather than stacking a second full standard uplift. Loyalty is applied separately. This is consistent with the Contribution table's baseline note and is left unchanged until a new direct Hattrick dataset disproves it.
+The regional engine keeps form and experience relative to the published coefficient baseline rather than stacking a second full standard uplift. Loyalty is applied separately. This is consistent with the Contribution table's baseline note and is left unchanged until a new direct Hattrick dataset disproves it.
 
-### Questionnaire
+## M3 player-position model — Foxtrick-compatible
+
+The previous hand-written player-position rating formula is no longer canonical. `PlayerAnalysisEngine` now delegates player suitability to `FoxtrickPositionContributionEngine`.
+
+Source and implementation contract:
+
+- Foxtrick's `PlayerPositionsEvaluations` uses a 20-position coefficient map.
+- Foxtrick calculates effective skills, applies the position coefficient for each skill, and when `Normalised` is enabled divides the weighted score by the sum of the applicable skill coefficients.
+- The V5 default is deliberately matched to the supplied Bertalan reference: form and stamina enabled; experience and loyalty disabled; normalized output enabled.
+- Foxtrick's current source identifies the 20 position codes as `kp`, `cd`, `cdo`, `cdtw`, `wb`, `wbd`, `wbo`, `wbtm`, `w`, `wd`, `wo`, `wtm`, `im`, `imd`, `imo`, `imtw`, `fw`, `fwd`, `tdf`, `fwtw`.
+- For squad construction, M3 exposes all 20 Foxtrick values and uses the strongest value inside each positional family for the base XI slot. The final individual order remains a later lineup/behaviour decision.
+
+Foxtrick sources:
+- https://github.com/minj/foxtrick/blob/master/content/util/math.js
+- https://github.com/minj/foxtrick/blob/master/content/pages/player.js
+- https://github.com/minj/foxtrick/releases
+
+### Bertalan regression
+
+Reference player: Bertalan Doktor, screenshot supplied by the manager.
+
+With Form 5, Stamina 6 and the Foxtrick normalization/options above:
+
+- `imo` Offensive IM = `10.99`
+- `im` Normal IM = `10.62`
+- `imd` Defensive IM = `10.22`
+- `imtw` IM toward wing = `10.13`
+- `wo` Offensive winger = `8.03`
+- `fwd` Defensive forward = `9.00`
+- `tdf` = `0.00` for a non-Technical player
+
+The V5 offline regression `FoxtrickPositionRegression` locks these values with a ±0.01 tolerance.
+
+## Questionnaire
 
 V5 asks exactly three user inputs:
 
@@ -91,7 +138,7 @@ V5 asks exactly three user inputs:
 
 No additional user question is to be added. `SelfConfidence` is read automatically from CHPP training data by `AnalysisService`.
 
-### Crowding
+## Crowding
 
 The stable V5 implementation uses the following contribution-loss factors:
 
@@ -104,7 +151,7 @@ The stable V5 implementation uses the following contribution-loss factors:
 
 These factors are kept as the current empirically validated V5 behavior. Do not broaden them or add arbitrary sector multipliers without a new direct Hattrick reference test.
 
-### Side/slot mapping
+## Side/slot mapping
 
 Historical opponent lineup parsing resolves `Behaviour` 5/6/7 before ordinary `PositionCode` side mapping so extra central forward/inner/defender entries are not mistaken for normal left/right slots. Own lineup side is derived from explicit slot codes `-L`, `-C`, `-R`.
 
