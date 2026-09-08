@@ -44,7 +44,7 @@ public static class CreativeTacticEvaluator
         // those outputs here avoids bench contamination and avoids inventing a second
         // opponent-specialty ownership formula.
         var ownSpecialGoals = Math.Max(0.0, SpecialEventGoals(tacticEvaluation.Prediction.Prediction.EventGoals));
-        var opponentSpecialGoals = Math.Max(0.0, SpecialEventGoals(tacticEvaluation.Prediction.Prediction.OpponentEventGoals));
+        var opponentSpecialGoals = Math.Max(0.0, SpecialEventGoals(tacticEvaluation.Prediction.OpponentEventGoals));
         var totalSpecialGoals = ownSpecialGoals + opponentSpecialGoals;
         var opponentInteraction = totalSpecialGoals <= 1e-9
             ? 0.50
@@ -59,7 +59,8 @@ public static class CreativeTacticEvaluator
             0.25 * tacticalInput +
             0.20 * diversity);
 
-        var ownGoalEventNegative = Math.Max(0.0, own.ExpectedGoalsConcededFromOwnGoalEvents);
+        var ownGoalEventNegative = Math.Max(0.0,
+            tacticEvaluation.Prediction.Prediction.EventGoals.ExpectedGoalsConcededFromOwnGoalEvents);
         var negativeEventShare = totalSpecialGoals <= 1e-9
             ? 0.0
             : Clamp01(ownGoalEventNegative / totalSpecialGoals);
