@@ -64,15 +64,21 @@
 >
 > Motor sonucu DB3 matchup kayıtlarını, seçilen taktiği ve seçilen taktiğin Expected Points değerini web/JSON katmanına taşıyor.
 >
-> ### T7 — canlı web DB3 karşılaştırma ekranı — BEKLEMEDE
+> ### T7 — canlı web DB3 karşılaştırma ekranı — ARA VERİLDİ 08.09.2026
 >
-> DB3 karşılaştırma UI'ı, önceki denemede acceptance/build zincirini bozduğu için `v5` üzerinde yayınlanmadı. Çalışan deploy tabanı korunuyor; UI yeniden ayrı ve güvenli bir aşamada ele alınacak.
+> Canlı web ekranı için güvenli UI katmanı uygulandı ancak bu çalışma oturumunda yarıda bırakıldı. `tactic-comparison.js` ile final XI'ın eligible taktik sonuçlarının ve Expected Points sıralamasının görünür olması hedefleniyor. `Analysis` tarafında final-XI `CandidateId` eşleşmesi düzeltildi; Docker tarafında browser cache busting yapıldı. Bu UI'nın production build/deploy sonucu bu noktada ayrıca doğrulanmadı. Buradan devam edilecek.
 >
 > ### T8 — tactical outcome edge-case regression — UYGULANDI 07.09.2026
 >
 > DB3 outcome katmanı için yeni acceptance regression eklendi: yedi taktiğin tamamının korunması, W/D/L sonlu ve normalize olması, `ExpectedPoints = 3×W + D` kanonikliği, yüksek fit ama düşük outcome durumunda outcome'un kazanması, ineligible kayıtların dışlanması, duplicate satırların deterministik replacement davranışı ve geçersiz olasılıkların reddedilmesi test ediliyor. Bu katman istatistiksel olarak eğitilmiş bir calibration modeli değildir; mevcut M9 outcome sözleşmesini koruyan regression guard'dır.
 >
-> **Sonraki operasyon: Pressing taktiğinin aynı source-vs-heuristic katsayı denetimi.**
+> ### Pressing — ARA VERİLEN NOKTA 08.09.2026
+>
+> Pressing'in suppression katmanı source-vs-heuristic denetiminde kısmen düzeltildi. 2026 paper Equation B.2'nin Pressing için verdiği %5–%41 normal-chance suppression aralığının V5 0–10 tactical-level ölçeğine taşınması için `TacticPaperMappingEngine` içinde özel Pressing RT bridge uygulandı. Böylece V5 artık Pressing'i fiziksel olarak anlamsız şekilde %100 suppression'a extrapolate etmiyor. Regression guard'ları V5=0 → %5, V5=10 → %41 ve ara değerin bu aralıkta kaldığını kontrol ediyor.
+>
+> MotorDB latest-10 kontrolünde Pressing örnekleri yaklaşık %16–%18 suppression seviyesinde görüldü; `own chance loss` suppression ile aynı ve `net suppression` bu örneklerde 0. Pressing'in DEF/STAM/EXP desteği, Powerful DEF boost'u, opponent attack value ve opportunity-cost ağırlıkları ise **henüz tam source-vs-heuristic katsayı denetiminden geçirilmedi**.
+>
+> **KALDIĞIMIZ YER:** Pressing'i yeniden açınca ilk iş `PressingTacticEvaluator.cs` içindeki katsayıları ve özellikle `PowerfulDefenceBoost`, DEF/STAM/EXP katkıları, suppression → benefit, opportunity cost ve matchup ağırlıklarını kaynak mekanikleriyle tek tek denetlemek. Ardından latest MotorDB ile regression kontrolü yapılacak. Sonra Counter Attack'a geçilecek.
 >
 > ## V5 Teknik Manuel PDF Projesi — Çalışma Planı
 >
@@ -82,3 +88,6 @@
 >
 > ### Manuel hazırlama aşamaları
 >
+> ## ÇALIŞMA OTURUMU DURAKLATILDI — 08.09.2026
+>
+> Bu oturum burada bilinçli olarak yarıda kesildi. Bir sonraki oturumda yukarıdaki **KALDIĞIMIZ YER** maddesinden devam edilecek. Önceki Creative/T1–T8 kazanımları korunacak; Pressing yeniden başlatılacak ve tamamlanmadan Counter Attack'a geçilmeyecek.
