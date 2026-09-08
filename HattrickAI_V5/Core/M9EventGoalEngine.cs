@@ -6,10 +6,11 @@ namespace HattrickAI.V5.Core;
 
 public sealed class M9EventGoalEngine
 {
-    private const double PlayerEventProbability = 0.8410;
-    private const int PlayerEventTrials = 4;
-    private const double TeamEventProbability = 0.3720;
-    private const int TeamEventTrials = 5;
+    // Table 4/5 report event rates per match, not Bernoulli p values to multiply
+    // by the maximum trial count. The previous implementation multiplied these
+    // already-aggregated rates by 4 and 5, inflating special-event volume.
+    private const double PlayerEventRatePerMatch = 0.8410;
+    private const double TeamEventRatePerMatch = 0.3720;
     private const double PlayerTeamOwnershipFallback = 0.5;
     private const double WingerAnyRate = 0.2163;
     private const double WingerAnyGoalRate = 0.4951;
@@ -76,7 +77,10 @@ public sealed class M9EventGoalEngine
         };
         var activeWeight = eligiblePlayerEvents.Sum(x => x.Weight);
         var playerMultiplier = SpecialEventMultiplier(tactic, creativeMultiplier);
-        var playerEventBudget = activeWeight > 0 ? PlayerEventTrials * PlayerEventProbability * playerMultiplier * PlayerTeamOwnershipFallback : 0.0;
+        // Table 4 rates already sum to the observed 0.841 player-event rate.
+        // Allocate that match-level event budget to this team instead of multiplying
+        // it by the four possible player-event trials again.
+        var playerEventBudget = activeWeight > 0 ? PlayerEventRatePerMatch * playerMultiplier * PlayerTeamOwnershipFallback : 0.0;
         var playerSpecialGoals = 0.0;
         var ownGoalExpected = 0.0;
         var playerEventRate = 0.0;
@@ -103,7 +107,9 @@ public sealed class M9EventGoalEngine
             new TeamEventWeight("TiredDefender", TiredDefenderRate, TiredDefenderGoalRate, defenders > 0 ? 1.0 : 0.0)
         };
         var activeTeamRate = teamEvents.Where(x => x.Eligibility > 0).Sum(x => x.Rate);
-        var teamEventBudget = activeTeamRate > 0 ? TeamEventTrials * TeamEventProbability * linearPossession * teamMultiplier : 0.0;
+        // Table 5 rates already sum to about 0.372 per match. Team-event ownership
+        // follows linear possession, so no additional five-trial multiplier belongs here.
+        var teamEventBudget = activeTeamRate > 0 ? TeamEventRatePerMatch * linearPossession * teamMultiplier : 0.0;
         var teamSpecialGoals = 0.0;
         var teamEventRate = 0.0;
         foreach (var item in teamEvents)
@@ -126,7 +132,7 @@ public sealed class M9EventGoalEngine
         if (pdimCount > 0) contributions.Add(new M9EventContribution("PowerfulDefensiveInnerMidfielder", opponentNormalChanceVolume * pdimSuppression, pdimSuppression, 0.0));
 
         return new M9EventGoalBreakdown(playerSpecialGoals, teamSpecialGoals, ownGoalExpected, 0.0, 0.0, pnfGoals, pdimSuppression, playerEventRate, teamEventRate, technicalCaRate, contributions,
-            "PDF Tables 4-5 + Appendix C hooks; baseline preserved, PNF/PDIM enabled, LS scoring/hidden inputs pending.",
+            "PDF Tables 4-5 + Appendix C hooks; event rates corrected to match-level rates; PNF/PDIM enabled, LS scoring/hidden inputs pending.",
             $"PNF={pnfCount}; opponent CDs={Math.Clamp(opponentCentralDefenders, 0, 5)}; PNF conversion={pnfConversion:P2}. PDIM={pdimCount}; suppression={pdimSuppression:P2}. LS scoring remains a graph/calibration input.")
         {
             SetPieceTakerPlayerId = setPieceTaker?.Player.Id,
