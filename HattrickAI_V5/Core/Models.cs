@@ -75,5 +75,5 @@ public sealed record Analysis(string Build,string TeamName,string OpponentName,s
         => string.Join(";", lineup.Slots
             .OrderBy(s => s.Code, StringComparer.Ordinal)
             .ThenBy(s => s.PlayerId)
-            .Select(s => $"{s.Code}:{s.PlayerId}"));
+            .Select(s => $"{s.Code}:{s.PlayerId}:{(int)s.Order}"));
 }
