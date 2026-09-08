@@ -23,12 +23,17 @@ public static class M9EventGoalRegression
             S("IM-L", 10), S("IM-C", 11), S("IM-R", 2), S("W-L", 1), S("FW-C", 5)
         };
 
-        var result = new M9EventGoalEngine().Calculate(
-            new Lineup("Regression", "4-3-3", slots), players, 15, 15, AdvancedTactic.Normal, 1.0);
+        var lineup = new Lineup("Regression", "4-3-3", slots);
+        var engine = new M9EventGoalEngine();
+        var result = engine.Calculate(lineup, players, 15, 15, AdvancedTactic.Normal, 1.0);
 
-        Check(Math.Abs(result.ExpectedPlayerBasedEvents - 1.682) < 1e-12, "player event expectation", out var failure);
+        // Table 4 is an already-aggregated 0.841 player-event rate per match.
+        // With neutral 50/50 ownership, this XI receives 0.4205 expected player events.
+        Check(Math.Abs(result.ExpectedPlayerBasedEvents - 0.4205) < 1e-12, "player event expectation", out var failure);
         if (failure is not null) return Fail(failure);
-        Check(Math.Abs(result.ExpectedTeamBasedEvents - 0.93) < 1e-12, "team event expectation", out failure);
+        // Table 5 is an already-aggregated ~0.372 team-event rate per match.
+        // Neutral linear possession gives half to this team: 0.186.
+        Check(Math.Abs(result.ExpectedTeamBasedEvents - 0.186) < 1e-12, "team event expectation", out failure);
         if (failure is not null) return Fail(failure);
         Check(result.Contributions.Count == 13, "all eligible player + team event classes represented", out failure);
         if (failure is not null) return Fail(failure);
@@ -43,6 +48,15 @@ public static class M9EventGoalRegression
             Check(Approximately(result, expected.Key, expected.Value), $"{expected.Key} conversion", out failure);
             if (failure is not null) return Fail(failure);
         }
+
+        // The paper's PC multiplier is applied to the match-level event rate, not to
+        // the maximum trial count. At the published 2.37x lower bound, the event
+        // volume remains bounded and does not create a synthetic multi-goal spike.
+        var creativeLow = engine.Calculate(lineup, players, 15, 15, AdvancedTactic.Creative, 2.37);
+        Check(Math.Abs(creativeLow.ExpectedPlayerBasedEvents - (0.4205 * 2.37)) < 1e-12, "Creative 2.37x player-event rate", out failure);
+        if (failure is not null) return Fail(failure);
+        Check(Math.Abs(creativeLow.ExpectedTeamBasedEvents - (0.186 * 2.37)) < 1e-12, "Creative 2.37x team-event rate", out failure);
+        if (failure is not null) return Fail(failure);
 
         Check(ApproximatelyValue(M9EventGoalEngine.SetPieceGoalProbability(0, 0), 0.45515, 1e-10), "Appendix C.1 d=0", out failure);
         if (failure is not null) return Fail(failure);
@@ -62,7 +76,7 @@ public static class M9EventGoalRegression
             S("IM-L", 101), S("IM-C", 102), S("IM-R", 110), S("W-L", 111), S("FW-C", 103)
         };
 
-        var mechanism = new M9EventGoalEngine().Calculate(
+        var mechanism = engine.Calculate(
             new Lineup("MechanismRegression", "4-3-3", mechanismSlots),
             mechanismPlayers,
             15,
@@ -80,7 +94,7 @@ public static class M9EventGoalRegression
         Check(ApproximatelyValue(mechanism.PowerfulNormalForwardGoals, 0.05, 1e-12), "PNF one-count goal contribution", out failure);
         if (failure is not null) return Fail(failure);
 
-        Console.WriteLine($"PASS: M9 event-goal regression | playerEvents={result.ExpectedPlayerBasedEvents:0.000} | teamEvents={result.ExpectedTeamBasedEvents:0.000} | PNF={mechanism.PowerfulNormalForwardGoals:0.000} | PDIM={mechanism.PressingSuppressionSignal:P1}");
+        Console.WriteLine($"PASS: M9 event-goal regression | playerEvents={result.ExpectedPlayerBasedEvents:0.000} | teamEvents={result.ExpectedTeamBasedEvents:0.000} | creativeLowPlayerEvents={creativeLow.ExpectedPlayerBasedEvents:0.000} | PNF={mechanism.PowerfulNormalForwardGoals:0.000} | PDIM={mechanism.PressingSuppressionSignal:P1}");
         return 0;
     }
 
