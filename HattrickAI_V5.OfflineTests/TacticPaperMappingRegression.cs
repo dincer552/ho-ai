@@ -29,6 +29,12 @@ public static class TacticPaperMappingRegression
             TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.CounterAttack, 10),
             "V5 10 -> paper RT 20 CA");
 
+        AssertNear(0.05, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.Pressing, 0), "Pressing V5 0 -> 5% floor");
+        AssertNear(0.41, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.Pressing, 10), "Pressing V5 10 -> 41% ceiling");
+        var midPressing = TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.Pressing, 5);
+        if (midPressing <= 0.05 || midPressing >= 0.41)
+            throw new InvalidOperationException($"TacticPaperMappingRegression failed: Pressing V5 5 must stay inside 5%-41%; actual {midPressing:P2}");
+
         Console.WriteLine("TacticPaperMappingRegression: PASS");
         return 0;
     }
