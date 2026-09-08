@@ -14,7 +14,8 @@ public static class CreativeTacticEvaluator
         ComparisonEvaluationView baselineNormal,
         ComparisonEvaluationView tacticEvaluation,
         IReadOnlyList<Player> players,
-        IReadOnlyList<Player>? opponentPlayers = null)
+        IReadOnlyList<Player>? opponentPlayers = null,
+        Lineup? opponentLineup = null)
     {
         ArgumentNullException.ThrowIfNull(lineup);
         ArgumentNullException.ThrowIfNull(baselineNormal);
@@ -24,23 +25,30 @@ public static class CreativeTacticEvaluator
         var own = tacticEvaluation.Chance;
         var baseline = baselineNormal.Chance;
         var ownXi = LineupPlayers(lineup, players);
-        var opponent = opponentPlayers ?? Array.Empty<Player>();
+        var ownOutfield = LineupOutfieldPlayers(lineup, players);
+        var opponentXi = opponentLineup is not null && opponentPlayers is not null
+            ? LineupPlayers(opponentLineup, opponentPlayers)
+            : Array.Empty<Player>();
 
         var tacticalLevel = Math.Clamp(tacticEvaluation.Advanced.Level.Value, 0, 10);
-        var passing = Average(ownXi.Select(p => p.Passing));
-        var experience = Average(ownXi.Select(p => p.Experience));
+
+        // Official developer documentation: PC level uses the starting 10 outfield
+        // players; Passing has 4x the weight of Experience; Unpredictable contributes 2x.
+        // The goalkeeper is explicitly excluded from PC tactical-level calculation.
+        var passing = WeightedAverage(ownOutfield, p => p.Passing, p => p.Specialty == PlayerSpecialty.Unpredictable ? 2.0 : 1.0);
+        var experience = WeightedAverage(ownOutfield, p => p.Experience, p => p.Specialty == PlayerSpecialty.Unpredictable ? 2.0 : 1.0);
         var tacticalInput = Clamp01(((4.0 * passing) + experience) / 50.0);
 
         var portfolio = SpecialtyPortfolio(ownXi);
-        var opponentPortfolio = SpecialtyPortfolio(opponent);
+        var opponentPortfolio = SpecialtyPortfolio(opponentXi);
         var diversity = SpecialtyDiversity(ownXi);
         var opponentInteraction = OpponentSpecialtyInteraction(portfolio, opponentPortfolio);
 
         var eventUpside = Clamp01(
-            0.40 * Clamp01((own.CreativeEventMultiplier - 1.0) / 2.8) +
+            0.35 * Clamp01((own.CreativeEventMultiplier - 1.0) / 2.8) +
             0.25 * tacticalInput +
             0.20 * diversity +
-            0.15 * Clamp01(SpecialEventGoals(tacticEvaluation.Prediction.Prediction.EventGoals)));
+            0.20 * Clamp01(SpecialEventGoals(tacticEvaluation.Prediction.Prediction.EventGoals)));
 
         var negativeRisk = Clamp01(
             0.45 * UnpredictableRisk(ownXi) +
@@ -48,28 +56,30 @@ public static class CreativeTacticEvaluator
             0.15 * WeatherNeutralRisk(ownXi) +
             0.15 * Clamp01(portfolio.Total * 0.03));
 
+        // The paper/official mechanics document a 7.5% defence reduction. It is a
+        // real trade-off, not a generic bonus, so keep it explicit and bounded.
         var defencePenalty = 0.075;
-        var defenceQuality = Clamp01(Average(ownXi.Select(p => p.Defending)) / 10.0);
+        var defenceQuality = Clamp01(Average(ownOutfield.Select(p => p.Defending)) / 10.0);
         var tradeoff = Clamp01(
             0.55 * RelativeLoss(baseline.OwnRegularChanceExpected, own.OwnRegularChanceExpected) +
             0.30 * Math.Max(0, baselineNormal.Prediction.Prediction.WinProbability - tacticEvaluation.Prediction.Prediction.WinProbability) +
             0.15 * defencePenalty * (1.0 - defenceQuality));
 
         var suitability = Clamp01(
-            0.32 * eventUpside +
-            0.20 * tacticalInput +
-            0.18 * opponentInteraction +
-            0.15 * diversity +
-            0.15 * Clamp01(defenceQuality + tacticalLevel / 20.0) -
+            0.28 * eventUpside +
+            0.22 * tacticalInput +
+            0.15 * opponentInteraction +
+            0.12 * diversity +
+            0.13 * Clamp01(defenceQuality + tacticalLevel / 20.0) -
             0.35 * negativeRisk -
             0.25 * tradeoff);
 
-        // Creative is a tactic, not a blanket bonus. If the event upside does not
-        // compensate for its risks and Normal is stronger, the fit must fall.
-        var score = Clamp01(0.65 * suitability + 0.35 * Clamp01(tacticEvaluation.Prediction.Prediction.WinProbability));
+        // Keep Creative as one tactical option, not a blanket winner. Outcome
+        // probability remains a substantial part of the fit score.
+        var score = Clamp01(0.55 * suitability + 0.45 * Clamp01(tacticEvaluation.Prediction.Prediction.WinProbability));
         var explanation =
             $"Creative: level {tacticalLevel:0.##}; 4x Passing+Experience input {tacticalInput:P0}; " +
-            $"specialty diversity {diversity:P0}; opponent specialty interaction {opponentInteraction:P0}; " +
+            $"specialty diversity {diversity:P0}; opponent XI specialty interaction {opponentInteraction:P0}; " +
             $"event upside {eventUpside:P0}; negative-event risk {negativeRisk:P0}; " +
             $"7.5% defence penalty applied; Normal opportunity cost {tradeoff:P0}.";
 
@@ -87,6 +97,12 @@ public static class CreativeTacticEvaluator
     private static IReadOnlyList<Player> LineupPlayers(Lineup lineup, IReadOnlyList<Player> players)
     {
         var ids = lineup.Slots.Where(s => s.PlayerId > 0).Select(s => s.PlayerId).ToHashSet();
+        return players.Where(p => ids.Contains(p.Id)).ToArray();
+    }
+
+    private static IReadOnlyList<Player> LineupOutfieldPlayers(Lineup lineup, IReadOnlyList<Player> players)
+    {
+        var ids = lineup.Slots.Where(s => s.PlayerId > 0 && s.Code != "GK").Select(s => s.PlayerId).ToHashSet();
         return players.Where(p => ids.Contains(p.Id)).ToArray();
     }
 
@@ -110,16 +126,16 @@ public static class CreativeTacticEvaluator
 
     private static double OpponentSpecialtyInteraction(SpecialtyCounts own, SpecialtyCounts opponent)
     {
-        if (own.Total == 0) return 0.15;
+        if (own.Total == 0 || opponent.Total == 0) return 0.50;
 
-        // Technical/Quick/Powerful/Head contribute to different event families;
-        // Unpredictable adds upside but also negative-event exposure. The opponent
-        // portfolio therefore modifies, rather than decides, Creative suitability.
-        var ownPositive = own.Technical + own.Quick + own.Powerful + own.Head;
-        var ownRisk = own.Unpredictable;
-        var opponentAmplifier = opponent.Technical + opponent.Quick + opponent.Powerful + opponent.Head;
-        var value = 0.50 + 0.08 * Math.Min(5, ownPositive) - 0.07 * Math.Min(5, ownRisk) + 0.025 * Math.Min(8, opponentAmplifier);
-        return Clamp01(value);
+        // Hattrick allocates individual SEs using the number of relevant specialists
+        // on each starting XI. We do not have the hidden event-allocation formula, so
+        // this is intentionally a narrow 0.25..0.75 bounded ownership signal rather
+        // than the previous unbounded additive heuristic that frequently hit 100%.
+        var ownRelevant = own.Technical + own.Quick + own.Powerful + own.Unpredictable + own.Head;
+        var opponentRelevant = opponent.Technical + opponent.Quick + opponent.Powerful + opponent.Unpredictable + opponent.Head;
+        var share = ownRelevant / (double)(ownRelevant + opponentRelevant);
+        return Clamp01(0.50 + 0.50 * (share - 0.50));
     }
 
     private static double UnpredictableRisk(IEnumerable<Player> players)
@@ -148,6 +164,13 @@ public static class CreativeTacticEvaluator
 
     private static double RelativeLoss(double baseline, double tactic)
         => baseline <= 1e-9 ? 0 : Clamp01((baseline - tactic) / baseline);
+
+    private static double WeightedAverage(IEnumerable<Player> players, Func<Player, int> selector, Func<Player, double> weightSelector)
+    {
+        var rows = players.Select(p => (Value: selector(p), Weight: weightSelector(p))).Where(x => x.Weight > 0).ToArray();
+        var weight = rows.Sum(x => x.Weight);
+        return weight <= 0 ? 0 : rows.Sum(x => x.Value * x.Weight) / weight;
+    }
 
     private static double Average(IEnumerable<int> values)
     {
