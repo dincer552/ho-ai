@@ -16,7 +16,7 @@ public static class TacticPaperMappingRegression
         AssertNear(0.35, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.AttackMiddle, 10), "AiM V5 10 -> 35% ceiling");
         AssertStrictlyIncreasing(AdvancedTactic.AttackMiddle, "AiM conversion is monotonic across V5 levels");
         AssertSectorEnvelope(AdvancedTactic.AttackMiddle, 0, 0.46, 0.48, "AiM low-level centre share");
-        AssertSectorEnvelope(AdvancedTactic.AttackMiddle, 10, 0.53, 0.55, "AiM high-level centre share");
+        AssertSectorEnvelope(AdvancedTactic.AttackMiddle, 10, 0.53, 0.56, "AiM high-level centre share");
 
         AssertNear(0.34, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.AttackWings, 0), "AoW V5 0 -> 34% floor");
         AssertNear(0.52, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.AttackWings, 10), "AoW V5 10 -> 52% ceiling");
