@@ -50,8 +50,13 @@ public static class M3M11EndToEndRegression
                 Check(profile.Positions.Count == (eligible ? 14 : 0), $"M3 position universe mismatch for {input.Id}");
                 if (eligible)
                 {
-                    Check(profile.PrimaryPosition == profile.Positions[0].PositionCode, $"M3 primary position continuity for {input.Id}");
-                    Check(profile.SecondaryPosition == profile.Positions[1].PositionCode, $"M3 secondary position continuity for {input.Id}");
+                    // Primary/secondary are family-level Foxtrick mappings, while
+                    // Positions[] contains the full base-position ranking. They are
+                    // therefore checked for continuity into the ranking, not forced
+                    // to equal ranks #1/#2 when multiple Foxtrick types map to one family.
+                    Check(profile.PrimaryPosition is not null && profile.Positions.Any(x => x.PositionCode == profile.PrimaryPosition), $"M3 primary position continuity for {input.Id}");
+                    Check(profile.SecondaryPosition is not null && profile.Positions.Any(x => x.PositionCode == profile.SecondaryPosition), $"M3 secondary position continuity for {input.Id}");
+                    Check(profile.PrimaryPosition != profile.SecondaryPosition, $"M3 primary/secondary position collision for {input.Id}");
                     Check(profile.Positions.All(x => double.IsFinite(x.Score)), $"M3 position scores are finite for {input.Id}");
                 }
                 else
@@ -78,6 +83,8 @@ public static class M3M11EndToEndRegression
                     Check(actual.Positions[i].PositionCode == expected.Positions[i].PositionCode, $"live M3 position code changed for {expected.PlayerId}");
                     Check(Math.Abs(actual.Positions[i].Score - expected.Positions[i].Score) < 1e-12, $"live M3 position score changed for {expected.PlayerId}");
                 }
+                Check(actual.PrimaryPosition == expected.PrimaryPosition, $"live M3 primary position changed for {expected.PlayerId}");
+                Check(actual.SecondaryPosition == expected.SecondaryPosition, $"live M3 secondary position changed for {expected.PlayerId}");
             }
 
             Check(result.M4.Candidates.Count > 0, "M4 accepts current M3 output");
