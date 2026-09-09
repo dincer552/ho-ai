@@ -48,7 +48,7 @@
   };
 
   const style = document.createElement('style');
-  style.textContent = '.slot-order{font-size:clamp(6px,1.7vw,9px);font-weight:900;line-height:1;margin-top:2px;white-space:nowrap;opacity:.98;color:#8b1e1e}.slot.filled{padding:3px}.slot-name{font-size:clamp(7px,2.15vw,11px)}#ownTitle + .lineup-sub{display:none!important}.lineup-card .copy-btn{display:none!important}#oppReference{display:none!important}#oppMeta{display:none!important}#oppFormation{display:none!important}';
+  style.textContent = '.slot.filled{background:#24583b!important;border:2px solid rgba(255,255,255,.9)!important;box-shadow:0 2px 5px rgba(0,0,0,.28)!important;opacity:1!important}.slot.filled .slot-name,.slot.filled .slot-rating{color:#fff!important}.slot-order{font-size:clamp(6px,1.7vw,9px);font-weight:900;line-height:1;margin-top:2px;white-space:nowrap;opacity:1;color:#fff!important}.slot.filled .slot-order:not(:empty){color:#4ea3ff!important}.slot.filled .slot-order{color:#fff!important}.slot-name{font-size:clamp(7px,2.15vw,11px)}#ownTitle + .lineup-sub{display:none!important}.lineup-card .copy-btn{display:none!important}#oppReference{display:none!important}#oppMeta{display:none!important}#oppFormation{display:none!important}';
   document.head.appendChild(style);
 
   const teamHeader = document.createElement('script');
