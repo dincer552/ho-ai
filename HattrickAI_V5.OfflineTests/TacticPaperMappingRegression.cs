@@ -15,10 +15,14 @@ public static class TacticPaperMappingRegression
         AssertNear(0.20, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.AttackMiddle, 0), "AiM V5 0 -> 20% floor");
         AssertNear(0.35, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.AttackMiddle, 10), "AiM V5 10 -> 35% ceiling");
         AssertStrictlyIncreasing(AdvancedTactic.AttackMiddle, "AiM conversion is monotonic across V5 levels");
+        AssertSectorEnvelope(AdvancedTactic.AttackMiddle, 0, 0.46, 0.48, "AiM low-level centre share");
+        AssertSectorEnvelope(AdvancedTactic.AttackMiddle, 10, 0.53, 0.55, "AiM high-level centre share");
 
         AssertNear(0.34, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.AttackWings, 0), "AoW V5 0 -> 34% floor");
         AssertNear(0.52, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.AttackWings, 10), "AoW V5 10 -> 52% ceiling");
         AssertStrictlyIncreasing(AdvancedTactic.AttackWings, "AoW conversion is monotonic across V5 levels");
+        AssertSectorEnvelope(AdvancedTactic.AttackWings, 0, 0.61, 0.64, "AoW low-level wing share");
+        AssertSectorEnvelope(AdvancedTactic.AttackWings, 10, 0.66, 0.70, "AoW high-level wing share");
 
         AssertNear(0.04, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.CounterAttack, 0), "CA V5 0 -> 4% floor");
         AssertNear(0.45, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.CounterAttack, 10), "CA V5 10 -> 45% ceiling");
@@ -35,8 +39,22 @@ public static class TacticPaperMappingRegression
         if (midPressing <= 0.05 || midPressing >= 0.41)
             throw new InvalidOperationException($"TacticPaperMappingRegression failed: Pressing V5 5 must stay inside 5%-41%; actual {midPressing:P2}");
 
-        Console.WriteLine("TacticPaperMappingRegression: PASS | tactic-specific RT bridges + monotonic conversion envelopes");
+        Console.WriteLine("TacticPaperMappingRegression: PASS | tactic-specific RT bridges + monotonic conversion + sector envelopes");
         return 0;
+    }
+
+    private static void AssertSectorEnvelope(AdvancedTactic tactic, double level, double min, double max, string message)
+    {
+        var allocation = M8ChanceAllocationEngine.Calculate(50.0, 50.0, tactic, level);
+        var sum = allocation.SectorLeftShare + allocation.SectorCentreShare + allocation.SectorRightShare + allocation.SectorSetPieceShare;
+        if (Math.Abs(sum - 1.0) > 1e-9)
+            throw new InvalidOperationException($"TacticPaperMappingRegression failed: {message}; sector sum={sum}");
+
+        var target = tactic == AdvancedTactic.AttackMiddle
+            ? allocation.SectorCentreShare
+            : allocation.SectorLeftShare + allocation.SectorRightShare;
+        if (target < min || target > max)
+            throw new InvalidOperationException($"TacticPaperMappingRegression failed: {message}; expected [{min:P1},{max:P1}], actual {target:P2}");
     }
 
     private static void AssertStrictlyIncreasing(AdvancedTactic tactic, string message)
