@@ -1,14 +1,25 @@
 (() => {
   const names = ['Normal','Kontra Atak','Orta Saldırı','Kanat Saldırısı','Uzun Şutlar','Pres','Yaratıcı'];
-  const tacticName = value => {
-    const n = Number(value);
-    return Number.isInteger(n) && n >= 0 && n < names.length ? names[n] : String(value ?? '');
+  const aliases = {
+    normal:0, counterattack:1, 'counter attack':1, kontraitak:1, 'kontra atak':1,
+    attackmiddle:2, 'attack middle':2, ortasaldırı:2, 'orta saldırı':2,
+    attackwings:3, 'attack wings':3, kanatsaldırısı:3, 'kanat saldırısı':3,
+    longshots:4, 'long shots':4, uzunşutlar:4, 'uzun şutlar':4,
+    pressing:5, pres:5, creative:6, 'play creatively':6, yaratıcı:6
   };
-  const normalizedTactic = value => {
-    const numeric = Number(value);
-    return Number.isInteger(numeric) && numeric >= 0 && numeric < names.length
-      ? names[numeric]
-      : String(value ?? '');
+  const tacticId = value => {
+    const n = Number(value);
+    if (Number.isInteger(n) && n >= 0 && n < names.length) return n;
+    const key = String(value ?? '').trim().toLocaleLowerCase('tr-TR');
+    return Object.prototype.hasOwnProperty.call(aliases, key) ? aliases[key] : null;
+  };
+  const tacticName = value => {
+    const id = tacticId(value);
+    return id === null ? String(value ?? '') : names[id];
+  };
+  const canonicalTactic = value => {
+    const id = tacticId(value);
+    return id === null ? `s:${String(value ?? '').trim().toLocaleLowerCase('tr-TR')}` : `n:${id}`;
   };
   const pct = v => Number.isFinite(Number(v)) ? `${(Number(v) * 100).toFixed(1)}%` : '—';
   const num = v => Number.isFinite(Number(v)) ? Number(v).toFixed(2) : '—';
@@ -68,10 +79,10 @@
       Number(b.expectedPoints ?? -Infinity) - Number(a.expectedPoints ?? -Infinity) ||
       Number(b.winProbability ?? -Infinity) - Number(a.winProbability ?? -Infinity) ||
       Number(b.tacticFitScore ?? -Infinity) - Number(a.tacticFitScore ?? -Infinity) ||
-      normalizedTactic(a.tactic).localeCompare(normalizedTactic(b.tactic))
+      canonicalTactic(a.tactic).localeCompare(canonicalTactic(b.tactic))
     );
     const best = sorted[0];
-    const selected = normalizedTactic(data.selectedTactic);
+    const selected = canonicalTactic(data.selectedTactic);
     panel.innerHTML = `
       <div class="v5tc-head">
         <h3>⚽ Taktik Karşılaştırması</h3>
@@ -79,8 +90,8 @@
       </div>
       <table><thead><tr><th>Taktik</th><th>Kazanma</th><th>Beklenen puan</th><th>Taktik fit</th><th>Trade-off</th></tr></thead><tbody>
         ${sorted.map(r => `
-          <tr class="${r === best ? 'v5tc-best ' : ''}${normalizedTactic(r.tactic) === selected ? 'v5tc-selected' : ''}">
-            <td>${esc(tacticName(r.tactic))}${normalizedTactic(r.tactic) === selected ? ' ★' : ''}</td>
+          <tr class="${r === best ? 'v5tc-best ' : ''}${canonicalTactic(r.tactic) === selected ? 'v5tc-selected' : ''}">
+            <td>${esc(tacticName(r.tactic))}${canonicalTactic(r.tactic) === selected ? ' ★' : ''}</td>
             <td>${pct(r.winProbability)}</td>
             <td>${num(r.expectedPoints)}</td>
             <td>${pct(r.tacticFitScore)}</td>
