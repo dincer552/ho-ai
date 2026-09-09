@@ -29,10 +29,22 @@ public static class FinalPlanContinuityRegression
             Check(result.FinalPrediction is not null, "FinalPrediction missing at FinalPlan boundary");
             Check(result.FinalPlan.Formation == m11!.BestPlan.Formation, "FinalPlan formation differs from M11 BestPlan");
             Check(Signature(result.FinalPlan.Lineup) == Signature(m11.BestPlan.Lineup), "FinalPlan lineup differs from M11 BestPlan lineup");
-            Check(Math.Abs(result.FinalPlan.TacticalScore - m11.BestPlan.TacticalScore) < 1e-12, "FinalPlan tactical score differs from M11 BestPlan");
             Check(result.FinalPlan.Rating == m11.BestPlan.Rating, "FinalPlan regional rating differs from M11 BestPlan");
             Check(result.FinalPlan.Matchup == m11.BestPlan.Matchup, "FinalPlan matchup differs from M11 BestPlan");
-            Check(result.FinalPrediction == m11.Prediction, "FinalPrediction differs from M11 prediction");
+
+            var selectedRows = result.TacticComparisons
+                .Where(x => SignatureFromCandidateId(x.CandidateId) == Signature(m11.BestPlan.Lineup))
+                .Where(x => x.TacticEligible)
+                .OrderByDescending(x => x.ExpectedPoints)
+                .ThenByDescending(x => x.WinProbability)
+                .ThenByDescending(x => x.TacticFitScore)
+                .ThenBy(x => x.Tactic)
+                .ToList();
+            Check(selectedRows.Count == 7, $"FinalPlan tactic continuity rows={selectedRows.Count}/7");
+            var selectedTactic = selectedRows[0];
+            Check(Math.Abs(result.FinalPlan.TacticalScore - selectedTactic.TacticalScore) < 1e-12, "FinalPlan tactical score differs from selected tactic evaluation");
+            Check(Math.Abs(result.FinalPrediction!.ExpectedPoints - selectedTactic.ExpectedPoints) < 1e-12, "FinalPrediction outcome differs from selected tactic evaluation");
+
             Check(result.FinalPlan.Lineup.Slots.Count == 11, "FinalPlan lineup is not an XI");
             Check(result.FinalPlan.Lineup.Slots.Select(x => x.PlayerId).Distinct().Count() == 11, "FinalPlan lineup contains duplicate players");
             Check(result.FinalPlan.Lineup.Slots.Select(x => x.Code).Distinct(StringComparer.Ordinal).Count() == 11, "FinalPlan lineup contains duplicate slot codes");
@@ -42,7 +54,7 @@ public static class FinalPlanContinuityRegression
             Check(log is not null, "C16 telemetry missing");
             Check(IndexOf(log!.Stages, x => x.Motor == "M11" && x.Status == "completed") >= 0, "M11 completed telemetry missing");
             MotorRunLogStore.Finish(runId, true, "C16 FinalPlan continuity passed");
-            Console.WriteLine($"FinalPlan={result.FinalPlan.Formation} | XI=11 | M11 winner continuity=OK");
+            Console.WriteLine($"FinalPlan={result.FinalPlan.Formation} | XI=11 | selected tactic={selectedTactic.Tactic} | continuity=OK");
             Console.WriteLine("PASS: C16 FinalPlan continuity");
             return 0;
         }
@@ -57,6 +69,7 @@ public static class FinalPlanContinuityRegression
     private static Player ReadPlayer(JsonElement e) => new(e.GetProperty("id").GetInt32(), e.GetProperty("name").GetString() ?? "Player", e.GetProperty("keeper").GetInt32(), e.GetProperty("defending").GetInt32(), e.GetProperty("playmaking").GetInt32(), e.GetProperty("passing").GetInt32(), e.GetProperty("winger").GetInt32(), e.GetProperty("scoring").GetInt32(), e.GetProperty("stamina").GetInt32(), e.GetProperty("form").GetInt32(), e.GetProperty("experience").GetInt32(), GetInt(e, "loyalty", 0), GetInt(e, "injuryLevel", -1));
     private static RegionalRatingSnapshot ReadRating(JsonElement e) { var ld = GetDouble(e, "leftDefence"); var cd = GetDouble(e, "centralDefence"); var rd = GetDouble(e, "rightDefence"); var mid = GetDouble(e, "midfield"); var la = GetDouble(e, "leftAttack"); var ca = GetDouble(e, "centralAttack"); var ra = GetDouble(e, "rightAttack"); return new RegionalRatingSnapshot(ld, cd, rd, mid, la, ca, ra, ld, cd, rd, mid, la, ca, ra); }
     private static string Signature(Lineup lineup) => string.Join(";", lineup.Slots.OrderBy(s => s.Code, StringComparer.Ordinal).ThenBy(s => s.PlayerId).Select(s => $"{s.Code}:{s.PlayerId}:{(int)s.Order}"));
+    private static string SignatureFromCandidateId(string candidateId) => candidateId;
     private static string GetString(JsonElement e, string n, string f) => e.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? f : f;
     private static int GetInt(JsonElement e, string n, int f) => e.TryGetProperty(n, out var v) && v.TryGetInt32(out var x) ? x : f;
     private static double GetDouble(JsonElement e, string n) => e.GetProperty(n).GetDouble();
