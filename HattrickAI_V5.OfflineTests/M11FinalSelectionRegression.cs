@@ -106,7 +106,7 @@ public static class M11FinalSelectionRegression
         var winnerLineup = SyntheticLineup("OUTCOME-WINNER");
         var fitLineup = SyntheticLineup("FIT-WINNER");
         var winnerPrediction = new MatchPrediction(0.60, 2.0, 1.0, 0.50, 0.10, 0.40);
-        var fitPrediction = new MatchPrediction(0.45, 2.0, 1.0, 0.45, 0.10, 0.45);
+        var fitPrediction = new MatchPrediction(0.45, 1.0, 1.0, 0.45, 0.10, 0.45);
         return
         [
             new M11CandidateEvaluation(new TacticalCandidate(winnerLineup, default, default, 0.10), winnerPrediction, 0.10, 0.10),
