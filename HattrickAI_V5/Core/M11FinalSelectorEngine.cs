@@ -5,8 +5,9 @@ namespace HattrickAI.V5.Core;
 
 /// <summary>
 /// M11, ikinci aday database'inden gelen finalistleri son kez karşılaştırır.
-/// Final ranking uses the event-based Monte Carlo outcome distribution and keeps
-/// tactical/structural quality as supporting signals.
+/// M9 Expected Points is the canonical outcome objective. Win probability,
+/// expected goal difference, tactical quality, and stability are deterministic
+/// supporting tie-breakers rather than a competing weighted objective.
 /// </summary>
 public sealed class M11FinalSelectorEngine
 {
@@ -20,9 +21,11 @@ public sealed class M11FinalSelectorEngine
         var ranked = candidates
             .Where(IsValid)
             .Select(x => new RankedFinalist(x, FinalScore(x)))
-            .OrderByDescending(x => x.FinalScore)
+            .OrderByDescending(x => ExpectedPoints(x.Candidate.Prediction))
             .ThenByDescending(x => MonteCarloWinProbability(x.Candidate.Prediction))
+            .ThenByDescending(x => ExpectedGoalDifference(x.Candidate.Prediction))
             .ThenByDescending(x => x.Candidate.TacticalCandidate.TacticalScore)
+            .ThenByDescending(x => x.Candidate.StabilityScore)
             .ThenBy(x => x.Candidate.TacticalCandidate.Lineup.Formation, StringComparer.Ordinal)
             .ThenBy(x => Signature(x.Candidate.TacticalCandidate.Lineup), StringComparer.Ordinal)
             .ToList();
@@ -45,7 +48,7 @@ public sealed class M11FinalSelectorEngine
                 Signature(x.Candidate.TacticalCandidate.Lineup),
                 x.Candidate.TacticalCandidate.TacticalScore,
                 MonteCarloWinProbability(x.Candidate.Prediction),
-                x.FinalScore)).ToList(),
+                ExpectedPoints(x.Candidate.Prediction))).ToList(),
             ranked.Count,
             ranked.Select(x => x.Candidate.TacticalCandidate.Lineup.Formation).Distinct(StringComparer.Ordinal).Count());
     }
@@ -57,6 +60,15 @@ public sealed class M11FinalSelectorEngine
     private static double MonteCarloWinProbability(MatchPrediction prediction)
         => System.Math.Clamp(prediction.Simulation.Outcome.WinProbability, 0.0, 1.0);
 
+    private static double ExpectedPoints(MatchPrediction prediction)
+        => 3.0 * MonteCarloWinProbability(prediction)
+         + System.Math.Clamp(prediction.Simulation.Outcome.DrawProbability, 0.0, 1.0);
+
+    private static double ExpectedGoalDifference(MatchPrediction prediction)
+        => prediction.ExpectedHomeGoals - prediction.ExpectedAwayGoals;
+
+    // Retained as a diagnostic score for compatibility with existing output;
+    // it is intentionally NOT used as the primary final-selection objective.
     private static double FinalScore(M11CandidateEvaluation x)
     {
         var tactical = 1.0 / (1.0 + System.Math.Exp(-System.Math.Clamp(x.TacticalCandidate.TacticalScore, -20.0, 20.0)));
