@@ -6,7 +6,8 @@ namespace HattrickAI.V5.OfflineTests;
 /// <summary>
 /// C6 acceptance: M7.2 exposed by the production pipeline must be the
 /// AdvancedTacticalScenarioEngine result for the same selected XI/state as M7.
-/// This verifies M7 -> M7.2 continuity without hard-coding fixture outputs.
+/// This verifies M7 -> M7.2 continuity while also respecting the final DB3
+/// outcome-first tactic selection contract.
 /// </summary>
 public static class M7_2TacticalScenarioRegression
 {
@@ -39,10 +40,48 @@ public static class M7_2TacticalScenarioRegression
             Check(m72 is not null, "production pipeline returned M7.2 result");
             Check(m72.CandidateId == m7.State.CandidateId, "M7.2 CandidateId continues M7 CandidateId");
             Check(m72.CandidateId == m7.State.LineupId, "M7.2 CandidateId continues M7 LineupId");
-            Check(m72.CandidateId == result.FinalPlan.Lineup.Slots.OrderBy(s => s.Code, StringComparer.Ordinal).ThenBy(s => s.PlayerId).Select(s => $"{s.Code}:{s.PlayerId}:{(int)s.Order}").Aggregate((a, b) => a + ";" + b), "M7.2 candidate identity matches selected XI signature");
+            var finalSignature = result.FinalPlan.Lineup.Slots
+                .OrderBy(s => s.Code, StringComparer.Ordinal)
+                .ThenBy(s => s.PlayerId)
+                .Select(s => $"{s.Code}:{s.PlayerId}:{(int)s.Order}")
+                .Aggregate((a, b) => a + ";" + b);
+            Check(m72.CandidateId == finalSignature, "M7.2 candidate identity matches selected XI signature");
 
-            var tactic = Map(context.RatingContext.Tactic);
-            Check(m72.Tactic == tactic, "M7.2 tactic matches current MatchDataContext tactic");
+            var selectedTactic = result.TacticComparisons
+                .Where(x => x.CandidateId == finalSignature && x.TacticEligible)
+                .OrderByDescending(x => x.ExpectedPoints)
+                .ThenByDescending(x => x.WinProbability)
+                .ThenByDescending(x => x.TacticFitScore)
+                .ThenBy(x => x.Tactic)
+                .FirstOrDefault();
+            Check(selectedTactic is not null, "DB3 contains an eligible selected tactic for final XI");
+            if (selectedTactic is not null)
+            {
+                Check(m72.Tactic == Map(selectedTactic.Tactic), "M7.2 tactic matches DB3-selected canonical tactic");
+
+                var selectedState = m7.State with { TeamTactic = selectedTactic.Tactic };
+                var direct = new AdvancedTacticalScenarioEngine().CalculateLineup(
+                    result.FinalPlan.Lineup,
+                    players,
+                    selectedState,
+                    Average(opponentRating));
+
+                Check(direct.CandidateId == m72.CandidateId, "direct M7.2 recalculation preserves candidate identity");
+                Check(direct.Tactic == m72.Tactic, "M7.2 tactic matches direct production recalculation");
+                Check(Equal(direct.TacticalSkillAggregate, m72.TacticalSkillAggregate), "M7.2 tactical skill matches direct production recalculation");
+                Check(direct.Level.Name == m72.Level.Name && Equal(direct.Level.Value, m72.Level.Value), "M7.2 level matches direct production recalculation");
+                Check(Equal(direct.Inputs.TotalPassing, m72.Inputs.TotalPassing), "M7.2 passing input matches direct production recalculation");
+                Check(Equal(direct.Inputs.TotalDefending, m72.Inputs.TotalDefending), "M7.2 defending input matches direct production recalculation");
+                Check(Equal(direct.Inputs.TotalPlaymaking, m72.Inputs.TotalPlaymaking), "M7.2 playmaking input matches direct production recalculation");
+                Check(Equal(direct.Inputs.TotalScoring, m72.Inputs.TotalScoring), "M7.2 scoring input matches direct production recalculation");
+                Check(Equal(direct.Inputs.TotalWinger, m72.Inputs.TotalWinger), "M7.2 winger input matches direct production recalculation");
+                Check(Equal(direct.Inputs.TotalStamina, m72.Inputs.TotalStamina), "M7.2 stamina input matches direct production recalculation");
+                Check(Equal(direct.Inputs.TotalExperience, m72.Inputs.TotalExperience), "M7.2 experience input matches direct production recalculation");
+                Check(direct.M8Context.CandidateId == m72.M8Context.CandidateId, "M7.2 -> M8 candidate continuity is preserved");
+                Check(direct.M8Context.Tactic == m72.M8Context.Tactic, "M7.2 -> M8 tactic continuity is preserved");
+                Check(direct.M8Context.Level.Name == m72.M8Context.Level.Name && Equal(direct.M8Context.Level.Value, m72.M8Context.Level.Value), "M7.2 -> M8 tactical level continuity is preserved");
+            }
+
             Check(double.IsFinite(m72.TacticalSkillAggregate), "M7.2 tactical skill aggregate is finite");
             Check(m72.TacticalSkillAggregate >= 0 && m72.TacticalSkillAggregate <= 10, "M7.2 tactical skill aggregate is bounded");
             Check(double.IsFinite(m72.Level.Value) && m72.Level.Value >= 0 && m72.Level.Value <= 10, "M7.2 tactical level is finite and bounded");
@@ -58,27 +97,6 @@ public static class M7_2TacticalScenarioRegression
 
             var expectedOpponentAverage = Average(opponentRating);
             Check(Equal(m72.OpponentAverageMainSkill, expectedOpponentAverage), "M7.2 opponent average main skill matches production input");
-
-            var direct = new AdvancedTacticalScenarioEngine().CalculateLineup(
-                result.FinalPlan.Lineup,
-                players,
-                m7.State,
-                expectedOpponentAverage);
-
-            Check(direct.CandidateId == m72.CandidateId, "direct M7.2 recalculation preserves candidate identity");
-            Check(direct.Tactic == m72.Tactic, "M7.2 tactic matches direct production recalculation");
-            Check(Equal(direct.TacticalSkillAggregate, m72.TacticalSkillAggregate), "M7.2 tactical skill matches direct production recalculation");
-            Check(direct.Level.Name == m72.Level.Name && Equal(direct.Level.Value, m72.Level.Value), "M7.2 level matches direct production recalculation");
-            Check(Equal(direct.Inputs.TotalPassing, m72.Inputs.TotalPassing), "M7.2 passing input matches direct production recalculation");
-            Check(Equal(direct.Inputs.TotalDefending, m72.Inputs.TotalDefending), "M7.2 defending input matches direct production recalculation");
-            Check(Equal(direct.Inputs.TotalPlaymaking, m72.Inputs.TotalPlaymaking), "M7.2 playmaking input matches direct production recalculation");
-            Check(Equal(direct.Inputs.TotalScoring, m72.Inputs.TotalScoring), "M7.2 scoring input matches direct production recalculation");
-            Check(Equal(direct.Inputs.TotalWinger, m72.Inputs.TotalWinger), "M7.2 winger input matches direct production recalculation");
-            Check(Equal(direct.Inputs.TotalStamina, m72.Inputs.TotalStamina), "M7.2 stamina input matches direct production recalculation");
-            Check(Equal(direct.Inputs.TotalExperience, m72.Inputs.TotalExperience), "M7.2 experience input matches direct production recalculation");
-            Check(direct.M8Context.CandidateId == m72.M8Context.CandidateId, "M7.2 -> M8 candidate continuity is preserved");
-            Check(direct.M8Context.Tactic == m72.M8Context.Tactic, "M7.2 -> M8 tactic continuity is preserved");
-            Check(direct.M8Context.Level.Name == m72.M8Context.Level.Name && Equal(direct.M8Context.Level.Value, m72.M8Context.Level.Value), "M7.2 -> M8 tactical level continuity is preserved");
 
             Console.WriteLine($"M7.2 candidate={m72.CandidateId} | tactic={m72.Tactic} | skill={m72.TacticalSkillAggregate:0.###} | level={m72.Level.Name} {m72.Level.Value:0.###}");
             Console.WriteLine("PASS: C6 M7.2 tactical scenario continuity");
