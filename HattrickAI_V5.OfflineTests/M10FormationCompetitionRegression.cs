@@ -30,19 +30,29 @@ public static class M10FormationCompetitionRegression
             Check(competition.Select(x => x.Formation).Distinct(StringComparer.Ordinal).Count() == competition.Count, "M10 formation competition contains duplicates");
             Check(competition.Select(x => x.Formation).OrderBy(x => x, StringComparer.Ordinal).SequenceEqual(legal.OrderBy(x => x, StringComparer.Ordinal)), "M10 formation competition does not cover the legal M4 set");
             Check(competition.Select(x => x.Rank).OrderBy(x => x).SequenceEqual(Enumerable.Range(1, competition.Count)), "M10 ranks are not contiguous");
-            Check(competition.All(x => double.IsFinite(x.CompositeScore) && double.IsFinite(x.WinProbability)), "M10 competition scores are finite");
+            Check(competition.All(x => double.IsFinite(x.ExpectedPoints) && double.IsFinite(x.WinProbability)), "M10 competition outcome scores are finite");
             Check(competition.All(x => x.CandidateCount > 0), "M10 has no candidate for a competing formation");
             Check(!string.IsNullOrWhiteSpace(result.M10.BestPlan.Formation), "M10 selected formation is empty");
             Check(competition.Any(x => x.Formation == result.M10.BestPlan.Formation && x.Rank == 1), "M10 BestPlan is not the rank-1 formation");
             var ranked = competition.OrderBy(x => x.Rank).ToList();
-            for (var i = 0; i < ranked.Count - 1; i++) Check(ranked[i].CompositeScore >= ranked[i + 1].CompositeScore, "M10 formation ranking is not deterministic descending score order");
+            for (var i = 0; i < ranked.Count - 1; i++)
+            {
+                Check(ranked[i].ExpectedPoints >= ranked[i + 1].ExpectedPoints - 1e-12, "M10 formation ranking is not ExpectedPoints-first");
+                if (Math.Abs(ranked[i].ExpectedPoints - ranked[i + 1].ExpectedPoints) < 1e-12)
+                    Check(ranked[i].WinProbability >= ranked[i + 1].WinProbability - 1e-12, "M10 equal-EP tie-break is not win-probability-first");
+            }
+            Check(Math.Abs(ranked[0].ExpectedPoints - ranked.Max(x => x.ExpectedPoints)) < 1e-12, "M10 rank #1 is not the maximum ExpectedPoints formation");
+            Check(Math.Abs(result.M10.BestPlan.Formation == ranked[0].Formation ? 0 : 1) < 0.5, "M10 BestPlan does not match EP-first rank #1");
             repeatRunId = MotorRunLogStore.Start("offline-acceptance-c10-repeat");
             var repeat = await new MotorPipelineService().RunAsync(context, players, cancellationToken, repeatRunId);
             Check(repeat.M10.BestPlan.Formation == result.M10.BestPlan.Formation, "M10 winner changed on deterministic rerun");
             Check(repeat.M10.FormationCompetition is not null && repeat.M10.FormationCompetition.Count == competition.Count, "M10 competition depth changed on deterministic rerun");
+            var repeatRanked = repeat.M10.FormationCompetition!.OrderBy(x => x.Rank).ToList();
+            Check(ranked.Select(x => x.Formation).SequenceEqual(repeatRanked.Select(x => x.Formation)), "M10 formation ordering changed on deterministic rerun");
+            Check(ranked.Select(x => x.ExpectedPoints).Zip(repeatRanked.Select(x => x.ExpectedPoints), (a, b) => Math.Abs(a - b) < 1e-12).All(x => x), "M10 ExpectedPoints changed on deterministic rerun");
             MotorRunLogStore.Finish(runId, true, "C10 M10 formation competition continuity passed");
             MotorRunLogStore.Finish(repeatRunId, true, "C10 deterministic rerun passed");
-            Console.WriteLine($"M10 formations={competition.Count} | winner={result.M10.BestPlan.Formation} | rank1 score={ranked[0].CompositeScore:0.####}");
+            Console.WriteLine($"M10 formations={competition.Count} | winner={result.M10.BestPlan.Formation} | rank1 EP={ranked[0].ExpectedPoints:0.####}");
             Console.WriteLine("PASS: C10 M10 formation competition continuity"); return 0;
         }
         catch (Exception ex)
