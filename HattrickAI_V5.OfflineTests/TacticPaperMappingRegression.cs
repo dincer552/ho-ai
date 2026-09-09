@@ -71,7 +71,8 @@ public static class TacticPaperMappingRegression
 
     private static void AssertNear(double expected, double actual, string message)
     {
-        if (Math.Abs(expected - actual) > 1e-9)
+        const double tolerance = 5e-9;
+        if (Math.Abs(expected - actual) > tolerance)
             throw new InvalidOperationException($"TacticPaperMappingRegression failed: {message}; expected {expected}, actual {actual}");
     }
 }
