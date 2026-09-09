@@ -58,6 +58,13 @@ public static class M11FinalSelectionRegression
             Check(tacticRows.All(x => double.IsFinite(x.WinProbability) && double.IsFinite(x.ExpectedPoints) && x.ExpectedPoints is >= 0 and <= 3), "tactic outcomes are not finite/bounded");
             Check(tacticRows.All(x => Math.Abs(x.ExpectedPoints - (3.0 * x.WinProbability + x.DrawProbability)) < 1e-12), "tactic Expected Points are not canonical 3W+D");
             Check(tacticRows.All(x => double.IsFinite(x.TacticFitScore) && double.IsFinite(x.TacticPrimaryMetric) && double.IsFinite(x.TacticTradeoffCost) && double.IsFinite(x.TacticSquadFit) && double.IsFinite(x.TacticMatchupFit)), "tactic objective components are not finite");
+
+            var canonicalDb3 = TacticalMatchupDatabaseBuilder.Build(tacticRows);
+            var expectedFirst = tacticRows.Where(x => x.TacticEligible).OrderByDescending(x => x.ExpectedPoints).ThenByDescending(x => x.WinProbability).ThenByDescending(x => x.TacticFitScore).ThenBy(x => x.Tactic).First();
+            var db3Winner = canonicalDb3.BestEligible();
+            Check(db3Winner.Tactic == expectedFirst.Tactic, "DB3 canonical tactic selector diverged from explicit ExpectedPoints ordering");
+            Check(Math.Abs(db3Winner.ExpectedPoints - expectedFirst.ExpectedPoints) < 1e-12, "DB3 canonical tactic selector changed ExpectedPoints winner");
+
             var pressing = tacticRows.Single(x => x.Tactic == TeamTactic.Pressing);
             Check(pressing.TacticalLevel >= 0 && pressing.TacticalLevel <= 10, "Pressing tactical level out of V5 bounds");
             Check(pressing.OwnRegularChanceExpected >= 0 && pressing.OpponentRegularChanceExpected >= 0, "Pressing chance expectations invalid");
@@ -107,10 +114,12 @@ public static class M11FinalSelectionRegression
         var fitLineup = SyntheticLineup("FIT-WINNER");
         var winnerPrediction = new MatchPrediction(0.60, 2.0, 1.0, 0.50, 0.10, 0.40);
         var fitPrediction = new MatchPrediction(0.45, 1.0, 1.0, 0.45, 0.10, 0.45);
+        var rating = new RegionalRatingSnapshot(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+        var matchup = new MatchupEvaluation(0, 0, 0, 0, 0, 0, 0, 0);
         return
         [
-            new M11CandidateEvaluation(new TacticalCandidate(winnerLineup, default, default, 0.10), winnerPrediction, 0.10, 0.10),
-            new M11CandidateEvaluation(new TacticalCandidate(fitLineup, default, default, 9.00), fitPrediction, 0.99, 1.00)
+            new M11CandidateEvaluation(new TacticalCandidate(winnerLineup, rating, matchup, 0.10), winnerPrediction, 0.10, 0.10),
+            new M11CandidateEvaluation(new TacticalCandidate(fitLineup, rating, matchup, 9.00), fitPrediction, 0.99, 1.00)
         ];
     }
 
