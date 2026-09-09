@@ -1,5 +1,33 @@
 # Hattrick AI V5 Change History
 
+## 2026-09-09 — Tactical audit continuation
+
+### Counter Attack audit — implementation/research layer completed
+
+- `CounterAttackTacticEvaluator` remains a dedicated, opponent-aware evaluator rather than a generic TacticalScore multiplier.
+- CA eligibility is tied to losing midfield before the documented 7% CA midfield penalty; the 7% penalty is applied by M8 to the effective midfield/possession calculation.
+- The evaluator separates tactical CA conversion from non-tactical Technical-player CA contribution so the two mechanisms are not treated as the same event source.
+- CA suitability considers defending + passing requirements, experience, tactical CA opportunity volume, own regular-chance opportunity cost, opponent attack quality, midfield loss, shooter/finishing quality, and opponent specialty interaction.
+- The 2026 Constantinou et al. paper's CA conversion equation and published 4%-45% tactical conversion envelope are now represented in the tactic-specific paper bridge rather than silently using the generic RT=V5×2 mapping.
+
+### Tactic-specific paper RT bridge — implemented
+
+The paper provides tactic-specific conversion curves but does not publish a mapping from V5's compact 0-10 internal tactical scale to the paper's RT scale. V5 therefore uses explicit calibration anchors at the published conversion envelopes and labels these as V5 bridges, not official hidden-engine formulas:
+
+- AiM: 20%-35%
+- AoW: 34%-52%
+- Counter Attack: 4%-45%
+- Pressing: 5%-41%
+- Long Shots: existing RT=0..20 bridge retained because its documented paper equation over that RT range produces the current 7.52%-22.76% curve; the paper's wider 6%-43% interval is treated as an empirical range rather than an endpoint claim for this compact V5 scale.
+
+`TacticPaperMappingRegression` now checks the tactic-specific conversion envelopes, monotonicity, and AiM/AoW sector-share conservation envelopes.
+
+### Current next target
+
+`AIM-01` is now the active tactic audit. The next pass compares `AttackMiddleTacticEvaluator` against the verified AiM source chain, M8 redistribution, opponent central defence, wing-defence risk, and Normal opportunity cost before moving to `AOW-01`.
+
+---
+
 ## 2026-09-06 — Stage 9: Motor Output JSON Database
 
 ### Stage 9.9 — Documentation / Publication Snapshot
