@@ -34,6 +34,7 @@ if (From(17)) { var r = await FinalPredictionContinuityRegression.RunAsync(path)
 if (From(18)) { var r = await DeterministicRerunRegression.RunAsync(path); if (r != 0) return r; r = HistoricalMultiMatchProductionAcceptance.Run(path); if (r != 0) return r; r = await FullPipelineRegressionRunner.RunAsync(path); if (r != 0) return r; }
 if (From(19)) { var r = C19MotorDatabaseJsonRegression.Run(); if (r != 0) return r; r = TacticalMatchupDatabaseRegression.Run(); if (r != 0) return r; }
 if (From(20)) { var r = C20MotorDatabaseDeterministicJsonRegression.Run(); if (r != 0) return r; }
+if (From(21)) return await C21TacticalMatchupMatrixRegression.RunAsync(path);
 if (From(22)) { var r = C22TacticalOutcomeEdgeCaseRegression.Run(); if (r != 0) return r; }
 if (From(23)) { var r = C23TacticalOutcomeCalibrationRegression.Run(); if (r != 0) return r; }
 if (From(24)) return C24TacticalOutcomeCalibrationCorpusRegression.Run(path);
