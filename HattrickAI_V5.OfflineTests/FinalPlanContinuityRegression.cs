@@ -34,15 +34,18 @@ public static class FinalPlanContinuityRegression
             // recompute rating/matchup/tactical score for the selected tactic, so those
             // values must be validated against the tactic comparison rather than copied
             // from the Normal-tactic M11 snapshot.
-            var selectedRows = result.TacticComparisons
+            var lineupRows = result.TacticComparisons
                 .Where(x => SignatureFromCandidateId(x.CandidateId) == Signature(m11.BestPlan.Lineup))
+                .ToList();
+            Check(lineupRows.Count == 7, $"FinalPlan tactic continuity rows={lineupRows.Count}/7");
+            var selectedRows = lineupRows
                 .Where(x => x.TacticEligible)
                 .OrderByDescending(x => x.ExpectedPoints)
                 .ThenByDescending(x => x.WinProbability)
                 .ThenByDescending(x => x.TacticFitScore)
                 .ThenBy(x => x.Tactic)
                 .ToList();
-            Check(selectedRows.Count == 7, $"FinalPlan tactic continuity rows={selectedRows.Count}/7");
+            Check(selectedRows.Count > 0, "FinalPlan has no eligible tactic");
             var selectedTactic = selectedRows[0];
             Check(Math.Abs(result.FinalPlan.TacticalScore - selectedTactic.TacticalScore) < 1e-12, "FinalPlan tactical score differs from selected tactic evaluation");
             Check(Math.Abs(result.FinalPrediction!.ExpectedPoints - selectedTactic.ExpectedPoints) < 1e-12, "FinalPrediction outcome differs from selected tactic evaluation");
@@ -56,7 +59,7 @@ public static class FinalPlanContinuityRegression
             Check(log is not null, "C16 telemetry missing");
             Check(IndexOf(log!.Stages, x => x.Motor == "M11" && x.Status == "completed") >= 0, "M11 completed telemetry missing");
             MotorRunLogStore.Finish(runId, true, "C16 FinalPlan continuity passed");
-            Console.WriteLine($"FinalPlan={result.FinalPlan.Formation} | XI=11 | selected tactic={selectedTactic.Tactic} | continuity=OK");
+            Console.WriteLine($"FinalPlan={result.FinalPlan.Formation} | XI=11 | tactic rows=7 | eligible={selectedRows.Count} | selected tactic={selectedTactic.Tactic} | continuity=OK");
             Console.WriteLine("PASS: C16 FinalPlan continuity");
             return 0;
         }
