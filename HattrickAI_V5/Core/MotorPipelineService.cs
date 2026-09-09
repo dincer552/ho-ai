@@ -55,11 +55,19 @@ public sealed class MotorPipelineService
             var finalists = db2.Select(record => { var tactical = cache.TryGetValue("B:" + record.CandidateId, out var cached) ? cached.Tactical : null; return tactical is null || record.Prediction is null ? null : new M11CandidateEvaluation(tactical, record.Prediction, record.Chance.StructuralChanceIndex, 1.0); }).Where(x => x is not null).Cast<M11CandidateEvaluation>().ToList(); if (finalists.Count == 0) throw new InvalidOperationException("M11 final havuzu oluşturulamadı."); if (finalists.Select(x => x.TacticalCandidate.Lineup.Formation).Distinct(StringComparer.Ordinal).Count() != legalFormations.Count) throw new InvalidOperationException("Anti-lock ihlali: M11 finalist havuzuna tüm legal formasyonlar taşınamadı."); sw.Restart(); LogStart(runId, "M11", $"DB2 final selection: {finalists.Count} aday • {legalFormations.Count} formasyon karşılaştırılıyor"); var m11 = _m11.Select(finalists); LogComplete(runId, "M11", $"DB2 final selection completed • FINAL: {m11.BestPlan.Formation} • {m11.CandidateCount} aday • {m11.FormationCount} formasyon • DB2 {formationDb2Summary}", sw.ElapsedMilliseconds, m11.CandidateCount);
 
             sw.Restart();
-            LogStart(runId, "M11", $"Taktik arama uzayı: {db2.Count} DB2 XI × {Enum.GetValues<TeamTactic>().Length} taktik");
+            LogStart(runId, "M11", $"Taktik arama uzayı: seçilen M11 XI × {Enum.GetValues<TeamTactic>().Length} taktik");
             var tacticComparisons = EvaluateFormationTactics(db2, legalFormations, players, context, runId, ct);
             if (tacticComparisons.Count == 0) throw new InvalidOperationException("Taktik arama uzayı boş kaldı.");
-            var bestTactic = tacticComparisons.Where(x => x.TacticEligible).OrderByDescending(x => x.TacticFitScore).ThenByDescending(x => x.WinProbability).ThenByDescending(x => x.TacticalScore).First();
-            LogComplete(runId, "M11", $"Taktik arama tamamlandı • {tacticComparisons.Count} XI×taktik sonucu • FINAL {bestTactic.Formation} + {bestTactic.Tactic}", sw.ElapsedMilliseconds, tacticComparisons.Count);
+            var selectedFormationCandidateId = Signature(m11.BestPlan.Lineup);
+            var canonicalTacticRows = tacticComparisons
+                .Where(x => x.CandidateId.Equals(selectedFormationCandidateId, StringComparison.Ordinal))
+                .ToList();
+            var expectedTacticCount = Enum.GetValues<TeamTactic>().Length;
+            if (canonicalTacticRows.Count != expectedTacticCount)
+                throw new InvalidOperationException($"T5 kanonik taktik zinciri eksik: seçilen XI için {canonicalTacticRows.Count}/{expectedTacticCount} taktik sonucu var.");
+            var tacticDb3 = TacticalMatchupDatabaseBuilder.Build(canonicalTacticRows);
+            var bestTactic = tacticDb3.BestEligible();
+            LogComplete(runId, "M11", $"Taktik arama tamamlandı • {tacticComparisons.Count} XI×taktik sonucu • M11 FORMATION {m11.BestPlan.Formation} + {bestTactic.Tactic} • EP {bestTactic.ExpectedPoints:0.###}", sw.ElapsedMilliseconds, tacticComparisons.Count);
 
             var selectedKey = bestTactic.CandidateId;
             var selectedRecord = db2.First(x => x.CandidateId == selectedKey);
