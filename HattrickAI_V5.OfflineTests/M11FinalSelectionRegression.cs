@@ -50,6 +50,30 @@ public static class M11FinalSelectionRegression
             Check(double.IsFinite(m11.Prediction.ExpectedHomeGoals) && double.IsFinite(m11.Prediction.ExpectedAwayGoals), "M11 final xG is not finite");
             Check(Math.Abs((m11.Prediction.WinProbability * 3.0) + m11.Prediction.DrawProbability - m11.Prediction.ExpectedPoints) < 1e-12, "M11 winner expected-points formula is not canonical");
 
+            // The entire seven-tactic chain must be present for the M11-selected XI.
+            var tacticRows = result.TacticComparisons.Where(x => x.CandidateId == winnerSignature).ToList();
+            var tactics = Enum.GetValues<TeamTactic>();
+            Check(tacticRows.Count == tactics.Length, $"final XI has {tacticRows.Count}/{tactics.Length} tactic evaluations");
+            Check(tacticRows.Select(x => x.Tactic).Distinct().Count() == tactics.Length, "final XI has duplicate/missing tactic evaluations");
+            Check(tacticRows.All(x => double.IsFinite(x.WinProbability) && double.IsFinite(x.ExpectedPoints) && x.ExpectedPoints is >= 0 and <= 3), "tactic outcomes are not finite/bounded");
+            Check(tacticRows.All(x => Math.Abs(x.ExpectedPoints - (3.0 * x.WinProbability + x.DrawProbability)) < 1e-12), "tactic Expected Points are not canonical 3W+D");
+            Check(tacticRows.All(x => double.IsFinite(x.TacticFitScore) && double.IsFinite(x.TacticPrimaryMetric) && double.IsFinite(x.TacticTradeoffCost) && double.IsFinite(x.TacticSquadFit) && double.IsFinite(x.TacticMatchupFit)), "tactic objective components are not finite");
+            var pressing = tacticRows.Single(x => x.Tactic == TeamTactic.Pressing);
+            Check(pressing.TacticalLevel >= 0 && pressing.TacticalLevel <= 10, "Pressing tactical level out of V5 bounds");
+            Check(pressing.OwnRegularChanceExpected >= 0 && pressing.OpponentRegularChanceExpected >= 0, "Pressing chance expectations invalid");
+            var pressingSuppression = pressing.OpponentRegularChanceExpected <= 1e-9 ? 0 : (result.TacticComparisons.First(x => x.CandidateId == winnerSignature && x.Tactic == TeamTactic.Normal).OpponentRegularChanceExpected - pressing.OpponentRegularChanceExpected) / result.TacticComparisons.First(x => x.CandidateId == winnerSignature && x.Tactic == TeamTactic.Normal).OpponentRegularChanceExpected;
+            Check(pressingSuppression >= -1e-12 && pressingSuppression <= 0.41 + 1e-9, $"Pressing suppression exceeded source bound: {pressingSuppression:P2}");
+            var ca = tacticRows.Single(x => x.Tactic == TeamTactic.CounterAttack);
+            Check(ca.TacticConversionRateOrZero >= 0 && ca.TacticConversionRateOrZero <= M8ChanceAllocationEngine.CounterAttackMaxConversion + 1e-9, "CA conversion outside bound");
+            Check(ca.TacticConversionRateOrZero <= 0 || ca.TacticConversionRateOrZero + 1e-9 >= M8ChanceAllocationEngine.CounterAttackMinConversion, "CA conversion below source floor");
+            var aim = tacticRows.Single(x => x.Tactic == TeamTactic.AttackMiddle);
+            Check(aim.TacticConversionRateOrZero >= M8ChanceAllocationEngine.AiMMinWingConversion - 1e-9 && aim.TacticConversionRateOrZero <= M8ChanceAllocationEngine.AiMMaxWingConversion + 1e-9, "AiM conversion outside source bound");
+            var aow = tacticRows.Single(x => x.Tactic == TeamTactic.AttackWings);
+            Check(aow.TacticConversionRateOrZero >= M8ChanceAllocationEngine.AoWMinCentreConversion - 1e-9 && aow.TacticConversionRateOrZero <= M8ChanceAllocationEngine.AoWMaxCentreConversion + 1e-9, "AoW conversion outside source bound");
+            var ls = tacticRows.Single(x => x.Tactic == TeamTactic.LongShots);
+            Check(ls.TacticConversionRateOrZero >= M8ChanceAllocationEngine.LongShotsMinConversion - 1e-9 && ls.TacticConversionRateOrZero <= M8ChanceAllocationEngine.LongShotsMaxConversion + 1e-9, "Long Shots conversion outside source bound");
+            Check(tacticRows.Single(x => x.Tactic == TeamTactic.Creative).TacticEligible, "Creative unexpectedly ineligible for final XI");
+
             // Explicit objective regression: high tactical score must not defeat a
             // lower-tactical candidate when its M9 Expected Points are higher.
             var synthetic = BuildSyntheticOutcomeRegression();
@@ -64,8 +88,9 @@ public static class M11FinalSelectionRegression
             var m11Stage = log.Stages[m11Index];
             Check(m11Stage.CandidateCount.GetValueOrDefault() == m11.CandidateCount, "M11 telemetry candidate count mismatch");
             Console.WriteLine($"M11 finalists={m11.CandidateCount} | formations={m11.FormationCount} | winner={m11.BestPlan.Formation} | expectedPoints={m11.Prediction.ExpectedPoints:0.####}");
-            Console.WriteLine("PASS: C15 M11 final selection");
-            MotorRunLogStore.Finish(runId, true, "C15 M11 final selection passed");
+            Console.WriteLine($"Tactic chain=7/7 | selected={tacticRows.OrderByDescending(x => x.ExpectedPoints).First().Tactic} | EP={tacticRows.Max(x => x.ExpectedPoints):0.####}");
+            Console.WriteLine("PASS: C15 M11 final selection + seven-tactic chain");
+            MotorRunLogStore.Finish(runId, true, "C15 M11 final selection and seven-tactic chain passed");
             return 0;
         }
         catch (Exception ex)
@@ -88,9 +113,7 @@ public static class M11FinalSelectionRegression
         ];
     }
 
-    private static Lineup SyntheticLineup(string formation)
-        => new("Synthetic", formation, []);
-
+    private static Lineup SyntheticLineup(string formation) => new("Synthetic", formation, []);
     private static int IndexOf<T>(IReadOnlyList<T> source, Func<T, bool> predicate) { for (var i = 0; i < source.Count; i++) if (predicate(source[i])) return i; return -1; }
     private static Player ReadPlayer(JsonElement e) => new(e.GetProperty("id").GetInt32(), e.GetProperty("name").GetString() ?? "Player", e.GetProperty("keeper").GetInt32(), e.GetProperty("defending").GetInt32(), e.GetProperty("playmaking").GetInt32(), e.GetProperty("passing").GetInt32(), e.GetProperty("winger").GetInt32(), e.GetProperty("scoring").GetInt32(), e.GetProperty("stamina").GetInt32(), e.GetProperty("form").GetInt32(), e.GetProperty("experience").GetInt32(), GetInt(e, "loyalty", 0), GetInt(e, "injuryLevel", -1));
     private static RegionalRatingSnapshot ReadRating(JsonElement e) { var ld = GetDouble(e, "leftDefence"); var cd = GetDouble(e, "centralDefence"); var rd = GetDouble(e, "rightDefence"); var mid = GetDouble(e, "midfield"); var la = GetDouble(e, "leftAttack"); var ca = GetDouble(e, "centralAttack"); var ra = GetDouble(e, "rightAttack"); return new RegionalRatingSnapshot(ld, cd, rd, mid, la, ca, ra, ld, cd, rd, mid, la, ca, ra); }
