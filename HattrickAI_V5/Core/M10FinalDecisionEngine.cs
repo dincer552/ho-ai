@@ -16,22 +16,13 @@ public sealed class M10FinalDecisionEngine
 
     public const int RequiredFormationDepth = CandidateEvaluationDatabase.MinimumPerFormation;
 
-    public M10DecisionResult Select(
-        IReadOnlyList<M10CandidateEvaluation> candidates,
-        double tacticalWeight = 0.55,
-        double predictionWeight = 0.30,
-        double structuralWeight = 0.15)
+    public M10DecisionResult Select(IReadOnlyList<M10CandidateEvaluation> candidates, double tacticalWeight = 0.55, double predictionWeight = 0.30, double structuralWeight = 0.15)
     {
         ArgumentNullException.ThrowIfNull(candidates);
-        if (candidates.Count == 0)
-            throw new ArgumentException("M10 için en az bir aday gerekir.", nameof(candidates));
+        if (candidates.Count == 0) throw new ArgumentException("M10 için en az bir aday gerekir.", nameof(candidates));
 
-        var ranked = candidates
-            .Where(IsValid)
-            .Select(x => new RankedCandidate(
-                x,
-                CompositeScore(x.TacticalCandidate.TacticalScore, MonteCarloWinProbability(x.Prediction), x.StructuralScore,
-                    tacticalWeight, predictionWeight, structuralWeight)))
+        var ranked = candidates.Where(IsValid)
+            .Select(x => new RankedCandidate(x, CompositeScore(x.TacticalCandidate.TacticalScore, MonteCarloWinProbability(x.Prediction), x.StructuralScore, tacticalWeight, predictionWeight, structuralWeight)))
             .OrderByDescending(x => ExpectedPoints(x.Candidate.Prediction))
             .ThenByDescending(x => MonteCarloWinProbability(x.Candidate.Prediction))
             .ThenByDescending(x => ExpectedGoalDifference(x.Candidate.Prediction))
@@ -39,17 +30,11 @@ public sealed class M10FinalDecisionEngine
             .ThenBy(x => Signature(x.Candidate.TacticalCandidate.Lineup), StringComparer.Ordinal)
             .ToList();
 
-        if (ranked.Count == 0)
-            throw new InvalidOperationException("M10 geçerli bir aday değerlendirmesi bulamadı.");
+        if (ranked.Count == 0) throw new InvalidOperationException("M10 geçerli bir aday değerlendirmesi bulamadı.");
 
         var formationGroups = ranked
             .GroupBy(x => x.Candidate.TacticalCandidate.Lineup.Formation, StringComparer.Ordinal)
-            .Select(group => new
-            {
-                Formation = group.Key,
-                Best = group.First(),
-                Candidates = group.Count()
-            })
+            .Select(group => new { Formation = group.Key, Best = group.First(), Candidates = group.Count() })
             .OrderByDescending(x => ExpectedPoints(x.Best.Candidate.Prediction))
             .ThenByDescending(x => MonteCarloWinProbability(x.Best.Candidate.Prediction))
             .ThenByDescending(x => ExpectedGoalDifference(x.Best.Candidate.Prediction))
@@ -57,182 +42,78 @@ public sealed class M10FinalDecisionEngine
             .ThenBy(x => x.Formation, StringComparer.Ordinal)
             .ToList();
 
-        var formationCompetition = formationGroups
-            .Select((group, index) =>
+        var formationCompetition = formationGroups.Select((group, index) =>
+        {
+            var nextScore = index + 1 < formationGroups.Count ? ExpectedPoints(formationGroups[index + 1].Best.Candidate.Prediction) : ExpectedPoints(group.Best.Candidate.Prediction);
+            var margin = index + 1 < formationGroups.Count ? ExpectedPoints(group.Best.Candidate.Prediction) - nextScore : 0d;
+            var simulation = group.Best.Candidate.Prediction.Simulation;
+            return new M10FormationCompetition(group.Formation, Signature(group.Best.Candidate.TacticalCandidate.Lineup), group.Best.Candidate.TacticalCandidate.TacticalScore, MonteCarloWinProbability(group.Best.Candidate.Prediction), ExpectedPoints(group.Best.Candidate.Prediction), group.Candidates)
             {
-                var nextScore = index + 1 < formationGroups.Count
-                    ? ExpectedPoints(formationGroups[index + 1].Best.Candidate.Prediction)
-                    : ExpectedPoints(group.Best.Candidate.Prediction);
-                var margin = index + 1 < formationGroups.Count
-                    ? ExpectedPoints(group.Best.Candidate.Prediction) - nextScore
-                    : 0d;
-                var simulation = group.Best.Candidate.Prediction.Simulation;
-                return new M10FormationCompetition(
-                    group.Formation,
-                    Signature(group.Best.Candidate.TacticalCandidate.Lineup),
-                    group.Best.Candidate.TacticalCandidate.TacticalScore,
-                    MonteCarloWinProbability(group.Best.Candidate.Prediction),
-                    ExpectedPoints(group.Best.Candidate.Prediction),
-                    group.Candidates)
-                {
-                    Rank = index + 1,
-                    MarginVsNext = margin,
-                    SearchDepthStatus = group.Candidates >= RequiredFormationDepth
-                        ? M10SearchDepthStatus.Sufficient
-                        : M10SearchDepthStatus.Insufficient,
-                    MonteCarloDrawProbability = simulation.Outcome.DrawProbability,
-                    MonteCarloLossProbability = simulation.Outcome.LossProbability,
-                    MostLikelyScore = simulation.MostLikelyScore
-                };
-            })
-            .ToList();
+                Rank = index + 1,
+                MarginVsNext = margin,
+                SearchDepthStatus = group.Candidates >= RequiredFormationDepth ? M10SearchDepthStatus.Sufficient : M10SearchDepthStatus.Insufficient,
+                MonteCarloDrawProbability = simulation.Outcome.DrawProbability,
+                MonteCarloLossProbability = simulation.Outcome.LossProbability,
+                MostLikelyScore = simulation.MostLikelyScore
+            };
+        }).ToList();
 
         var winner = ranked[0].Candidate;
-        var plan = new FinalMatchPlan(
-            winner.TacticalCandidate.Lineup.Formation,
-            winner.TacticalCandidate.Lineup,
-            winner.TacticalCandidate.Rating,
-            winner.TacticalCandidate.Matchup,
-            winner.TacticalCandidate.TacticalScore);
+        var plan = new FinalMatchPlan(winner.TacticalCandidate.Lineup.Formation, winner.TacticalCandidate.Lineup, winner.TacticalCandidate.Rating, winner.TacticalCandidate.Matchup, winner.TacticalCandidate.TacticalScore);
 
-        return new M10DecisionResult(
-            plan,
-            winner.Prediction,
-            ranked.Select(x => new M10RankedCandidate(
-                x.Candidate.TacticalCandidate.Lineup.Formation,
-                Signature(x.Candidate.TacticalCandidate.Lineup),
-                x.Candidate.TacticalCandidate.TacticalScore,
-                MonteCarloWinProbability(x.Candidate.Prediction),
-                ExpectedPoints(x.Candidate.Prediction)))
-            {
-                MonteCarloDrawProbability = x.Candidate.Prediction.Simulation.Outcome.DrawProbability,
-                MonteCarloLossProbability = x.Candidate.Prediction.Simulation.Outcome.LossProbability,
-                MostLikelyScore = x.Candidate.Prediction.Simulation.MostLikelyScore
-            }).ToList(),
-            M10DecisionStatus.SelectedDeterministically)
+        var ranking = ranked.Select(x => new M10RankedCandidate(x.Candidate.TacticalCandidate.Lineup.Formation, Signature(x.Candidate.TacticalCandidate.Lineup), x.Candidate.TacticalCandidate.TacticalScore, MonteCarloWinProbability(x.Candidate.Prediction), ExpectedPoints(x.Candidate.Prediction))
         {
-            FormationCompetition = formationCompetition
-        };
+            MonteCarloDrawProbability = x.Candidate.Prediction.Simulation.Outcome.DrawProbability,
+            MonteCarloLossProbability = x.Candidate.Prediction.Simulation.Outcome.LossProbability,
+            MostLikelyScore = x.Candidate.Prediction.Simulation.MostLikelyScore
+        }).ToList();
+
+        return new M10DecisionResult(plan, winner.Prediction, ranking, M10DecisionStatus.SelectedDeterministically) { FormationCompetition = formationCompetition };
     }
 
-    /// <summary>
-    /// Auto mode: M10 compares the three legal competitive-match attitudes for
-    /// the already selected XI. Outcome is canonical; the legacy composite remains
-    /// available as a diagnostic value and is not allowed to override the outcome.
-    /// </summary>
-    public M10ApproachDecision SelectApproach(
-        IReadOnlyList<M10ApproachEvaluation> candidates,
-        double tacticalWeight = 0.55,
-        double predictionWeight = 0.30,
-        double structuralWeight = 0.15)
+    public M10ApproachDecision SelectApproach(IReadOnlyList<M10ApproachEvaluation> candidates, double tacticalWeight = 0.55, double predictionWeight = 0.30, double structuralWeight = 0.15)
     {
         ArgumentNullException.ThrowIfNull(candidates);
-        var ranked = candidates
-            .Where(IsValidApproach)
-            .Select(x => new RankedApproach(
-                x,
-                CompositeScore(x.TacticalCandidate.TacticalScore, MonteCarloWinProbability(x.Prediction), x.StructuralScore,
-                    tacticalWeight, predictionWeight, structuralWeight)))
+        var ranked = candidates.Where(IsValidApproach)
+            .Select(x => new RankedApproach(x, CompositeScore(x.TacticalCandidate.TacticalScore, MonteCarloWinProbability(x.Prediction), x.StructuralScore, tacticalWeight, predictionWeight, structuralWeight)))
             .OrderByDescending(x => ExpectedPoints(x.Approach.Prediction))
             .ThenByDescending(x => MonteCarloWinProbability(x.Approach.Prediction))
             .ThenByDescending(x => ExpectedGoalDifference(x.Approach.Prediction))
             .ThenBy(x => ApproachOrder(x.Approach.Attitude))
             .ToList();
-
-        if (ranked.Count == 0)
-            throw new InvalidOperationException("M10 Auto için geçerli bir maç yaklaşımı değerlendirilemedi.");
-
+        if (ranked.Count == 0) throw new InvalidOperationException("M10 Auto için geçerli bir maç yaklaşımı değerlendirilemedi.");
         var winner = ranked[0].Approach;
-        return new M10ApproachDecision(
-            winner.Attitude,
-            ranked.Select(x => new M10ApproachRanking(
-                x.Approach.Attitude,
-                MonteCarloWinProbability(x.Approach.Prediction),
-                x.Approach.StructuralScore,
-                x.Approach.TacticalCandidate.TacticalScore,
-                ExpectedPoints(x.Approach.Prediction))).ToList());
+        return new M10ApproachDecision(winner.Attitude, ranked.Select(x => new M10ApproachRanking(x.Approach.Attitude, MonteCarloWinProbability(x.Approach.Prediction), x.Approach.StructuralScore, x.Approach.TacticalCandidate.TacticalScore, ExpectedPoints(x.Approach.Prediction))).ToList());
     }
 
-    private static double ExpectedPoints(MatchPrediction prediction)
-        => Math.Max(0d, 3.0 * Math.Clamp(prediction.Simulation.Outcome.WinProbability, 0.0, 1.0)
-            + Math.Clamp(prediction.Simulation.Outcome.DrawProbability, 0.0, 1.0));
+    private static double ExpectedPoints(MatchPrediction prediction) => 3.0 * MonteCarloWinProbability(prediction) + Math.Clamp(prediction.Simulation.Outcome.DrawProbability, 0.0, 1.0);
+    private static double ExpectedGoalDifference(MatchPrediction prediction) => prediction.ExpectedHomeGoals - prediction.ExpectedAwayGoals;
+    private static double MonteCarloWinProbability(MatchPrediction prediction) => Math.Clamp(prediction.Simulation.Outcome.WinProbability, 0.0, 1.0);
+    private static bool IsValid(M10CandidateEvaluation x) => x.TacticalCandidate is not null && x.Prediction is not null && double.IsFinite(x.TacticalCandidate.TacticalScore);
+    private static bool IsValidApproach(M10ApproachEvaluation x) => (x.Attitude is TeamAttitude.Normal or TeamAttitude.PlayItCool or TeamAttitude.MatchOfTheSeason) && x.TacticalCandidate is not null && x.Prediction is not null && double.IsFinite(x.TacticalCandidate.TacticalScore);
 
-    private static double ExpectedGoalDifference(MatchPrediction prediction)
-        => prediction.ExpectedHomeGoals - prediction.ExpectedAwayGoals;
-
-    private static double MonteCarloWinProbability(MatchPrediction prediction)
-        => Math.Clamp(prediction.Simulation.Outcome.WinProbability, 0.0, 1.0);
-
-    private static bool IsValid(M10CandidateEvaluation x)
-        => x.TacticalCandidate is not null && x.Prediction is not null && double.IsFinite(x.TacticalCandidate.TacticalScore);
-
-    private static bool IsValidApproach(M10ApproachEvaluation x)
-        => (x.Attitude is TeamAttitude.Normal or TeamAttitude.PlayItCool or TeamAttitude.MatchOfTheSeason) &&
-           x.TacticalCandidate is not null && x.Prediction is not null && double.IsFinite(x.TacticalCandidate.TacticalScore);
-
-    private static double CompositeScore(
-        double tactical,
-        double winProbability,
-        double structural,
-        double tacticalWeight,
-        double predictionWeight,
-        double structuralWeight)
+    private static double CompositeScore(double tactical, double winProbability, double structural, double tacticalWeight, double predictionWeight, double structuralWeight)
     {
-        if (tacticalWeight < 0 || predictionWeight < 0 || structuralWeight < 0)
-            throw new ArgumentOutOfRangeException(nameof(tacticalWeight));
+        if (tacticalWeight < 0 || predictionWeight < 0 || structuralWeight < 0) throw new ArgumentOutOfRangeException(nameof(tacticalWeight));
         var total = tacticalWeight + predictionWeight + structuralWeight;
         if (total <= 0) throw new ArgumentException("M10 ağırlıklarının toplamı sıfırdan büyük olmalıdır.");
         var tacticalNormalized = 1.0 / (1.0 + Math.Exp(-Math.Clamp(tactical, -20.0, 20.0)));
-        return ((tacticalWeight * tacticalNormalized) +
-                (predictionWeight * Math.Clamp(winProbability, 0.0, 1.0)) +
-                (structuralWeight * Math.Clamp(structural, 0.0, 1.0))) / total;
+        return ((tacticalWeight * tacticalNormalized) + (predictionWeight * Math.Clamp(winProbability, 0.0, 1.0)) + (structuralWeight * Math.Clamp(structural, 0.0, 1.0))) / total;
     }
 
-    private static int ApproachOrder(TeamAttitude attitude) => attitude switch
-    {
-        TeamAttitude.Normal => 0,
-        TeamAttitude.PlayItCool => 1,
-        TeamAttitude.MatchOfTheSeason => 2,
-        _ => 9
-    };
-
-    private static string Signature(Lineup lineup)
-        => string.Join(";", lineup.Slots
-            .OrderBy(s => s.Code, StringComparer.Ordinal)
-            .ThenBy(s => s.PlayerId)
-            .Select(s => $"{s.Code}:{s.PlayerId}:{(int)s.Order}"));
+    private static int ApproachOrder(TeamAttitude attitude) => attitude switch { TeamAttitude.Normal => 0, TeamAttitude.PlayItCool => 1, TeamAttitude.MatchOfTheSeason => 2, _ => 9 };
+    private static string Signature(Lineup lineup) => string.Join(";", lineup.Slots.OrderBy(s => s.Code, StringComparer.Ordinal).ThenBy(s => s.PlayerId).Select(s => $"{s.Code}:{s.PlayerId}:{(int)s.Order}"));
 }
 
-public sealed record M10CandidateEvaluation(
-    TacticalCandidate TacticalCandidate,
-    MatchPrediction Prediction,
-    double StructuralScore);
-
-public sealed record M10ApproachEvaluation(
-    TeamAttitude Attitude,
-    TacticalCandidate TacticalCandidate,
-    MatchPrediction Prediction,
-    double StructuralScore);
-
-public sealed record M10RankedCandidate(
-    string Formation,
-    string CandidateId,
-    double TacticalScore,
-    double WinProbability,
-    double CompositeScore)
+public sealed record M10CandidateEvaluation(TacticalCandidate TacticalCandidate, MatchPrediction Prediction, double StructuralScore);
+public sealed record M10ApproachEvaluation(TeamAttitude Attitude, TacticalCandidate TacticalCandidate, MatchPrediction Prediction, double StructuralScore);
+public sealed record M10RankedCandidate(string Formation, string CandidateId, double TacticalScore, double WinProbability, double CompositeScore)
 {
     public double MonteCarloDrawProbability { get; init; }
     public double MonteCarloLossProbability { get; init; }
     public string MostLikelyScore { get; init; } = "0-0";
 }
-
-public sealed record M10FormationCompetition(
-    string Formation,
-    string BestCandidateId,
-    double TacticalScore,
-    double WinProbability,
-    double CompositeScore,
-    int CandidateCount)
+public sealed record M10FormationCompetition(string Formation, string BestCandidateId, double TacticalScore, double WinProbability, double CompositeScore, int CandidateCount)
 {
     public int Rank { get; init; }
     public double MarginVsNext { get; init; }
@@ -242,37 +123,13 @@ public sealed record M10FormationCompetition(
     public string MostLikelyScore { get; init; } = "0-0";
     public double ExpectedPoints { get => CompositeScore; init => CompositeScore = value; }
 }
-
-public enum M10SearchDepthStatus
-{
-    Insufficient,
-    Sufficient
-}
-
-public sealed record M10ApproachRanking(
-    TeamAttitude Attitude,
-    double WinProbability,
-    double StructuralScore,
-    double TacticalScore,
-    double CompositeScore);
-
-public sealed record M10ApproachDecision(
-    TeamAttitude SelectedApproach,
-    IReadOnlyList<M10ApproachRanking> Ranking);
-
-public sealed record M10DecisionResult(
-    FinalMatchPlan BestPlan,
-    MatchPrediction Prediction,
-    IReadOnlyList<M10RankedCandidate> Ranking,
-    M10DecisionStatus Status)
+public enum M10SearchDepthStatus { Insufficient, Sufficient }
+public sealed record M10ApproachRanking(TeamAttitude Attitude, double WinProbability, double StructuralScore, double TacticalScore, double CompositeScore);
+public sealed record M10ApproachDecision(TeamAttitude SelectedApproach, IReadOnlyList<M10ApproachRanking> Ranking);
+public sealed record M10DecisionResult(FinalMatchPlan BestPlan, MatchPrediction Prediction, IReadOnlyList<M10RankedCandidate> Ranking, M10DecisionStatus Status)
 {
     public TeamAttitude? SelectedApproach { get; init; }
     public IReadOnlyList<M10ApproachRanking>? ApproachRanking { get; init; }
     public IReadOnlyList<M10FormationCompetition>? FormationCompetition { get; init; }
 }
-
-public enum M10DecisionStatus
-{
-    SelectedDeterministically,
-    CalibrationRequired
-}
+public enum M10DecisionStatus { SelectedDeterministically, CalibrationRequired }
