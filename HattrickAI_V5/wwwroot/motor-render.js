@@ -10,6 +10,10 @@
     const n = typeof value === 'string' ? value : Number(value);
     return ({0:'NORMAL',1:'DEFANSİF',2:'OFANSİF',3:'KANATA DOĞRU',4:'MERKEZE DOĞRU'})[n] || '';
   };
+  const orderClass = value => {
+    const n = typeof value === 'string' ? value : Number(value);
+    return n === 0 ? 'order-normal' : 'order-tactical';
+  };
   const esc = s => String(s ?? '').replace(/[&<>\\\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','\\\"':'&quot;',"'":'&#039;'}[m]));
   const fmt = x => Number(x || 0).toFixed(2).replace(/\\.00$/,'');
   const ratingValues = r => r ? [r.leftDefence,r.centralDefence,r.rightDefence,r.midfield,r.leftAttack,r.centralAttack,r.rightAttack] : null;
@@ -38,7 +42,7 @@
         const playerValue = isOpponent && Number.isFinite(stars) && stars > 0
           ? 'SP='+stars.toFixed(1)
           : 'RP='+Number(x.rating||0).toFixed(1);
-        s.innerHTML = '<span class="slot-name">'+esc(x.playerName)+'</span><span class="slot-rating">'+playerValue+'</span><span class="slot-order">'+order+'</span>';
+        s.innerHTML = '<span class="slot-name">'+esc(x.playerName)+'</span><span class="slot-rating">'+playerValue+'</span><span class="slot-order '+orderClass(x.order)+'">'+order+'</span>';
       } else {
         s.classList.add('empty');
         s.innerHTML = '<span class="slot-name"></span><span class="slot-rating"></span><span class="slot-order"></span>';
@@ -48,7 +52,7 @@
   };
 
   const style = document.createElement('style');
-  style.textContent = '.slot.filled{background:#24583b!important;border:2px solid rgba(255,255,255,.9)!important;box-shadow:0 2px 5px rgba(0,0,0,.28)!important;opacity:1!important}.slot.filled .slot-name,.slot.filled .slot-rating{color:#fff!important}.slot-order{font-size:clamp(6px,1.7vw,9px);font-weight:900;line-height:1;margin-top:2px;white-space:nowrap;opacity:1;color:#fff!important}.slot.filled .slot-order:not(:empty){color:#4ea3ff!important}.slot.filled .slot-order{color:#fff!important}.slot-name{font-size:clamp(7px,2.15vw,11px)}#ownTitle + .lineup-sub{display:none!important}.lineup-card .copy-btn{display:none!important}#oppReference{display:none!important}#oppMeta{display:none!important}#oppFormation{display:none!important}';
+  style.textContent = '.slot.filled{background:#24583b!important;border:2px solid rgba(255,255,255,.9)!important;box-shadow:0 2px 5px rgba(0,0,0,.28)!important;opacity:1!important}.slot.filled .slot-name,.slot.filled .slot-rating{color:#fff!important}.slot-order{font-size:clamp(6px,1.7vw,9px);font-weight:900;line-height:1;margin-top:2px;white-space:nowrap;opacity:1!important}.slot-order.order-normal{color:#fff!important}.slot-order.order-tactical{color:#4ea3ff!important}.slot-name{font-size:clamp(7px,2.15vw,11px)}#ownTitle + .lineup-sub{display:none!important}.lineup-card .copy-btn{display:none!important}#oppReference{display:none!important}#oppMeta{display:none!important}#oppFormation{display:none!important}';
   document.head.appendChild(style);
 
   const teamHeader = document.createElement('script');
