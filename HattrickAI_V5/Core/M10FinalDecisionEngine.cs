@@ -6,8 +6,8 @@ namespace HattrickAI.V5.Core;
 
 /// <summary>
 /// M10: formation-aware candidate review and deterministic decision layer.
-/// Monte Carlo W/D/L is the prediction input for formation competition; the
-/// structural/tactical score remains the complementary search signal.
+/// M9 Expected Points is the canonical formation-outcome metric; tactical and
+/// structural quality remain supporting signals / deterministic tie-breakers.
 /// </summary>
 public sealed class M10FinalDecisionEngine
 {
@@ -32,7 +32,9 @@ public sealed class M10FinalDecisionEngine
                 x,
                 CompositeScore(x.TacticalCandidate.TacticalScore, MonteCarloWinProbability(x.Prediction), x.StructuralScore,
                     tacticalWeight, predictionWeight, structuralWeight)))
-            .OrderByDescending(x => x.CompositeScore)
+            .OrderByDescending(x => ExpectedPoints(x.Candidate.Prediction))
+            .ThenByDescending(x => MonteCarloWinProbability(x.Candidate.Prediction))
+            .ThenByDescending(x => ExpectedGoalDifference(x.Candidate.Prediction))
             .ThenByDescending(x => x.Candidate.TacticalCandidate.TacticalScore)
             .ThenBy(x => Signature(x.Candidate.TacticalCandidate.Lineup), StringComparer.Ordinal)
             .ToList();
@@ -48,7 +50,9 @@ public sealed class M10FinalDecisionEngine
                 Best = group.First(),
                 Candidates = group.Count()
             })
-            .OrderByDescending(x => x.Best.CompositeScore)
+            .OrderByDescending(x => ExpectedPoints(x.Best.Candidate.Prediction))
+            .ThenByDescending(x => MonteCarloWinProbability(x.Best.Candidate.Prediction))
+            .ThenByDescending(x => ExpectedGoalDifference(x.Best.Candidate.Prediction))
             .ThenByDescending(x => x.Best.Candidate.TacticalCandidate.TacticalScore)
             .ThenBy(x => x.Formation, StringComparer.Ordinal)
             .ToList();
@@ -57,10 +61,10 @@ public sealed class M10FinalDecisionEngine
             .Select((group, index) =>
             {
                 var nextScore = index + 1 < formationGroups.Count
-                    ? formationGroups[index + 1].Best.CompositeScore
-                    : 0d;
+                    ? ExpectedPoints(formationGroups[index + 1].Best.Candidate.Prediction)
+                    : ExpectedPoints(group.Best.Candidate.Prediction);
                 var margin = index + 1 < formationGroups.Count
-                    ? group.Best.CompositeScore - nextScore
+                    ? ExpectedPoints(group.Best.Candidate.Prediction) - nextScore
                     : 0d;
                 var simulation = group.Best.Candidate.Prediction.Simulation;
                 return new M10FormationCompetition(
@@ -68,7 +72,7 @@ public sealed class M10FinalDecisionEngine
                     Signature(group.Best.Candidate.TacticalCandidate.Lineup),
                     group.Best.Candidate.TacticalCandidate.TacticalScore,
                     MonteCarloWinProbability(group.Best.Candidate.Prediction),
-                    group.Best.CompositeScore,
+                    ExpectedPoints(group.Best.Candidate.Prediction),
                     group.Candidates)
                 {
                     Rank = index + 1,
@@ -99,7 +103,7 @@ public sealed class M10FinalDecisionEngine
                 Signature(x.Candidate.TacticalCandidate.Lineup),
                 x.Candidate.TacticalCandidate.TacticalScore,
                 MonteCarloWinProbability(x.Candidate.Prediction),
-                x.CompositeScore)
+                ExpectedPoints(x.Candidate.Prediction)))
             {
                 MonteCarloDrawProbability = x.Candidate.Prediction.Simulation.Outcome.DrawProbability,
                 MonteCarloLossProbability = x.Candidate.Prediction.Simulation.Outcome.LossProbability,
@@ -113,7 +117,8 @@ public sealed class M10FinalDecisionEngine
 
     /// <summary>
     /// Auto mode: M10 compares the three legal competitive-match attitudes for
-    /// the already selected XI using the same composite scoring model.
+    /// the already selected XI. Outcome is canonical; the legacy composite remains
+    /// available as a diagnostic value and is not allowed to override the outcome.
     /// </summary>
     public M10ApproachDecision SelectApproach(
         IReadOnlyList<M10ApproachEvaluation> candidates,
@@ -128,7 +133,9 @@ public sealed class M10FinalDecisionEngine
                 x,
                 CompositeScore(x.TacticalCandidate.TacticalScore, MonteCarloWinProbability(x.Prediction), x.StructuralScore,
                     tacticalWeight, predictionWeight, structuralWeight)))
-            .OrderByDescending(x => x.CompositeScore)
+            .OrderByDescending(x => ExpectedPoints(x.Approach.Prediction))
+            .ThenByDescending(x => MonteCarloWinProbability(x.Approach.Prediction))
+            .ThenByDescending(x => ExpectedGoalDifference(x.Approach.Prediction))
             .ThenBy(x => ApproachOrder(x.Approach.Attitude))
             .ToList();
 
@@ -143,8 +150,15 @@ public sealed class M10FinalDecisionEngine
                 MonteCarloWinProbability(x.Approach.Prediction),
                 x.Approach.StructuralScore,
                 x.Approach.TacticalCandidate.TacticalScore,
-                x.CompositeScore)).ToList());
+                ExpectedPoints(x.Approach.Prediction))).ToList());
     }
+
+    private static double ExpectedPoints(MatchPrediction prediction)
+        => Math.Max(0d, 3.0 * Math.Clamp(prediction.Simulation.Outcome.WinProbability, 0.0, 1.0)
+            + Math.Clamp(prediction.Simulation.Outcome.DrawProbability, 0.0, 1.0));
+
+    private static double ExpectedGoalDifference(MatchPrediction prediction)
+        => prediction.ExpectedHomeGoals - prediction.ExpectedAwayGoals;
 
     private static double MonteCarloWinProbability(MatchPrediction prediction)
         => Math.Clamp(prediction.Simulation.Outcome.WinProbability, 0.0, 1.0);
@@ -226,6 +240,7 @@ public sealed record M10FormationCompetition(
     public double MonteCarloDrawProbability { get; init; }
     public double MonteCarloLossProbability { get; init; }
     public string MostLikelyScore { get; init; } = "0-0";
+    public double ExpectedPoints { get => CompositeScore; init => CompositeScore = value; }
 }
 
 public enum M10SearchDepthStatus
