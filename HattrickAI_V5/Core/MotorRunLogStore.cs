@@ -67,6 +67,15 @@ public static class MotorRunLogStore
             var index = run.Stages.FindIndex(x => string.Equals(x.Motor, motor, StringComparison.Ordinal));
             if (index < 0) return;
             var old = run.Stages[index];
+
+            // M11 is a completed finalist-selection stage before the downstream
+            // seven-tactic search starts. The existing pipeline reuses the M11
+            // telemetry slot for that later search; never reopen or overwrite the
+            // canonical finalist count/message, otherwise C14/C15 read the tactic
+            // row count as the M11 finalist count.
+            if (motor == "M11" && old.Status == "completed" && status != "failed")
+                return;
+
             run.Stages[index] = old with
             {
                 Status = status,
