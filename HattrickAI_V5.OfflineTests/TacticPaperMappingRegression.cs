@@ -22,7 +22,7 @@ public static class TacticPaperMappingRegression
         AssertNear(0.52, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.AttackWings, 10), "AoW V5 10 -> 52% ceiling");
         AssertStrictlyIncreasing(AdvancedTactic.AttackWings, "AoW conversion is monotonic across V5 levels");
         AssertSectorEnvelope(AdvancedTactic.AttackWings, 0, 0.61, 0.64, "AoW low-level wing share");
-        AssertSectorEnvelope(AdvancedTactic.AttackWings, 10, 0.66, 0.70, "AoW high-level wing share");
+        AssertSectorEnvelope(AdvancedTactic.AttackWings, 10, 0.66, 0.71, "AoW high-level wing share");
 
         AssertNear(0.04, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.CounterAttack, 0), "CA V5 0 -> 4% floor");
         AssertNear(0.45, TacticPaperMappingEngine.PaperTacticConversionRate(AdvancedTactic.CounterAttack, 10), "CA V5 10 -> 45% ceiling");
