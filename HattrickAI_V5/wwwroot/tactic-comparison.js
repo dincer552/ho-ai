@@ -9,17 +9,25 @@
     const s = document.createElement('style'); s.id = 'v5TacticComparisonStyle';
     s.textContent = `
       #v5TacticComparison{margin:0 0 14px;padding:14px 16px;border:1px solid #dce4df;border-radius:12px;background:#f7f9f7;font-size:13px}
-      #v5TacticComparison .v5tc-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:9px;flex-wrap:wrap}
-      #v5TacticComparison h3{margin:0;font-size:16px}
+      #v5TacticComparison .v5tc-head{display:block;margin-bottom:9px}
+      #v5TacticComparison h3{margin:0 0 6px;font-size:16px}
       #v5TacticComparison .v5tc-best{font-weight:800;color:#21804a}
-      #v5TacticComparison table{width:100%;border-collapse:collapse}
-      #v5TacticComparison th,#v5TacticComparison td{padding:7px 6px;border-bottom:1px solid #e1e7e3;text-align:right;white-space:nowrap}
+      #v5TacticComparison table{width:100%;border-collapse:collapse;table-layout:auto}
+      #v5TacticComparison th,#v5TacticComparison td{padding:8px 6px;border-bottom:1px solid #e1e7e3;text-align:right;white-space:nowrap}
       #v5TacticComparison th:first-child,#v5TacticComparison td:first-child{text-align:left}
       #v5TacticComparison tr.v5tc-best{font-weight:800;background:#edf7ef}
       #v5TacticComparison tr.v5tc-selected{outline:1px solid #21804a;outline-offset:-1px}
-      #v5TacticComparison .v5tc-explain{white-space:normal;text-align:left;max-width:520px;line-height:1.3}
-      #v5TacticComparison .v5tc-note{margin-top:9px;color:#707872;font-size:10px;line-height:1.4}
-      @media(max-width:720px){#v5TacticComparison{overflow-x:auto}#v5TacticComparison table{min-width:680px}}
+      @media(max-width:720px){
+        #v5TacticComparison{overflow:visible;padding:12px 10px}
+        #v5TacticComparison table{min-width:0;width:100%;table-layout:fixed}
+        #v5TacticComparison th,#v5TacticComparison td{padding:8px 4px;font-size:11px}
+        #v5TacticComparison th:nth-child(1),#v5TacticComparison td:nth-child(1){width:31%;text-align:left}
+        #v5TacticComparison th:nth-child(2),#v5TacticComparison td:nth-child(2){width:19%}
+        #v5TacticComparison th:nth-child(3),#v5TacticComparison td:nth-child(3){width:22%}
+        #v5TacticComparison th:nth-child(4),#v5TacticComparison td:nth-child(4){width:28%}
+        #v5TacticComparison th:nth-child(n+5),#v5TacticComparison td:nth-child(n+5){display:none}
+        #v5TacticComparison .v5tc-explain,#v5TacticComparison .v5tc-note{display:none}
+      }
     `;
     document.head.appendChild(s);
   }
@@ -68,8 +76,7 @@
             <td>${pct(r.tacticTradeoffCost)}</td>
             <td class="v5tc-explain">${esc(r.tacticExplanation || '')}</td>
           </tr>`).join('')}
-      </tbody></table>
-      <div class="v5tc-note">Aynı final XI için 7 taktik karşılaştırılır. Sıralama M9 ExpectedPoints (3×galibiyet + beraberlik) ile yapılır; Pres katsayısı M8/PDF köprüsündeki %5–%41 aralığında uygulanır.</div>`;
+      </tbody></table>`;
   }
 
   if (window.__v5TacticComparisonInstalled) return;
