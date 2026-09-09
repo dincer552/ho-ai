@@ -15,21 +15,33 @@ public sealed class BehaviourEngine
         "DEF-L" or "DEF-R" =>
             [PlayerOrder.Normal, PlayerOrder.Offensive, PlayerOrder.Defensive, PlayerOrder.TowardsMiddle],
 
-        // Central defenders: normal, offensive and towards wing.
-        "DEF-CL" or "DEF-C" or "DEF-CR" =>
+        // Wide central defenders: normal, offensive and towards wing.
+        "DEF-CL" or "DEF-CR" =>
             [PlayerOrder.Normal, PlayerOrder.Offensive, PlayerOrder.TowardsWing],
+
+        // Central defender: normal and offensive only.
+        "DEF-C" =>
+            [PlayerOrder.Normal, PlayerOrder.Offensive],
 
         // Wingers: normal, offensive, defensive and towards middle.
         "W-L" or "W-R" =>
             [PlayerOrder.Normal, PlayerOrder.Offensive, PlayerOrder.Defensive, PlayerOrder.TowardsMiddle],
 
-        // Inner midfielders: normal, offensive, defensive and towards wing.
-        "IM-L" or "IM-C" or "IM-R" =>
+        // Wide inner midfielders: normal, offensive, defensive and towards wing.
+        "IM-L" or "IM-R" =>
             [PlayerOrder.Normal, PlayerOrder.Offensive, PlayerOrder.Defensive, PlayerOrder.TowardsWing],
 
-        // Forwards: normal, defensive and towards wing.
-        "FW-L" or "FW-R" or "FW-C" =>
+        // Central inner midfielder: normal, offensive and defensive only.
+        "IM-C" =>
+            [PlayerOrder.Normal, PlayerOrder.Offensive, PlayerOrder.Defensive],
+
+        // Wide forwards: normal, defensive and towards wing.
+        "FW-L" or "FW-R" =>
             [PlayerOrder.Normal, PlayerOrder.Defensive, PlayerOrder.TowardsWing],
+
+        // Central forward: normal and defensive only.
+        "FW-C" =>
+            [PlayerOrder.Normal, PlayerOrder.Defensive],
 
         _ => [PlayerOrder.Normal]
     };
