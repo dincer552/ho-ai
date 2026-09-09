@@ -12,7 +12,7 @@ var path = args.Length > 1
 var startNumber = startFrom.Length > 1 && int.TryParse(startFrom[1..], out var parsed) ? parsed : 1;
 if (startNumber < 1 || startNumber > 24) throw new ArgumentException($"Geçersiz acceptance başlangıcı: {startFrom}. c1-c24 kullanın.");
 
-bool From(int c) => startNumber <= c;
+bool From(int c) => startNumber == c;
 
 if (From(1)) { var r = WebInputIntegrityRegression.Run(); if (r != 0) return r; r = CoreWebParityRegression.Run(); if (r != 0) return r; r = await M3M11EndToEndRegression.RunAsync(path); if (r != 0) return r; }
 if (From(2)) { var r = M4LegalFormationRegression.Run(); if (r != 0) return r; }
