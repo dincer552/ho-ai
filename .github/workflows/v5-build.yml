@@ -19,6 +19,11 @@ jobs:
     steps:
       - name: Checkout V5
         uses: actions/checkout@v4
+      - name: Offline acceptance regression C22
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c22
       - name: Offline acceptance regression C10
         shell: bash
         run: |
