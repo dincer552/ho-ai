@@ -37,8 +37,6 @@ public static class M11FinalSelectionRegression
             Check(m11.Ranking.Select(x => x.CandidateId).Distinct(StringComparer.Ordinal).Count() == m11.Ranking.Count, "M11 ranking contains duplicate candidate IDs");
             Check(m11.Ranking.Select(x => x.Formation).Distinct(StringComparer.Ordinal).Count() > 0 && m11.Ranking.Select(x => x.Formation).Distinct(StringComparer.Ordinal).Count() <= m11.FormationCount, "M11 ranking formation diversity is inconsistent");
 
-            // The public M11 ranking still exposes FinalScore for backwards-compatible
-            // diagnostics, but selection itself is canonical M9 outcome-first.
             var winnerSignature = Signature(m11.BestPlan.Lineup);
             Check(m11.Ranking[0].CandidateId == winnerSignature, "M11 BestPlan is not ranking #1");
             Check(m11.Ranking[0].Formation == m11.BestPlan.Formation, "M11 BestPlan formation differs from ranking #1");
@@ -50,7 +48,7 @@ public static class M11FinalSelectionRegression
             Check(m11.Prediction is not null, "M11 final prediction is missing");
             Check(m11.Prediction.WinProbability is >= 0 and <= 1, "M11 final prediction win probability is invalid");
             Check(double.IsFinite(m11.Prediction.ExpectedHomeGoals) && double.IsFinite(m11.Prediction.ExpectedAwayGoals), "M11 final xG is not finite");
-            Check(Math.Abs((m11.Prediction.Simulation.Outcome.WinProbability * 3.0) + m11.Prediction.Simulation.Outcome.DrawProbability - ExpectedPoints(m11.Prediction)) < 1e-12, "M11 winner expected-points formula is not canonical");
+            Check(Math.Abs((m11.Prediction.WinProbability * 3.0) + m11.Prediction.DrawProbability - m11.Prediction.ExpectedPoints) < 1e-12, "M11 winner expected-points formula is not canonical");
 
             // Explicit objective regression: high tactical score must not defeat a
             // lower-tactical candidate when its M9 Expected Points are higher.
@@ -65,7 +63,7 @@ public static class M11FinalSelectionRegression
             Check(m6bIndex >= 0 && m11Index >= 0 && m6bIndex < m11Index, "M11 final selection did not execute after M6-B");
             var m11Stage = log.Stages[m11Index];
             Check(m11Stage.CandidateCount.GetValueOrDefault() == m11.CandidateCount, "M11 telemetry candidate count mismatch");
-            Console.WriteLine($"M11 finalists={m11.CandidateCount} | formations={m11.FormationCount} | winner={m11.BestPlan.Formation} | expectedPoints={ExpectedPoints(m11.Prediction):0.####}");
+            Console.WriteLine($"M11 finalists={m11.CandidateCount} | formations={m11.FormationCount} | winner={m11.BestPlan.Formation} | expectedPoints={m11.Prediction.ExpectedPoints:0.####}");
             Console.WriteLine("PASS: C15 M11 final selection");
             MotorRunLogStore.Finish(runId, true, "C15 M11 final selection passed");
             return 0;
@@ -79,16 +77,10 @@ public static class M11FinalSelectionRegression
 
     private static IReadOnlyList<M11CandidateEvaluation> BuildSyntheticOutcomeRegression()
     {
-        var winnerLineup = SyntheticLineup("OUTCOME-WINNER", 1001);
-        var fitLineup = SyntheticLineup("FIT-WINNER", 1002);
-        var winnerPrediction = new MatchPrediction(
-            "OUTCOME-WINNER", 2.0, 1.0,
-            0.50, 0.10, 0.40,
-            new MatchSimulationResult(new MatchOutcomeDistribution(0.50, 0.10, 0.40), "2-1"));
-        var fitPrediction = new MatchPrediction(
-            "FIT-WINNER", 2.0, 1.0,
-            0.45, 0.10, 0.45,
-            new MatchSimulationResult(new MatchOutcomeDistribution(0.45, 0.10, 0.45), "2-1"));
+        var winnerLineup = SyntheticLineup("OUTCOME-WINNER");
+        var fitLineup = SyntheticLineup("FIT-WINNER");
+        var winnerPrediction = new MatchPrediction(0.60, 2.0, 1.0, 0.50, 0.10, 0.40);
+        var fitPrediction = new MatchPrediction(0.45, 2.0, 1.0, 0.45, 0.10, 0.45);
         return
         [
             new M11CandidateEvaluation(new TacticalCandidate(winnerLineup, default, default, 0.10), winnerPrediction, 0.10, 0.10),
@@ -96,11 +88,8 @@ public static class M11FinalSelectionRegression
         ];
     }
 
-    private static Lineup SyntheticLineup(string formation, int playerId)
-        => new(formation, [new LineupSlot("synthetic", playerId, PlayerOrder.Normal)]);
-
-    private static double ExpectedPoints(MatchPrediction prediction)
-        => 3.0 * prediction.Simulation.Outcome.WinProbability + prediction.Simulation.Outcome.DrawProbability;
+    private static Lineup SyntheticLineup(string formation)
+        => new("Synthetic", formation, []);
 
     private static int IndexOf<T>(IReadOnlyList<T> source, Func<T, bool> predicate) { for (var i = 0; i < source.Count; i++) if (predicate(source[i])) return i; return -1; }
     private static Player ReadPlayer(JsonElement e) => new(e.GetProperty("id").GetInt32(), e.GetProperty("name").GetString() ?? "Player", e.GetProperty("keeper").GetInt32(), e.GetProperty("defending").GetInt32(), e.GetProperty("playmaking").GetInt32(), e.GetProperty("passing").GetInt32(), e.GetProperty("winger").GetInt32(), e.GetProperty("scoring").GetInt32(), e.GetProperty("stamina").GetInt32(), e.GetProperty("form").GetInt32(), e.GetProperty("experience").GetInt32(), GetInt(e, "loyalty", 0), GetInt(e, "injuryLevel", -1));
