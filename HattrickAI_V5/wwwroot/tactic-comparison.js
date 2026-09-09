@@ -1,5 +1,9 @@
 (() => {
-  const names = { Normal:'Normal', CounterAttack:'Kontra Atak', AttackMiddle:'Orta Saldırı', AttackWings:'Kanat Saldırısı', LongShots:'Uzun Şutlar', Pressing:'Pres', Creative:'Yaratıcı' };
+  const names = ['Normal','Kontra Atak','Orta Saldırı','Kanat Saldırısı','Uzun Şutlar','Pres','Yaratıcı'];
+  const tacticName = value => {
+    const n = Number(value);
+    return Number.isInteger(n) && n >= 0 && n < names.length ? names[n] : String(value ?? '');
+  };
   const pct = v => Number.isFinite(Number(v)) ? `${(Number(v) * 100).toFixed(1)}%` : '—';
   const num = v => Number.isFinite(Number(v)) ? Number(v).toFixed(2) : '—';
   const esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
@@ -21,12 +25,11 @@
         #v5TacticComparison{overflow:visible;padding:12px 10px}
         #v5TacticComparison table{min-width:0;width:100%;table-layout:fixed}
         #v5TacticComparison th,#v5TacticComparison td{padding:8px 4px;font-size:11px}
-        #v5TacticComparison th:nth-child(1),#v5TacticComparison td:nth-child(1){width:31%;text-align:left}
+        #v5TacticComparison th:nth-child(1),#v5TacticComparison td:nth-child(1){width:32%;text-align:left;white-space:normal;overflow-wrap:anywhere}
         #v5TacticComparison th:nth-child(2),#v5TacticComparison td:nth-child(2){width:19%}
-        #v5TacticComparison th:nth-child(3),#v5TacticComparison td:nth-child(3){width:22%}
-        #v5TacticComparison th:nth-child(4),#v5TacticComparison td:nth-child(4){width:28%}
+        #v5TacticComparison th:nth-child(3),#v5TacticComparison td:nth-child(3){width:23%}
+        #v5TacticComparison th:nth-child(4),#v5TacticComparison td:nth-child(4){width:26%}
         #v5TacticComparison th:nth-child(n+5),#v5TacticComparison td:nth-child(n+5){display:none}
-        #v5TacticComparison .v5tc-explain,#v5TacticComparison .v5tc-note{display:none}
       }
     `;
     document.head.appendChild(s);
@@ -64,17 +67,16 @@
     panel.innerHTML = `
       <div class="v5tc-head">
         <h3>⚽ Taktik Karşılaştırması</h3>
-        <div class="v5tc-best">En yüksek beklenen puan: ${esc(names[best.tactic] || best.tactic)} · ${num(best.expectedPoints)}</div>
+        <div class="v5tc-best">En yüksek beklenen puan: ${esc(tacticName(best.tactic))} · ${num(best.expectedPoints)}</div>
       </div>
-      <table><thead><tr><th>Taktik</th><th>Kazanma</th><th>Beklenen puan</th><th>Taktik fit</th><th>Trade-off</th><th>Açıklama</th></tr></thead><tbody>
+      <table><thead><tr><th>Taktik</th><th>Kazanma</th><th>Beklenen puan</th><th>Taktik fit</th><th>Trade-off</th></tr></thead><tbody>
         ${sorted.map(r => `
           <tr class="${r === best ? 'v5tc-best ' : ''}${String(r.tactic) === selected ? 'v5tc-selected' : ''}">
-            <td>${esc(names[r.tactic] || r.tactic)}${String(r.tactic) === selected ? ' ★' : ''}</td>
+            <td>${esc(tacticName(r.tactic))}${String(r.tactic) === selected ? ' ★' : ''}</td>
             <td>${pct(r.winProbability)}</td>
             <td>${num(r.expectedPoints)}</td>
             <td>${pct(r.tacticFitScore)}</td>
             <td>${pct(r.tacticTradeoffCost)}</td>
-            <td class="v5tc-explain">${esc(r.tacticExplanation || '')}</td>
           </tr>`).join('')}
       </tbody></table>`;
   }
