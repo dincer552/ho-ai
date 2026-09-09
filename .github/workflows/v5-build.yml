@@ -19,26 +19,19 @@ jobs:
     steps:
       - name: Checkout V5
         uses: actions/checkout@v4
-      - name: Offline acceptance regression C22
+      - name: Offline acceptance regression C1-C24
         shell: bash
         run: |
           set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c22
-      - name: Offline acceptance regression C10
+          for stage in c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16 c17 c18 c19 c20 c22 c23 c24; do
+            echo "===== OFFLINE ACCEPTANCE ${stage^^} ====="
+            dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- "${stage}"
+          done
+      - name: JavaScript syntax regression
         shell: bash
         run: |
           set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c10
-      - name: Offline acceptance regression C15
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c15
-      - name: Offline acceptance regression C24
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c24
+          node --check HattrickAI_V5/wwwroot/tactic-comparison.js
       - name: Remove fragile root HTML middleware
         shell: bash
         run: |
