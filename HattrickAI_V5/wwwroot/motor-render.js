@@ -4,12 +4,14 @@
     ['W-L','wl'],['IM-L','iml'],['IM-C','imc'],['IM-R','imr'],['W-R','wr'],
     ['FW-L','fwl'],['FW-C','fwc'],['FW-R','fwr']
   ];
+  // PlayerOrder enum: Normal=0, Defensive=1, Offensive=2,
+  // TowardsWing=3, TowardsMiddle=4.
   const orderLabel = value => {
     const n = typeof value === 'string' ? value : Number(value);
-    return ({0:'NORMAL',1:'OFANSİF',2:'DEFANSİF',3:'MERKEZE',4:'KANA'})[n] || '';
+    return ({0:'NORMAL',1:'DEFANSİF',2:'OFANSİF',3:'KANA',4:'MERKEZE'})[n] || '';
   };
-  const esc = s => String(s ?? '').replace(/[&<>\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[m]));
-  const fmt = x => Number(x || 0).toFixed(2).replace(/\.00$/,'');
+  const esc = s => String(s ?? '').replace(/[&<>\\\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','\\\"':'&quot;',"'":'&#039;'}[m]));
+  const fmt = x => Number(x || 0).toFixed(2).replace(/\\.00$/,'');
   const ratingValues = r => r ? [r.leftDefence,r.centralDefence,r.rightDefence,r.midfield,r.leftAttack,r.centralAttack,r.rightAttack] : null;
 
   function board(r) {
