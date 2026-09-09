@@ -29,9 +29,11 @@ public static class FinalPlanContinuityRegression
             Check(result.FinalPrediction is not null, "FinalPrediction missing at FinalPlan boundary");
             Check(result.FinalPlan.Formation == m11!.BestPlan.Formation, "FinalPlan formation differs from M11 BestPlan");
             Check(Signature(result.FinalPlan.Lineup) == Signature(m11.BestPlan.Lineup), "FinalPlan lineup differs from M11 BestPlan lineup");
-            Check(result.FinalPlan.Rating == m11.BestPlan.Rating, "FinalPlan regional rating differs from M11 BestPlan");
-            Check(result.FinalPlan.Matchup == m11.BestPlan.Matchup, "FinalPlan matchup differs from M11 BestPlan");
 
+            // M11 selects the canonical XI/formasyon. The tactic layer may intentionally
+            // recompute rating/matchup/tactical score for the selected tactic, so those
+            // values must be validated against the tactic comparison rather than copied
+            // from the Normal-tactic M11 snapshot.
             var selectedRows = result.TacticComparisons
                 .Where(x => SignatureFromCandidateId(x.CandidateId) == Signature(m11.BestPlan.Lineup))
                 .Where(x => x.TacticEligible)
