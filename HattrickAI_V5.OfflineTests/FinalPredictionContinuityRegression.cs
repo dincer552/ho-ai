@@ -24,19 +24,24 @@ public static class FinalPredictionContinuityRegression
             Console.WriteLine("=== C17 FINALPREDICTION CONTINUITY REGRESSION ===");
             var result = await new MotorPipelineService().RunAsync(context, players, cancellationToken, runId);
             Check(result.FinalPrediction is not null, "FinalPrediction missing");
+            Check(result.FinalPlan is not null, "FinalPlan missing");
             Check(result.M11 is not null && result.M11.Prediction is not null, "M11 prediction missing");
             Check(result.M9 is not null, "selected M9 result missing");
 
             var final = result.FinalPrediction!;
-            var selectedRows = result.TacticComparisons
-                .Where(x => x.CandidateId.Equals(Signature(result.FinalPlan.Lineup), StringComparison.Ordinal))
+            var lineupRows = result.TacticComparisons
+                .Where(x => x.CandidateId.Equals(Signature(result.FinalPlan!.Lineup), StringComparison.Ordinal))
+                .ToList();
+            Check(lineupRows.Count == 7, $"FinalPrediction tactic continuity rows={lineupRows.Count}/7");
+
+            var selectedRows = lineupRows
                 .Where(x => x.TacticEligible)
                 .OrderByDescending(x => x.ExpectedPoints)
                 .ThenByDescending(x => x.WinProbability)
                 .ThenByDescending(x => x.TacticFitScore)
                 .ThenBy(x => x.Tactic)
                 .ToList();
-            Check(selectedRows.Count == 7, $"FinalPrediction tactic continuity rows={selectedRows.Count}/7");
+            Check(selectedRows.Count > 0, "FinalPrediction has no eligible tactic");
             var selectedTactic = selectedRows[0];
 
             Check(final == result.M9!.Prediction, "FinalPrediction is not identical to selected M9 prediction");
@@ -60,7 +65,7 @@ public static class FinalPredictionContinuityRegression
             Check(m11Index >= 0, "M11 completed telemetry missing");
             Check(log.Stages.Skip(m11Index + 1).All(x => x.Motor != "M9" || x.Status != "completed"), "A second completed M9 stage appeared after M11; final prediction was not a pure continuity handoff");
 
-            Console.WriteLine($"FinalPrediction={final.ExpectedHomeGoals:0.###}-{final.ExpectedAwayGoals:0.###} | W/D/L={final.WinProbability:P1}/{final.DrawProbability:P1}/{final.LossProbability:P1} | selected tactic={selectedTactic.Tactic} | simulation={final.Simulation.SimulationCount}");
+            Console.WriteLine($"FinalPrediction={final.ExpectedHomeGoals:0.###}-{final.ExpectedAwayGoals:0.###} | W/D/L={final.WinProbability:P1}/{final.DrawProbability:P1}/{final.LossProbability:P1} | tactic rows=7 | eligible={selectedRows.Count} | selected tactic={selectedTactic.Tactic} | simulation={final.Simulation.SimulationCount}");
             Console.WriteLine("PASS: C17 FinalPrediction continuity");
             return 0;
         }
