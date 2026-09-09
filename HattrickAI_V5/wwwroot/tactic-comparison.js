@@ -4,6 +4,12 @@
     const n = Number(value);
     return Number.isInteger(n) && n >= 0 && n < names.length ? names[n] : String(value ?? '');
   };
+  const normalizedTactic = value => {
+    const numeric = Number(value);
+    return Number.isInteger(numeric) && numeric >= 0 && numeric < names.length
+      ? names[numeric]
+      : String(value ?? '');
+  };
   const pct = v => Number.isFinite(Number(v)) ? `${(Number(v) * 100).toFixed(1)}%` : '—';
   const num = v => Number.isFinite(Number(v)) ? Number(v).toFixed(2) : '—';
   const esc = v => String(v ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
@@ -61,9 +67,11 @@
     const sorted = [...rows].sort((a,b) =>
       Number(b.expectedPoints ?? -Infinity) - Number(a.expectedPoints ?? -Infinity) ||
       Number(b.winProbability ?? -Infinity) - Number(a.winProbability ?? -Infinity) ||
-      Number(b.tacticFitScore ?? -Infinity) - Number(a.tacticFitScore ?? -Infinity));
+      Number(b.tacticFitScore ?? -Infinity) - Number(a.tacticFitScore ?? -Infinity) ||
+      normalizedTactic(a.tactic).localeCompare(normalizedTactic(b.tactic))
+    );
     const best = sorted[0];
-    const selected = String(data.selectedTactic || '');
+    const selected = normalizedTactic(data.selectedTactic);
     panel.innerHTML = `
       <div class="v5tc-head">
         <h3>⚽ Taktik Karşılaştırması</h3>
@@ -71,8 +79,8 @@
       </div>
       <table><thead><tr><th>Taktik</th><th>Kazanma</th><th>Beklenen puan</th><th>Taktik fit</th><th>Trade-off</th></tr></thead><tbody>
         ${sorted.map(r => `
-          <tr class="${r === best ? 'v5tc-best ' : ''}${String(r.tactic) === selected ? 'v5tc-selected' : ''}">
-            <td>${esc(tacticName(r.tactic))}${String(r.tactic) === selected ? ' ★' : ''}</td>
+          <tr class="${r === best ? 'v5tc-best ' : ''}${normalizedTactic(r.tactic) === selected ? 'v5tc-selected' : ''}">
+            <td>${esc(tacticName(r.tactic))}${normalizedTactic(r.tactic) === selected ? ' ★' : ''}</td>
             <td>${pct(r.winProbability)}</td>
             <td>${num(r.expectedPoints)}</td>
             <td>${pct(r.tacticFitScore)}</td>
