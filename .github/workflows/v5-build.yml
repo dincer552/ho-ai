@@ -19,21 +19,21 @@ jobs:
     steps:
       - name: Checkout V5
         uses: actions/checkout@v4
-      - name: Offline acceptance regression C22
+      - name: Offline acceptance regression C22-C24
         shell: bash
         run: |
           set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c22
-      - name: Offline acceptance regression C10
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c22 __no_calibration_corpus__.json
+      - name: Offline acceptance regression C10-C24
         shell: bash
         run: |
           set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c10
-      - name: Offline acceptance regression C15
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c10 __no_calibration_corpus__.json
+      - name: Offline acceptance regression C15-C24
         shell: bash
         run: |
           set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c15
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- c15 __no_calibration_corpus__.json
       - name: Offline acceptance regression C24
         shell: bash
         run: |
