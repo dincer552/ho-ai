@@ -71,7 +71,7 @@ public static class C21TacticalMatchupMatrixRegression
                     foreach (var tactic in allTactics)
                     {
                         Check(
-                            matrix.Any(x => x.CandidateId.Length > 0 && x.Tactic == tactic && CandidateFormation(result, x.CandidateId) == formation),
+                            matrix.Any(x => x.Tactic == tactic && CandidateFormation(result, x.CandidateId) == formation),
                             $"{scenario.Item1}: missing {formation} × {tactic}");
                     }
                 }
@@ -107,12 +107,12 @@ public static class C21TacticalMatchupMatrixRegression
 
     private static RegionalRatingSnapshot ScaleRating(RegionalRatingSnapshot r, double midfieldScale, double defenceScale, double wingScale)
         => new(
-            r.LeftDefence * defenceScale, r.CentralDefence * defenceScale, r.RightDefence * wingScale,
-            r.Midfield * midfieldScale,
-            r.LeftAttack * wingScale, r.CentralAttack * midfieldScale, r.RightAttack * wingScale,
-            r.OpponentLeftDefence * defenceScale, r.OpponentCentralDefence * defenceScale, r.OpponentRightDefence * wingScale,
-            r.OpponentMidfield * midfieldScale,
-            r.OpponentLeftAttack * wingScale, r.OpponentCentralAttack * midfieldScale, r.OpponentRightAttack * wingScale);
+            r.RawLeftDefence * defenceScale, r.RawCentralDefence * defenceScale, r.RawRightDefence * wingScale,
+            r.RawMidfield * midfieldScale,
+            r.RawLeftAttack * wingScale, r.RawCentralAttack * midfieldScale, r.RawRightAttack * wingScale,
+            r.RawLeftDefence * defenceScale, r.RawCentralDefence * defenceScale, r.RawRightDefence * wingScale,
+            r.RawMidfield * midfieldScale,
+            r.RawLeftAttack * wingScale, r.RawCentralAttack * midfieldScale, r.RawRightAttack * wingScale);
 
     private static Player ReadPlayer(JsonElement e)
         => new(e.GetProperty("id").GetInt32(), e.GetProperty("name").GetString() ?? "Player", e.GetProperty("keeper").GetInt32(), e.GetProperty("defending").GetInt32(), e.GetProperty("playmaking").GetInt32(), e.GetProperty("passing").GetInt32(), e.GetProperty("winger").GetInt32(), e.GetProperty("scoring").GetInt32(), e.GetProperty("stamina").GetInt32(), e.GetProperty("form").GetInt32(), e.GetProperty("experience").GetInt32(), GetInt(e, "loyalty", 0), GetInt(e, "injuryLevel", -1));
