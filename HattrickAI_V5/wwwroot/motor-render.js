@@ -8,7 +8,7 @@
   // TowardsWing=3, TowardsMiddle=4.
   const orderLabel = value => {
     const n = typeof value === 'string' ? value : Number(value);
-    return ({0:'NORMAL',1:'DEFANSİF',2:'OFANSİF',3:'KANA',4:'MERKEZE'})[n] || '';
+    return ({0:'NORMAL',1:'DEFANSİF',2:'OFANSİF',3:'KANATA DOĞRU',4:'MERKEZE DOĞRU'})[n] || '';
   };
   const esc = s => String(s ?? '').replace(/[&<>\\\"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','\\\"':'&quot;',"'":'&#039;'}[m]));
   const fmt = x => Number(x || 0).toFixed(2).replace(/\\.00$/,'');
@@ -38,7 +38,7 @@
         const playerValue = isOpponent && Number.isFinite(stars) && stars > 0
           ? 'SP='+stars.toFixed(1)
           : 'RP='+Number(x.rating||0).toFixed(1);
-        s.innerHTML = '<span class="slot-name">'+esc(x.playerName)+'</span><span class="slot-rating">'+playerValue+'</span><span class="slot-order '+(order==='OFANSİF'?'off':order==='DEFANSİF'?'def':'')+'">'+order+'</span>';
+        s.innerHTML = '<span class="slot-name">'+esc(x.playerName)+'</span><span class="slot-rating">'+playerValue+'</span><span class="slot-order">'+order+'</span>';
       } else {
         s.classList.add('empty');
         s.innerHTML = '<span class="slot-name"></span><span class="slot-rating"></span><span class="slot-order"></span>';
@@ -48,7 +48,7 @@
   };
 
   const style = document.createElement('style');
-  style.textContent = '.slot-order{font-size:clamp(6px,1.7vw,9px);font-weight:900;line-height:1;margin-top:2px;white-space:nowrap;opacity:.95}.slot-order.off{color:#ffe08a}.slot-order.def{color:#bce9ff}.slot.filled{padding:3px}.slot-name{font-size:clamp(7px,2.15vw,11px)}#ownTitle + .lineup-sub{display:none!important}.lineup-card .copy-btn{display:none!important}#oppReference{display:none!important}#oppMeta{display:none!important}#oppFormation{display:none!important}';
+  style.textContent = '.slot-order{font-size:clamp(6px,1.7vw,9px);font-weight:900;line-height:1;margin-top:2px;white-space:nowrap;opacity:.98;color:#8b1e1e}.slot.filled{padding:3px}.slot-name{font-size:clamp(7px,2.15vw,11px)}#ownTitle + .lineup-sub{display:none!important}.lineup-card .copy-btn{display:none!important}#oppReference{display:none!important}#oppMeta{display:none!important}#oppFormation{display:none!important}';
   document.head.appendChild(style);
 
   const teamHeader = document.createElement('script');
