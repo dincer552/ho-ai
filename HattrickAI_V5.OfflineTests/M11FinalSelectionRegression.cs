@@ -61,17 +61,18 @@ public static class M11FinalSelectionRegression
             var pressing = tacticRows.Single(x => x.Tactic == TeamTactic.Pressing);
             Check(pressing.TacticalLevel >= 0 && pressing.TacticalLevel <= 10, "Pressing tactical level out of V5 bounds");
             Check(pressing.OwnRegularChanceExpected >= 0 && pressing.OpponentRegularChanceExpected >= 0, "Pressing chance expectations invalid");
-            var pressingSuppression = pressing.OpponentRegularChanceExpected <= 1e-9 ? 0 : (result.TacticComparisons.First(x => x.CandidateId == winnerSignature && x.Tactic == TeamTactic.Normal).OpponentRegularChanceExpected - pressing.OpponentRegularChanceExpected) / result.TacticComparisons.First(x => x.CandidateId == winnerSignature && x.Tactic == TeamTactic.Normal).OpponentRegularChanceExpected;
+            var normal = tacticRows.Single(x => x.Tactic == TeamTactic.Normal);
+            var pressingSuppression = normal.OpponentRegularChanceExpected <= 1e-9 ? 0 : (normal.OpponentRegularChanceExpected - pressing.OpponentRegularChanceExpected) / normal.OpponentRegularChanceExpected;
             Check(pressingSuppression >= -1e-12 && pressingSuppression <= 0.41 + 1e-9, $"Pressing suppression exceeded source bound: {pressingSuppression:P2}");
             var ca = tacticRows.Single(x => x.Tactic == TeamTactic.CounterAttack);
-            Check(ca.TacticConversionRateOrZero >= 0 && ca.TacticConversionRateOrZero <= M8ChanceAllocationEngine.CounterAttackMaxConversion + 1e-9, "CA conversion outside bound");
-            Check(ca.TacticConversionRateOrZero <= 0 || ca.TacticConversionRateOrZero + 1e-9 >= M8ChanceAllocationEngine.CounterAttackMinConversion, "CA conversion below source floor");
+            Check(ca.TacticConversionRate >= 0 && ca.TacticConversionRate <= M8ChanceAllocationEngine.CounterAttackMaxConversion + 1e-9, "CA conversion outside bound");
+            Check(ca.TacticConversionRate <= 0 || ca.TacticConversionRate + 1e-9 >= M8ChanceAllocationEngine.CounterAttackMinConversion, "CA conversion below source floor");
             var aim = tacticRows.Single(x => x.Tactic == TeamTactic.AttackMiddle);
-            Check(aim.TacticConversionRateOrZero >= M8ChanceAllocationEngine.AiMMinWingConversion - 1e-9 && aim.TacticConversionRateOrZero <= M8ChanceAllocationEngine.AiMMaxWingConversion + 1e-9, "AiM conversion outside source bound");
+            Check(aim.TacticConversionRate >= M8ChanceAllocationEngine.AiMMinWingConversion - 1e-9 && aim.TacticConversionRate <= M8ChanceAllocationEngine.AiMMaxWingConversion + 1e-9, "AiM conversion outside source bound");
             var aow = tacticRows.Single(x => x.Tactic == TeamTactic.AttackWings);
-            Check(aow.TacticConversionRateOrZero >= M8ChanceAllocationEngine.AoWMinCentreConversion - 1e-9 && aow.TacticConversionRateOrZero <= M8ChanceAllocationEngine.AoWMaxCentreConversion + 1e-9, "AoW conversion outside source bound");
+            Check(aow.TacticConversionRate >= M8ChanceAllocationEngine.AoWMinCentreConversion - 1e-9 && aow.TacticConversionRate <= M8ChanceAllocationEngine.AoWMaxCentreConversion + 1e-9, "AoW conversion outside source bound");
             var ls = tacticRows.Single(x => x.Tactic == TeamTactic.LongShots);
-            Check(ls.TacticConversionRateOrZero >= M8ChanceAllocationEngine.LongShotsMinConversion - 1e-9 && ls.TacticConversionRateOrZero <= M8ChanceAllocationEngine.LongShotsMaxConversion + 1e-9, "Long Shots conversion outside source bound");
+            Check(ls.TacticConversionRate >= M8ChanceAllocationEngine.LongShotsMinConversion - 1e-9 && ls.TacticConversionRate <= M8ChanceAllocationEngine.LongShotsMaxConversion + 1e-9, "Long Shots conversion outside source bound");
             Check(tacticRows.Single(x => x.Tactic == TeamTactic.Creative).TacticEligible, "Creative unexpectedly ineligible for final XI");
 
             // Explicit objective regression: high tactical score must not defeat a
