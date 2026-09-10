@@ -35,6 +35,11 @@ jobs:
         run: |
           set -Eeuo pipefail
           dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write4
+      - name: CHPP WRITE-05 permission regression
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write5
       - name: Remove fragile root HTML middleware
         shell: bash
         run: |
