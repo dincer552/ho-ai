@@ -40,6 +40,11 @@ jobs:
         run: |
           set -Eeuo pipefail
           dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write5
+      - name: CHPP WRITE-06 live write path regression
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write6
       - name: Remove fragile root HTML middleware
         shell: bash
         run: |
