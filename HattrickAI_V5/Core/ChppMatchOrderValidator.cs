@@ -45,7 +45,7 @@ public static class ChppMatchOrderValidator
         else
         {
             var primary = payload.Lineup.Bench.Take(7).Select(x => x.Id).Where(x => x > 0).ToArray();
-            var backup = payload.Lineup.Bench.Skip(7).Select(x => x.Id).Where(x => x.Id > 0).ToArray();
+            var backup = payload.Lineup.Bench.Skip(7).Select(x => x.Id).Where(x => x > 0).ToArray();
             if (primary.Length != 7)
                 errors.Add($"CHPP primary bench içinde tam 7 oyuncu olmalı; bulunan: {primary.Length}.");
             if (primary.Distinct().Count() != primary.Length)
