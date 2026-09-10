@@ -7,6 +7,8 @@ if (args.Length > 0 && string.Equals(args[0], "write4", StringComparison.Ordinal
     return ChppWrite04MockWriteRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "write5", StringComparison.OrdinalIgnoreCase))
     return ChppWrite05PermissionRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "write6", StringComparison.OrdinalIgnoreCase))
+    return ChppWrite06LiveWriteRegression.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
