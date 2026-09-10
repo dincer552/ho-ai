@@ -1,6 +1,8 @@
 using HattrickAI.V5.Core;
 using HattrickAI.V5.OfflineTests;
 
+if (args.Length > 0 && string.Equals(args[0], "trainer", StringComparison.OrdinalIgnoreCase))
+    return ChppTrainerExclusionRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "write3", StringComparison.OrdinalIgnoreCase))
     return ChppWrite03ValidationRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "write4", StringComparison.OrdinalIgnoreCase))
