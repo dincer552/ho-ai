@@ -32,6 +32,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           node --check HattrickAI_V5/wwwroot/tactic-comparison.js
+          node --check HattrickAI_V5/wwwroot/bench-selection.js
       - name: Remove fragile root HTML middleware
         shell: bash
         run: |
