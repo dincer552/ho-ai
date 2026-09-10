@@ -16,7 +16,7 @@ bool From(int c) => startNumber == c;
 
 if (From(1)) { var r = WebInputIntegrityRegression.Run(); if (r != 0) return r; r = CoreWebParityRegression.Run(); if (r != 0) return r; r = await M3M11EndToEndRegression.RunAsync(path); if (r != 0) return r; }
 if (From(2)) { var r = M4LegalFormationRegression.Run(); if (r != 0) return r; }
-if (From(3)) { var r = HistoricalCalibrationRegression.Run(); if (r != 0) return r; r = SetPieceTakerCalibrationRegression.Run(); if (r != 0) return r; r = SpecialtyInteractionRegression.Run(); if (r != 0) return r; r = TacticPaperMappingRegression.Run(); if (r != 0) return r; r = LongShotOpportunityRegression.Run(); if (r != 0) return r; r = M9EventGoalRegression.Run(); if (r != 0) return r; r = await M5XICandidatesRegression.RunAsync(path); if (r != 0) return r; }
+if (From(3)) { var r = HistoricalCalibrationRegression.Run(); if (r != 0) return r; r = SetPieceTakerCalibrationRegression.Run(); if (r != 0) return r; r = SpecialtyInteractionRegression.Run(); if (r != 0) return r; r = TacticPaperMappingRegression.Run(); if (r != 0) return r; r = PressingWeightRegression.Run(); if (r != 0) return r; r = LongShotOpportunityRegression.Run(); if (r != 0) return r; r = M9EventGoalRegression.Run(); if (r != 0) return r; r = await M5XICandidatesRegression.RunAsync(path); if (r != 0) return r; }
 if (From(4)) { var r = await M6ACandidateEvaluationRegression.RunAsync(path); if (r != 0) return r; }
 if (From(5)) { var r = await M7RegionalRatingRegression.RunAsync(path); if (r != 0) return r; }
 if (From(6)) { var r = await M7_2TacticalScenarioRegression.RunAsync(path); if (r != 0) return r; }
