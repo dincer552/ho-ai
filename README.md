@@ -171,22 +171,23 @@ Akış:
 
 `CHPP → oyuncular → M3 → M4 → M5 → M6 → M7 → M7.2 → M8 → M9 → M10 → M11 → Yedek Seçimi → Analysis sonucu → UI`
 
-Yedek sonuçları `Analysis` sonucunun bir parçası olarak taşınır. Yeni CHPP oyuncu okuması yapılmaz; ana analizde zaten alınmış olan oyuncu listesi yeniden kullanılır.
+Yedek sonuçları ana analiz çalışmasının aynı `MotorRunLog` payload'ında taşınır. Yeni CHPP oyuncu okuması yapılmaz; ana analizde zaten alınmış olan oyuncu listesi ve final XI yeniden kullanılır. Mevcut `Analysis` JSON kök şeması değiştirilmez.
 
 ### 12.4 UI
 
 - Yedek bölümü, mevcut **İlk 11 kutusunun hemen altında** yer alır.
 - Varsayılan durumda **kapalı** olur.
 - Kullanıcı açtığında `Yedek Oyuncular (7 slot)` bölümü görünür.
-- Her slotta iki oyuncu seçimi/önerisi bulunur.
+- Her slotta iki oyuncu önerisi bulunur ve aynı seçim alanından uygun takım oyuncuları arasından manuel değişiklik yapılabilir.
+- Seçim tarayıcıda saklanır; analiz tekrar çalıştırılmadıkça kullanıcının manuel seçimi korunur.
 - İlk sürümde amaç hızlı ve okunabilir kullanım; karmaşık kadro optimizasyon arayüzü yapılmaz.
 
 ### 12.5 Uygulama sırası
 
-1. **YED-01 — Ana analiz sonucuna yedek seçim verisini ekle:** Final XI dışındaki oyuncuları al ve 7 slot için iki alternatif üret.
-2. **YED-02 — Model/API entegrasyonu:** Yedek önerilerini mevcut `Analysis` sonucuna bağla.
-3. **YED-03 — UI:** İlk 11'in altında kapalı accordion ve 7 slotu göster.
-4. **YED-04 — Manuel seçim:** Kullanıcının iki öneri arasından veya uygun takım oyuncularından değişiklik yapabilmesini sağla.
-5. **YED-05 — Site üzerinde kontrol:** Ayrı regression aşaması ekleme; doğrudan gerçek CHPP verisiyle analiz çalıştırıp yedek sonuçlarını UI'da kontrol et.
+1. **YED-01 — TAMAMLANDI:** Final XI dışındaki oyunculardan 7 slot için iki alternatif üretiliyor.
+2. **YED-02 — TAMAMLANDI:** Yedek payload'ı aynı analiz run'ının motor loguna bağlandı; yeni CHPP okuması yapılmıyor.
+3. **YED-03 — TAMAMLANDI:** İlk 11'in altında kapalı accordion ve 7 slot UI'sı eklendi.
+4. **YED-04 — TAMAMLANDI:** Kullanıcı iki motor önerisi arasından veya slot için uygun takım oyuncularından seçim yapabiliyor; seçim tarayıcıda korunuyor.
+5. **YED-05 — SIRADAKİ:** Ayrı regression aşaması eklemeden gerçek CHPP verisiyle analiz çalıştırılıp yedek sonuçları UI'da kontrol edilecek.
 
-Bu özellik için ilk sürümde ayrı acceptance/regression motoru oluşturulmayacak; davranış doğrudan ana analiz sonucu üzerinden sitede gözlemlenerek doğrulanacaktır.
+YED-04 için uygulama kodu ve mevcut acceptance workflow'a bağlı build doğrulaması yapılıyor; production smoke kontrolü YED-05'te yapılacak.
