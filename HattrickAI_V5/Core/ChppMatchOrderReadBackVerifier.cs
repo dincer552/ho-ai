@@ -7,56 +7,48 @@ namespace HattrickAI.V5.Core;
 /// </summary>
 public static class ChppMatchOrderReadBackVerifier
 {
-    public static ChppMatchOrderReadBackResult Verify(
-        ChppMatchOrderPayload expected,
-        ChppUpcomingMatchSnapshot actual)
+    public static ChppMatchOrderReadBackResult Verify(ChppMatchOrderPayload expected, ChppUpcomingMatchSnapshot actual)
     {
         ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(actual);
 
-        if (!actual.OrdersSet.GetValueOrDefault())
-            return Fail("CHPP read-back OrdersSet=true değil.");
-
-        if (actual.MatchId <= 0 || actual.TeamId <= 0)
-            return Fail("CHPP read-back match/team kimliği geçersiz.");
+        if (!actual.OrdersSet.GetValueOrDefault()) return Fail("CHPP read-back OrdersSet=true değil.");
+        if (actual.MatchId <= 0 || actual.TeamId <= 0) return Fail("CHPP read-back match/team kimliği geçersiz.");
 
         var expectedPositions = expected.Lineup.Positions;
-        var actualStarters = actual.Players
-            .Where(p => p.RoleId is >= 1 and <= 11)
-            .OrderBy(p => p.RoleId)
-            .ToArray();
-        if (actualStarters.Length != 11)
-            return Fail($"Read-back ilk 11 sayısı 11 değil: {actualStarters.Length}.");
+        var actualStarters = actual.Players.Where(p => p.RoleId is >= 1 and <= 11).ToArray();
+        if (actualStarters.Length != 11 || actualStarters.Select(p => p.PlayerId).Distinct().Count() != 11)
+            return Fail($"Read-back ilk 11 sayısı/benzersizliği geçersiz: {actualStarters.Length}.");
+
+        var expectedStarterCount = expectedPositions.Count(p => p.Id > 0);
+        if (expectedStarterCount != 11) return Fail($"Beklenen payload ilk 11 sayısı 11 değil: {expectedStarterCount}.");
 
         for (var i = 0; i < expectedPositions.Count; i++)
         {
             var expectedSlot = expectedPositions[i];
+            if (expectedSlot.Id <= 0) continue;
             var actual = actual.Players.FirstOrDefault(p => p.RoleId == i + 1);
-            if (expectedSlot.Id <= 0 || actual is null || actual.PlayerId != expectedSlot.Id || actual.Behaviour != expectedSlot.Behaviour)
+            if (actual is null || actual.PlayerId != expectedSlot.Id || actual.Behaviour != expectedSlot.Behaviour)
                 return Fail($"XI eşleşmedi: RoleID {i + 1}.");
         }
 
         var expectedBench = expected.Lineup.Bench.Take(7).ToArray();
+        if (expectedBench.Length != 7 || expectedBench.Any(p => p.Id <= 0)) return Fail("Beklenen primary bench 7 dolu oyuncudan oluşmuyor.");
         for (var i = 0; i < expectedBench.Length; i++)
         {
             var actual = actual.Players.FirstOrDefault(p => p.RoleId == i + 12);
-            if (expectedBench[i].Id <= 0 || actual is null || actual.PlayerId != expectedBench[i].Id)
-                return Fail($"Primary bench eşleşmedi: slot {i + 1}.");
+            if (actual is null || actual.PlayerId != expectedBench[i].Id) return Fail($"Primary bench eşleşmedi: slot {i + 1}.");
         }
 
-        var tacticCode = expected.Lineup.Settings.Tactic;
-        if (!int.TryParse(tacticCode, out var expectedTactic) || actual.TacticType != expectedTactic)
-            return Fail($"Taktik eşleşmedi: beklenen {tacticCode}, CHPP {actual.TacticType}.");
-
-        var attitude = expected.Lineup.Settings.SpeechLevel;
-        if (!int.TryParse(attitude, out var expectedAttitude) || actual.Attitude != expectedAttitude)
-            return Fail($"Attitude eşleşmedi: beklenen {attitude}, CHPP {actual.Attitude}.");
+        if (!int.TryParse(expected.Lineup.Settings.Tactic, out var expectedTactic) || actual.TacticType != expectedTactic)
+            return Fail($"Taktik eşleşmedi: beklenen {expected.Lineup.Settings.Tactic}, CHPP {actual.TacticType}.");
+        if (!int.TryParse(expected.Lineup.Settings.SpeechLevel, out var expectedAttitude) || actual.Attitude != expectedAttitude)
+            return Fail($"Attitude eşleşmedi: beklenen {expected.Lineup.Settings.SpeechLevel}, CHPP {actual.Attitude}.");
 
         return new ChppMatchOrderReadBackResult(true, "CHPP read-back doğrulandı.");
     }
 
-    private static ChppMatchOrderReadBackResult Fail(string reason)
-        => new(false, reason);
+    private static ChppMatchOrderReadBackResult Fail(string reason) => new(false, reason);
 }
 
 public sealed record ChppMatchOrderReadBackResult(bool Verified, string Reason);
