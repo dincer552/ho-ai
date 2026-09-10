@@ -25,6 +25,7 @@ jobs:
           set -Eeuo pipefail
           node --check HattrickAI_V5/wwwroot/tactic-comparison.js
           node --check HattrickAI_V5/wwwroot/bench-selection.js
+          node --check HattrickAI_V5/wwwroot/chpp-export.js
       - name: CHPP WRITE-03 validation regression
         shell: bash
         run: |
@@ -50,19 +51,6 @@ jobs:
         run: |
           set -Eeuo pipefail
           dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write7
-      - name: Remove fragile root HTML middleware
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("HattrickAI_V5/Program.cs")
-          s = p.read_text(encoding="utf-8")
-          start = s.index('app.Use(async (context, next) =>')
-          end = s.index('app.UseDefaultFiles();', start)
-          s = s[:start] + s[end:]
-          p.write_text(s, encoding="utf-8")
-          PY
       - name: Build Docker image
         shell: bash
         run: |
