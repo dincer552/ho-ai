@@ -25,13 +25,14 @@ public sealed class AnalysisService
         var teamNode = XmlV5.Root(teamXml)?.Descendants("Team").FirstOrDefault();
         var teamId = XmlV5.Int(teamNode, "TeamID");
         var teamName = XmlV5.Text(teamNode, "TeamName");
+        var trainerId = ChppRosterFilter.ReadTrainerId(teamNode);
         if (teamId <= 0) throw new InvalidOperationException("Kullanıcı takım bilgisi alınamadı.");
 
         var trainingXml = await _chpp.GetXmlAsync("training", new Dictionary<string, string?> { ["version"] = "1.1" }, ct);
         var trainingTeam = XmlV5.Root(trainingXml)?.Descendants("Team").FirstOrDefault();
         var selfConfidence = Math.Max(1, XmlV5.Int(trainingTeam, "SelfConfidence"));
 
-        var ownPlayers = await ReadPlayers(teamId, ct);
+        var ownPlayers = await ReadPlayers(teamId, trainerId, ct);
         if (ownPlayers.Count < 11)
             throw new InvalidOperationException("Kullanıcı takımında analiz için yeterli oyuncu verisi yok.");
 
@@ -69,7 +70,7 @@ public sealed class AnalysisService
         if (lineupNodes.Count != 11) throw new InvalidOperationException($"Rakibin son resmi maçında final saha 11'i belirlenemedi: {lineupNodes.Count}.");
 
         var opponentHistoricalRating = await ReadDirectHistoricalOpponentRating(lastMatch.MatchId, opponentId, ct);
-        var opponentPlayers = await ReadPlayers(opponentId, ct);
+        var opponentPlayers = await ReadPlayers(opponentId, 0, ct);
         var experienceLevel = Math.Clamp(XmlV5.Int(lineupRoot?.Descendants("Team").FirstOrDefault(), "ExperienceLevel"), 1, 20);
         var opponentSlots = lineupNodes.Select(p => HistoricalSlot(p, opponentHistoricalRating, experienceLevel)).ToList();
         var opponentLineup = Formation(opponentName, opponentSlots);
@@ -145,12 +146,13 @@ public sealed class AnalysisService
 
     private static int TeamNodeId(XElement node) => node.Name.LocalName switch { "HomeTeam" => XmlV5.Int(node, "HomeTeamID"), "AwayTeam" => XmlV5.Int(node, "AwayTeamID"), _ => 0 };
 
-    private async Task<List<Player>> ReadPlayers(int teamId, CancellationToken ct)
+    private async Task<List<Player>> ReadPlayers(int teamId, int trainerId, CancellationToken ct)
     {
         var xml = await _chpp.GetXmlAsync("players", new Dictionary<string, string?> { ["version"] = "1.3", ["teamId"] = teamId.ToString(CultureInfo.InvariantCulture) }, ct);
-        return XmlV5.Root(xml)?.Descendants("Player").Select(p => new Player(
+        var players = XmlV5.Root(xml)?.Descendants("Player").Select(p => new Player(
             XmlV5.Int(p, "PlayerID"), XmlV5.Text(p, "PlayerName"), XmlV5.Int(p, "KeeperSkill"), XmlV5.Int(p, "DefenderSkill"), XmlV5.Int(p, "PlaymakerSkill"), XmlV5.Int(p, "PassingSkill"), XmlV5.Int(p, "WingerSkill"), XmlV5.Int(p, "ScorerSkill"), XmlV5.Int(p, "StaminaSkill"), XmlV5.Int(p, "PlayerForm"), XmlV5.Int(p, "Experience"), XmlV5.Int(p, "Loyalty"), XmlV5.Int(p, "InjuryLevel"), ParseSpecialty(p), XmlV5.Int(p, "SetPiecesSkill")))
-            .Where(p => p.Id > 0).ToList() ?? new();
+            .ToList() ?? new();
+        return ChppRosterFilter.ExcludeTrainer(players, trainerId);
     }
 
     private static PlayerSpecialty ParseSpecialty(XElement player)
