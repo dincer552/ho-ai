@@ -17,6 +17,8 @@ public sealed class ChppV5
     private const string ApiUrl = "https://chpp.hattrick.org/chppxml.ashx";
     private const string UserAgent = "HattrickAI, v18.0";
     private const string GrantedScopesSessionKey = "v5.scopes";
+    private const string RequestedScopesSessionKey = "v5.requestedScopes";
+    private const string RequestedScopes = "set_matchorder,manage_youthplayers";
     private readonly HttpClient _http;
     private readonly Credentials _credentials;
     private readonly IHttpContextAccessor _context;
@@ -44,7 +46,7 @@ public sealed class ChppV5
         if (!response.IsSuccessStatusCode)
         { var oauth2 = CreateOAuth(callback, null, null); var signed2 = Sign("GET", RequestTokenUrl, oauth2, null, null); using var fallback = CreateRequest(HttpMethod.Get, RequestTokenUrl, signed2.AuthorizationHeader); using var response2 = await _http.SendAsync(fallback, ct); var body2 = await response2.Content.ReadAsStringAsync(ct); if (!response2.IsSuccessStatusCode) throw new HttpRequestException($"CHPP request token alınamadı. İlk yanıt: {body} İkinci yanıt: {body2}"); body = body2; }
         var values = ParseForm(body); if (!values.TryGetValue("oauth_token", out var token) || !values.TryGetValue("oauth_token_secret", out var secret)) throw new InvalidOperationException($"CHPP request token yanıtı beklenen formatta değil: {body}");
-        Session.SetString("v5.request", token); Session.SetString("v5.requestSecret", secret); return AuthorizeUrl + "?oauth_token=" + Encode(token) + "&scope=" + Encode("set_matchorder,manage_youthplayers");
+        Session.SetString("v5.request", token); Session.SetString("v5.requestSecret", secret); Session.SetString(RequestedScopesSessionKey, RequestedScopes); Session.Remove(GrantedScopesSessionKey); return AuthorizeUrl + "?oauth_token=" + Encode(token) + "&scope=" + Encode(RequestedScopes);
     }
 
     public async Task FinishAsync(string verifier, CancellationToken ct)
@@ -56,8 +58,11 @@ public sealed class ChppV5
         { var oauth2 = CreateOAuth(null, token, verifier); var signed2 = Sign("GET", AccessTokenUrl, oauth2, secret, null); using var fallback = CreateRequest(HttpMethod.Get, AccessTokenUrl, signed2.AuthorizationHeader); using var response2 = await _http.SendAsync(fallback, ct); var body2 = await response2.Content.ReadAsStringAsync(ct); if (!response2.IsSuccessStatusCode) throw new HttpRequestException($"CHPP access token alınamadı. İlk yanıt: {body} İkinci yanıt: {body2}"); body = body2; }
         var values = ParseForm(body); if (!values.TryGetValue("oauth_token", out var access) || !values.TryGetValue("oauth_token_secret", out var accessSecret)) throw new InvalidOperationException($"CHPP access token yanıtı beklenen formatta değil: {body}");
         Session.SetString("v5.access", access); Session.SetString("v5.accessSecret", accessSecret);
-        Session.SetString(GrantedScopesSessionKey, values.TryGetValue("scope", out var scope) ? scope : "");
-        Session.Remove("v5.request"); Session.Remove("v5.requestSecret");
+        var returnedScopes = values.TryGetValue("scope", out var scope) ? scope : string.Empty;
+        var requestedScopes = Session.GetString(RequestedScopesSessionKey) ?? string.Empty;
+        var effectiveScopes = string.IsNullOrWhiteSpace(returnedScopes) ? requestedScopes : returnedScopes;
+        Session.SetString(GrantedScopesSessionKey, effectiveScopes);
+        Session.Remove(RequestedScopesSessionKey); Session.Remove("v5.request"); Session.Remove("v5.requestSecret");
     }
 
     public Task CompleteAsync(string verifier, CancellationToken ct) => FinishAsync(verifier, ct);
@@ -67,7 +72,7 @@ public sealed class ChppV5
         return FinishAsync(verifier, ct);
     }
 
-    public void Disconnect() { Session.Remove("v5.access"); Session.Remove("v5.accessSecret"); Session.Remove("v5.request"); Session.Remove("v5.requestSecret"); Session.Remove(GrantedScopesSessionKey); }
+    public void Disconnect() { Session.Remove("v5.access"); Session.Remove("v5.accessSecret"); Session.Remove("v5.request"); Session.Remove("v5.requestSecret"); Session.Remove(GrantedScopesSessionKey); Session.Remove(RequestedScopesSessionKey); }
 
     public async Task<string> GetXmlAsync(string file, IDictionary<string,string?> parameters, CancellationToken ct)
     {
@@ -107,6 +112,7 @@ public sealed class ChppV5
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string url, string? authorization) { var request = new HttpRequestMessage(method, url); if (!string.IsNullOrWhiteSpace(authorization)) request.Headers.TryAddWithoutValidation("Authorization", authorization); request.Headers.TryAddWithoutValidation("User-Agent", UserAgent); request.Headers.TryAddWithoutValidation("Accept-Language", "en"); request.Headers.TryAddWithoutValidation("Accept", "application/xml, text/xml, */*"); request.Headers.TryAddWithoutValidation("Connection", "keep-alive"); return request; }
+    private string? AccessTokenValue => Session.GetString("v5.access");
     private Dictionary<string,string> CreateOAuth(string? callback, string? token, string? verifier) { var d = new Dictionary<string,string>(StringComparer.Ordinal) { ["oauth_timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ["oauth_nonce"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant(), ["oauth_consumer_key"] = _credentials.Key, ["oauth_signature_method"] = "HMAC-SHA1", ["oauth_version"] = "1.0" }; if (!string.IsNullOrWhiteSpace(callback)) d["oauth_callback"] = callback; if (!string.IsNullOrWhiteSpace(token)) d["oauth_token"] = token; if (!string.IsNullOrWhiteSpace(verifier)) d["oauth_verifier"] = verifier; return d; }
     private (string Signature, string AuthorizationHeader) Sign(string method, string baseUrl, IDictionary<string,string> oauth, string? tokenSecret, IEnumerable<KeyValuePair<string,string>>? all) { var values = (all ?? oauth.Select(x => new KeyValuePair<string,string>(x.Key, x.Value))).Select(p => new KeyValuePair<string,string>(Encode(p.Key), Encode(p.Value))).OrderBy(p => p.Key, StringComparer.Ordinal).ThenBy(p => p.Value, StringComparer.Ordinal).ToList(); var normalized = string.Join("&", values.Select(p => p.Key + "=" + p.Value)); var baseString = method.ToUpperInvariant() + "&" + Encode(baseUrl) + "&" + Encode(normalized); var signingKey = Encode(_credentials.Secret) + "&" + Encode(tokenSecret ?? string.Empty); using var hmac = new HMACSHA1(Encoding.ASCII.GetBytes(signingKey)); var signature = Convert.ToBase64String(hmac.ComputeHash(Encoding.ASCII.GetBytes(baseString))); var header = oauth.Select(p => Encode(p.Key) + "=\"" + Encode(p.Value) + "\"").ToList(); header.Add("oauth_signature=\"" + Encode(signature) + "\""); return (signature, "OAuth " + string.Join(", ", header)); }
     private static string AddQuery(string url, IDictionary<string,string> values, string signature) { var list = values.Select(x => Encode(x.Key) + "=" + Encode(x.Value)).ToList(); list.Add("oauth_signature=" + Encode(signature)); return url + "?" + string.Join("&", list); }
