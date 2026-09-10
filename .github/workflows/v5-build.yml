@@ -84,6 +84,7 @@ jobs:
           GHCR_TOKEN: ${{ github.token }}
           GHCR_USER: ${{ github.actor }}
           CHPP_CONSUMER_SECRET: ${{ secrets.CHPP_CONSUMER_SECRET }}
+          CHPP_MATCHORDER_WRITE_ENABLED: "true"
         run: |
           set -Eeuo pipefail
           IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
@@ -105,7 +106,7 @@ jobs:
             log "========== HEALTH RESPONSE =========="
             curl -i --max-time 10 http://127.0.0.1:10000/health 2>&1 | tee -a "${LOG_FILE}" || true
           }
-          cleanup_secrets() { docker logout ghcr.io >/dev/null 2>&1 || true; unset GHCR_TOKEN GHCR_USER CHPP_CONSUMER_SECRET; }
+          cleanup_secrets() { docker logout ghcr.io >/dev/null 2>&1 || true; unset GHCR_TOKEN GHCR_USER CHPP_CONSUMER_SECRET CHPP_MATCHORDER_WRITE_ENABLED; }
           rollback_deploy() {
             local rc=$?
             if [ "${rc}" -ne 0 ] && [ "${DEPLOY_COMMITTED}" -ne 1 ]; then
@@ -131,8 +132,8 @@ jobs:
           if docker ps -a --format '{{.Names}}' | grep -qx "${ROLLBACK_CONTAINER}"; then if docker ps -a --format '{{.Names}}' | grep -qx "${OLD_CONTAINER}"; then docker rm -f "${ROLLBACK_CONTAINER}" >/dev/null 2>&1 || true; else docker rename "${ROLLBACK_CONTAINER}" "${OLD_CONTAINER}"; docker start "${OLD_CONTAINER}" >/dev/null 2>&1 || true; fi; fi
           if docker ps -a --format '{{.Names}}' | grep -qx "${OLD_CONTAINER}"; then docker rename "${OLD_CONTAINER}" "${ROLLBACK_CONTAINER}"; docker stop "${ROLLBACK_CONTAINER}" >/dev/null; HAD_OLD=1; fi
           docker rm -f "${NEXT_CONTAINER}" >/dev/null 2>&1 || true
-          docker run -d --name "${NEXT_CONTAINER}" --restart unless-stopped -p 10000:10000 -e CHPP_CONSUMER_SECRET="${CHPP_CONSUMER_SECRET}" -v "${LOG_FILE}:/app/deploy.log:ro" "${IMAGE}:${TAG}"
-          unset CHPP_CONSUMER_SECRET
+          docker run -d --name "${NEXT_CONTAINER}" --restart unless-stopped -p 10000:10000 -e CHPP_CONSUMER_SECRET="${CHPP_CONSUMER_SECRET}" -e CHPP_MATCHORDER_WRITE_ENABLED="${CHPP_MATCHORDER_WRITE_ENABLED}" -v "${LOG_FILE}:/app/deploy.log:ro" "${IMAGE}:${TAG}"
+          unset CHPP_CONSUMER_SECRET CHPP_MATCHORDER_WRITE_ENABLED
           healthy=0; for attempt in $(seq 1 12); do if docker ps --filter "name=${NEXT_CONTAINER}" --filter "status=running" | grep -q "${NEXT_CONTAINER}" && curl --fail --silent --show-error http://127.0.0.1:10000/health >/dev/null; then healthy=1; log "❤️ Health check başarılı (deneme ${attempt}/12)."; break; fi; log "⏳ Health check bekleniyor (deneme ${attempt}/12)."; sleep 5; done
           if [ "${healthy}" -ne 1 ]; then log "❌ Yeni container health check başarısız."; exit 1; fi
           curl --fail --silent --show-error --max-time 10 http://127.0.0.1:10000/ -o /dev/null || { log "❌ Homepage smoke test başarısız: / cevap vermiyor."; exit 1; }
