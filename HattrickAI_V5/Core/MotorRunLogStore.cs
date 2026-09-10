@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 namespace HattrickAI.V5.Core;
 
 public sealed record MotorLogStage(string Motor, string Status, string Message, long DurationMs, int? CurrentIteration = null, int? MaxIterations = null, int? CandidateCount = null, DateTimeOffset? UpdatedAt = null, int InvocationCount = 0);
-public sealed record MotorRunLog(string RunId, string Status, DateTimeOffset StartedAt, DateTimeOffset UpdatedAt, string FinalMessage, IReadOnlyList<MotorLogStage> Stages);
+public sealed record MotorRunLog(string RunId, string Status, DateTimeOffset StartedAt, DateTimeOffset UpdatedAt, string FinalMessage, IReadOnlyList<MotorLogStage> Stages, BenchSelectionPayload? Bench = null);
 
 public static class MotorRunLogStore
 {
@@ -30,6 +30,16 @@ public static class MotorRunLogStore
 
     public static MotorRunLog? GetLatest(string ownerKey)
         => Runs.Values.Where(x => string.Equals(x.OwnerKey, ownerKey, StringComparison.Ordinal)).OrderByDescending(x => x.StartedAt).FirstOrDefault()?.Snapshot();
+
+    public static void SetBench(string runId, BenchSelectionPayload bench)
+    {
+        if (!Runs.TryGetValue(runId, out var run)) return;
+        lock (run.Sync)
+        {
+            run.Bench = bench;
+            run.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+    }
 
     public static void StartMotor(string runId, string motor, string message = "Çalışıyor") => Update(runId, motor, "running", message, 0);
     public static void IncrementInvocation(string runId, string motor)
@@ -68,11 +78,6 @@ public static class MotorRunLogStore
             if (index < 0) return;
             var old = run.Stages[index];
 
-            // M11 is a completed finalist-selection stage before the downstream
-            // seven-tactic search starts. The existing pipeline reuses the M11
-            // telemetry slot for that later search; never reopen or overwrite the
-            // canonical finalist count/message, otherwise C14/C15 read the tactic
-            // row count as the M11 finalist count.
             if (motor == "M11" && old.Status == "completed" && status != "failed")
                 return;
 
@@ -111,6 +116,7 @@ public static class MotorRunLogStore
         public string Status { get; set; }
         public string FinalMessage { get; set; }
         public List<MotorLogStage> Stages { get; }
-        public MotorRunLog Snapshot() { lock (Sync) return new MotorRunLog(RunId, Status, StartedAt, UpdatedAt, FinalMessage, Stages.ToList()); }
+        public BenchSelectionPayload? Bench { get; set; }
+        public MotorRunLog Snapshot() { lock (Sync) return new MotorRunLog(RunId, Status, StartedAt, UpdatedAt, FinalMessage, Stages.ToList(), Bench); }
     }
 }
