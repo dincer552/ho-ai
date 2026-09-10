@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Http;
 
@@ -94,7 +93,11 @@ public sealed class AnalysisService
 
         var sessionId = _http.HttpContext?.Session.Id;
         if (!string.IsNullOrWhiteSpace(sessionId))
-            BenchSelectionState.Save(sessionId, ownPlayers, finalLineup.Slots);
+        {
+            var bench = BenchSelectionState.Build(ownPlayers, finalLineup.Slots);
+            var runId = MotorRunLogContext.CurrentRunId;
+            if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.SetBench(runId, bench);
+        }
 
         return new Analysis(build, teamName, opponentName, title, finalLineup, opponentLineup, finalRating, opponentHistoricalRating, appliedQuestionnaire)
         {
