@@ -5,7 +5,7 @@
 > **Taktik + M9 formasyon karar motoru: devam eden tam denetim**
 >
 > Amaç: Taktik ve formasyon seçiminde `TacticFitScore` / `TacticalScore` gibi uygunluk sinyallerinin M9 maç sonucunun önüne geçmesini engellemek. Aynı XI + aynı rakip için kanonik ana sonuç `ExpectedPoints = 3 × WinProbability + DrawProbability` olarak korunur; WinProbability, ExpectedGoalDifference/xG, fit ve tactical skorlar yalnızca tanımlı tie-break/diagnostic katmanlarıdır.
->
+> 
 > Kaynakta olmayan gizli engine katsayıları resmî formül gibi kullanılmaz. Source-derived mekanik, V5 heuristiği ve gerçek M9 sonucu ayrı tutulur.
 
 ## 1. Kaynak / mekanik kapsamı
@@ -128,3 +128,65 @@ Teknik manuel yalnızca repository code, tests ve verified sources üzerinden g�
 ## 11. Çalışma kuralı
 
 Her madde kod + regression + acceptance/MotorDB ile doğrulanmadan TAMAMLANDI sayılmayacak. Bir stage kapanınca sıradaki stage'e geçilecek; failure önce düzeltilip aynı stage tekrar koşturulacak.
+
+## 12. Yedek Oyuncu Seçimi — Uygulama Planı
+
+Yedek oyuncu seçimi **ayrı bir analiz değildir**. Ana analiz pipeline'ının tamamlanmasının hemen ardından, aynı analiz sırasında CHPP'den alınmış oyuncu verileri ve seçilmiş final XI kullanılarak çalışır. M6–M11 yeniden çalıştırılmaz ve yeni bir analiz başlatılmaz.
+
+Amaç: Ana analiz tarafından ilk 11'e seçilmeyen oyuncular arasından, Hattrick maç dizilişindeki yedek ekranına benzer şekilde 7 bölge için hızlı ve basit yedek önerileri üretmek. Her bölge için 2 alternatif gösterilir.
+
+### 12.1 Slotlar
+
+7 yedek slotu:
+
+1. Kaleci
+2. Göbek Defans
+3. Bek
+4. İç Orta Saha
+5. Forvet
+6. Kanat
+7. Ekstra
+
+Her slotta:
+- 1. tercih
+- 2. alternatif
+
+bulunur.
+
+### 12.2 Seçim mantığı — V1
+
+- Kaynak havuz = CHPP'den ana analizde alınan tüm oyuncular.
+- Ana analizde seçilen final 11 oyuncu yedek havuzundan çıkarılır.
+- Kalan oyuncular ilgili yedek slotuna uygunluklarına göre değerlendirilir.
+- Karmaşık optimizasyon, M6 beam search veya M9 tekrar hesabı kullanılmaz.
+- Öncelik ilgili bölge/pozisyonu oynayabilme uygunluğu ve mevcut oyuncu kalitesidir.
+- Her slot için en uygun 2 oyuncu önerilir.
+- Aynı oyuncunun birden fazla slotu gereksiz şekilde doldurması mümkün olduğunca engellenir.
+- Uygun oyuncu bulunamazsa slot boş gösterilir.
+- Kullanıcı daha sonra önerilen oyuncuyu manuel olarak değiştirebilir.
+
+### 12.3 Ana analiz entegrasyonu
+
+Akış:
+
+`CHPP → oyuncular → M3 → M4 → M5 → M6 → M7 → M7.2 → M8 → M9 → M10 → M11 → Yedek Seçimi → Analysis sonucu → UI`
+
+Yedek sonuçları `Analysis` sonucunun bir parçası olarak taşınır. Yeni CHPP oyuncu okuması yapılmaz; ana analizde zaten alınmış olan oyuncu listesi yeniden kullanılır.
+
+### 12.4 UI
+
+- Yedek bölümü, mevcut **İlk 11 kutusunun hemen altında** yer alır.
+- Varsayılan durumda **kapalı** olur.
+- Kullanıcı açtığında `Yedek Oyuncular (7 slot)` bölümü görünür.
+- Her slotta iki oyuncu seçimi/önerisi bulunur.
+- İlk sürümde amaç hızlı ve okunabilir kullanım; karmaşık kadro optimizasyon arayüzü yapılmaz.
+
+### 12.5 Uygulama sırası
+
+1. **YED-01 — Ana analiz sonucuna yedek seçim verisini ekle:** Final XI dışındaki oyuncuları al ve 7 slot için iki alternatif üret.
+2. **YED-02 — Model/API entegrasyonu:** Yedek önerilerini mevcut `Analysis` sonucuna bağla.
+3. **YED-03 — UI:** İlk 11'in altında kapalı accordion ve 7 slotu göster.
+4. **YED-04 — Manuel seçim:** Kullanıcının iki öneri arasından veya uygun takım oyuncularından değişiklik yapabilmesini sağla.
+5. **YED-05 — Site üzerinde kontrol:** Ayrı regression aşaması ekleme; doğrudan gerçek CHPP verisiyle analiz çalıştırıp yedek sonuçlarını UI'da kontrol et.
+
+Bu özellik için ilk sürümde ayrı acceptance/regression motoru oluşturulmayacak; davranış doğrudan ana analiz sonucu üzerinden sitede gözlemlenerek doğrulanacaktır.
