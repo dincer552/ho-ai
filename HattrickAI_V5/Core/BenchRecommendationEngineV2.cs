@@ -1,8 +1,6 @@
 namespace HattrickAI.V5.Core;
 
 /// <summary>Simple first-pass bench recommendation engine; independent of M6/M9 optimization.</summary>
-public sealed record BenchRecommendation(string Slot, IReadOnlyList<Player> Alternatives);
-
 public sealed class BenchRecommendationEngineV2
 {
     private static readonly (string Slot, Func<Player, double> Score)[] Slots =
