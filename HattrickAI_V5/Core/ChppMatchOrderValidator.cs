@@ -45,7 +45,7 @@ public static class ChppMatchOrderValidator
         else
         {
             var primary = payload.Lineup.Bench.Take(7).Select(x => x.Id).Where(x => x > 0).ToArray();
-            var backup = payload.Lineup.Bench.Skip(7).Select(x => x.Id).Where(x => x > 0).ToArray();
+            var backup = payload.Lineup.Bench.Skip(7).Select(x => x.Id).Where(x => x.Id > 0).ToArray();
             if (primary.Length != 7)
                 errors.Add($"CHPP primary bench içinde tam 7 oyuncu olmalı; bulunan: {primary.Length}.");
             if (primary.Distinct().Count() != primary.Length)
@@ -62,10 +62,10 @@ public static class ChppMatchOrderValidator
             errors.Add($"CHPP kickers dizisi tam olarak 11 slot olmalı; bulunan: {payload.Lineup.Kickers.Count}.");
         if (payload.Lineup.Substitutions.Count != 0)
             errors.Add("WRITE-03 ilk sürümünde substitution emirleri gönderilmemeli.");
-        if (string.IsNullOrWhiteSpace(payload.Lineup.Captain))
-            errors.Add("İlk sürüm CHPP payload'ında captain alanı boş; bu alan WRITE-03 kapsamında henüz gönderilmiyor.");
-        if (string.IsNullOrWhiteSpace(payload.Lineup.SetPieces))
-            errors.Add("İlk sürüm CHPP payload'ında setPieces alanı boş; bu alan WRITE-03 kapsamında henüz gönderilmiyor.");
+
+        // Captain, set pieces and automatic substitutions are intentionally out of scope for v1.
+        if (target.TeamId <= 0 || (target.HomeTeamId != target.TeamId && target.AwayTeamId != target.TeamId))
+            errors.Add("Hedef maç kullanıcının bağlı olduğu takımın maçı değil.");
 
         if (teamPlayerIds is not null)
         {
@@ -76,9 +76,6 @@ public static class ChppMatchOrderValidator
             if (outsiders.Length > 0)
                 errors.Add("Takım kadrosunda olmayan oyuncu ID'si kullanıldı: " + string.Join(", ", outsiders));
         }
-
-        if (target.TeamId <= 0 || (target.HomeTeamId != target.TeamId && target.AwayTeamId != target.TeamId))
-            errors.Add("Hedef maç kullanıcının bağlı olduğu takımın maçı değil.");
 
         return errors;
     }
