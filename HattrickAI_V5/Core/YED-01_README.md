@@ -1,0 +1,1 @@
+YED-01 is the first-pass bench recommendation task. Implementation is intentionally simple: exclude final XI, rank remaining players by slot suitability, return up to two alternatives for each of seven slots, keep recommendations deterministic, and do not enter M6/M9 optimization. Follow-up tasks: pipeline integration, collapsible UI, manual selection, regression, acceptance.
