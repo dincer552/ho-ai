@@ -39,7 +39,7 @@ public sealed class ChppV5
     public IReadOnlySet<string> GrantedScopes => ParseScopes(Session.GetString(GrantedScopesSessionKey));
     public bool IsSupporter => string.Equals(Session.GetString(SupporterSessionKey), "1", StringComparison.OrdinalIgnoreCase);
     public bool CanSetMatchOrder => GrantedScopes.Contains("set_matchorder") && IsSupporter;
-    public HistoricalProductionExportRequested HistoricalProductionExportRequested => string.Equals(_context.HttpContext?.Request.Query["historical"].FirstOrDefault(), "1", StringComparison.OrdinalIgnoreCase);
+    public bool HistoricalProductionExportRequested => string.Equals(_context.HttpContext?.Request.Query["historical"].FirstOrDefault(), "1", StringComparison.OrdinalIgnoreCase);
 
     public async Task<string> StartAsync(string callback, CancellationToken ct)
     {
@@ -60,7 +60,6 @@ public sealed class ChppV5
         { var oauth2 = CreateOAuth(null, token, verifier); var signed2 = Sign("GET", AccessTokenUrl, oauth2, secret, null); using var fallback = CreateRequest(HttpMethod.Get, AccessTokenUrl, signed2.AuthorizationHeader); using var response2 = await _http.SendAsync(fallback, ct); var body2 = await response2.Content.ReadAsStringAsync(ct); if (!response2.IsSuccessStatusCode) throw new HttpRequestException($"CHPP access token alınamadı. İlk yanıt: {body} İkinci yanıt: {body2}"); body = body2; }
         var values = ParseForm(body); if (!values.TryGetValue("oauth_token", out var access) || !values.TryGetValue("oauth_token_secret", out var accessSecret)) throw new InvalidOperationException($"CHPP access token yanıtı beklenen formatta değil: {body}");
         Session.SetString("v5.access", access); Session.SetString("v5.accessSecret", accessSecret);
-        // Never treat requested scopes as granted scopes. Hattrick is the authority.
         var returnedScopes = values.TryGetValue("scope", out var scope) ? scope : string.Empty;
         Session.SetString(GrantedScopesSessionKey, returnedScopes);
         var supporterXml = await GetXmlAsync("teamdetails", new Dictionary<string,string?> { ["version"] = "3.0" }, ct);
