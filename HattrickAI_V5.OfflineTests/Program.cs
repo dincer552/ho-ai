@@ -3,6 +3,8 @@ using HattrickAI.V5.OfflineTests;
 
 if (args.Length > 0 && string.Equals(args[0], "write3", StringComparison.OrdinalIgnoreCase))
     return ChppWrite03ValidationRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "write4", StringComparison.OrdinalIgnoreCase))
+    return ChppWrite04MockWriteRegression.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
