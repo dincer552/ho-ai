@@ -47,5 +47,5 @@ public static class BenchRecommendationEngineRegression
         new(id, $"P{id}", keeper, defender, playmaker, passing, winger, scorer, stamina, 7, 5, 1, 0, PlayerSpecialty.None, 1);
 
     private static Slot SlotFor(int id, string code) =>
-        new(code, code, code, $"P{id}", id, new PlayerRating(1, 1, 1, 1, 1, 1, 1), 50, 50, PlayerOrder.Normal, 5);
+        new(code, code, code, $"P{id}", id, 1.0, 50, 50, PlayerOrder.Normal, 5);
 }
