@@ -38,7 +38,7 @@ public sealed class BenchRecommendationEngine
 
             var selected = pool
                 .OrderByDescending(p => PositionScore(p, codes))
-                .ThenByDescending(p => GeneralQuality(p))
+                .ThenByDescending(GeneralQuality)
                 .ThenBy(p => p.Id)
                 .Take(2)
                 .ToList();
@@ -52,16 +52,14 @@ public sealed class BenchRecommendationEngine
 
     private static bool FitsSlot(Player p, IReadOnlyCollection<string> codes)
     {
-        // First-pass role inference from player skills. This deliberately stays cheap;
-        // the detailed M3 positional model remains the source of truth for XI selection.
         return codes.Any(code => code switch
         {
-            "GK" => p.Keeper >= Max(p.Defender, p.Playmaker, p.Passing, p.Winger, p.Scorer),
-            "DEF-C" or "DEF-CR" or "DEF-CL" => p.Defender >= Math.Max(p.Playmaker, p.Winger),
-            "DEF-R" or "DEF-L" => p.Defender >= p.Winger && p.Defender >= p.Playmaker,
-            "IM-C" or "IM-R" or "IM-L" => p.Playmaker >= p.Defender && p.Playmaker >= p.Winger,
-            "FW-C" or "FW-R" or "FW-L" => p.Scorer >= Math.Max(p.Playmaker, p.Winger),
-            "W-R" or "W-L" => p.Winger >= Math.Max(p.Playmaker, p.Scorer),
+            "GK" => p.Keeper >= Max(p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring),
+            "DEF-C" or "DEF-CR" or "DEF-CL" => p.Defending >= Math.Max(p.Playmaking, p.Winger),
+            "DEF-R" or "DEF-L" => p.Defending >= p.Winger && p.Defending >= p.Playmaking,
+            "IM-C" or "IM-R" or "IM-L" => p.Playmaking >= p.Defending && p.Playmaking >= p.Winger,
+            "FW-C" or "FW-R" or "FW-L" => p.Scoring >= Math.Max(p.Playmaking, p.Winger),
+            "W-R" or "W-L" => p.Winger >= Math.Max(p.Playmaking, p.Scoring),
             _ => true
         });
     }
@@ -72,17 +70,17 @@ public sealed class BenchRecommendationEngine
         return codes.Max(code => code switch
         {
             "GK" => p.Keeper,
-            "DEF-C" or "DEF-CR" or "DEF-CL" => p.Defender,
-            "DEF-R" or "DEF-L" => (p.Defender * 0.7) + (p.Winger * 0.3),
-            "IM-C" or "IM-R" or "IM-L" => (p.Playmaker * 0.7) + (p.Passing * 0.3),
-            "FW-C" or "FW-R" or "FW-L" => (p.Scorer * 0.7) + (p.Passing * 0.3),
+            "DEF-C" or "DEF-CR" or "DEF-CL" => p.Defending,
+            "DEF-R" or "DEF-L" => (p.Defending * 0.7) + (p.Winger * 0.3),
+            "IM-C" or "IM-R" or "IM-L" => (p.Playmaking * 0.7) + (p.Passing * 0.3),
+            "FW-C" or "FW-R" or "FW-L" => (p.Scoring * 0.7) + (p.Passing * 0.3),
             "W-R" or "W-L" => (p.Winger * 0.7) + (p.Passing * 0.3),
             _ => GeneralQuality(p)
         });
     }
 
     private static double GeneralQuality(Player p) =>
-        (p.Keeper + p.Defender + p.Playmaker + p.Passing + p.Winger + p.Scorer) / 6.0;
+        (p.Keeper + p.Defending + p.Playmaking + p.Passing + p.Winger + p.Scoring) / 6.0;
 
     private static int Max(params int[] values) => values.Length == 0 ? 0 : values.Max();
 }
