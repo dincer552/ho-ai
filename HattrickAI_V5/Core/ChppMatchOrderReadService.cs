@@ -105,7 +105,7 @@ public sealed class ChppMatchOrderReadService
             match.MatchType, orderXml);
     }
 
-    internal static ChppUpcomingMatchSnapshot ParseSnapshot(
+    public static ChppUpcomingMatchSnapshot ParseSnapshot(
         int teamId,
         string teamName,
         int matchId,
