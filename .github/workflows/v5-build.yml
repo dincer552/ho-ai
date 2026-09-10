@@ -25,6 +25,11 @@ jobs:
           set -Eeuo pipefail
           node --check HattrickAI_V5/wwwroot/tactic-comparison.js
           node --check HattrickAI_V5/wwwroot/bench-selection.js
+      - name: CHPP WRITE-03 validation regression
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write3
       - name: Remove fragile root HTML middleware
         shell: bash
         run: |
