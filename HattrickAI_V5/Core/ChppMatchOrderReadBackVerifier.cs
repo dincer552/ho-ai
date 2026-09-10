@@ -29,14 +29,14 @@ public static class ChppMatchOrderReadBackVerifier
         for (var i = 0; i < expectedPositions.Count; i++)
         {
             var expectedSlot = expectedPositions[i];
-            var actual = actual.Players.FirstOrDefault(p => p.RoleId == FirstStringRoleBase + i);
+            var actualPlayer = actual.Players.FirstOrDefault(p => p.RoleId == FirstStringRoleBase + i);
             if (expectedSlot.Id <= 0)
             {
-                if (actual is not null) return Fail($"Boş ilk 11 slotu CHPP'de dolu: role {FirstStringRoleBase + i}.");
+                if (actualPlayer is not null) return Fail($"Boş ilk 11 slotu CHPP'de dolu: role {FirstStringRoleBase + i}.");
                 continue;
             }
 
-            if (actual is null || actual.PlayerId != expectedSlot.Id || actual.Behaviour != expectedSlot.Behaviour)
+            if (actualPlayer is null || actualPlayer.PlayerId != expectedSlot.Id || actualPlayer.Behaviour != expectedSlot.Behaviour)
                 return Fail($"XI eşleşmedi: RoleID {FirstStringRoleBase + i}.");
         }
 
@@ -44,8 +44,8 @@ public static class ChppMatchOrderReadBackVerifier
         if (expectedBench.Length != 7 || expectedBench.Any(p => p.Id <= 0)) return Fail("Beklenen primary bench 7 dolu oyuncudan oluşmuyor.");
         for (var i = 0; i < expectedBench.Length; i++)
         {
-            var actual = actual.Players.FirstOrDefault(p => p.RoleId == PrimaryBenchRoleBase + i);
-            if (actual is null || actual.PlayerId != expectedBench[i].Id)
+            var actualPlayer = actual.Players.FirstOrDefault(p => p.RoleId == PrimaryBenchRoleBase + i);
+            if (actualPlayer is null || actualPlayer.PlayerId != expectedBench[i].Id)
                 return Fail($"Primary bench eşleşmedi: slot {i + 1}.");
         }
 
