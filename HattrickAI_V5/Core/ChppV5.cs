@@ -76,6 +76,36 @@ public sealed class ChppV5
         using var request = CreateRequest(HttpMethod.Get, requestUrl, signed.AuthorizationHeader); using var response = await _http.SendAsync(request, ct); var body = await response.Content.ReadAsStringAsync(ct); if (!response.IsSuccessStatusCode) throw new HttpRequestException($"CHPP XML isteği başarısız ({(int)response.StatusCode}): {body}"); return body;
     }
 
+    public async Task<string> SetMatchOrderAsync(int matchId, int teamId, ChppMatchOrderPayload payload, CancellationToken ct)
+    {
+        ChppMatchOrderPermissionGuard.EnsureCanWrite(this);
+        if (matchId <= 0 || teamId <= 0) throw new ArgumentOutOfRangeException(nameof(matchId));
+        ArgumentNullException.ThrowIfNull(payload);
+        var lineup = ChppMatchOrderPayloadBuilder.Serialize(payload);
+        var form = new List<KeyValuePair<string,string>>
+        {
+            new("file", "matchorders"), new("version", "3.1"), new("actionType", "setmatchorder"),
+            new("matchID", matchId.ToString(CultureInfo.InvariantCulture)), new("teamID", teamId.ToString(CultureInfo.InvariantCulture)),
+            new("lineup", lineup)
+        };
+        var oauth = CreateOAuth(null, AccessToken!, null);
+        var signed = Sign("POST", ApiUrl, oauth, AccessSecret, form.Concat(oauth.Select(p => new KeyValuePair<string,string>(p.Key, p.Value))));
+        using var request = new HttpRequestMessage(HttpMethod.Post, ApiUrl);
+        request.Headers.TryAddWithoutValidation("Authorization", signed.AuthorizationHeader);
+        request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
+        request.Headers.TryAddWithoutValidation("Accept-Language", "en");
+        request.Content = new FormUrlEncodedContent(form);
+        using var response = await _http.SendAsync(request, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        if (!response.IsSuccessStatusCode) throw new HttpRequestException($"CHPP matchOrders write başarısız ({(int)response.StatusCode}): {body}");
+        var root = XmlV5.Root(body);
+        var matchData = root?.Descendants("MatchData").FirstOrDefault() ?? root;
+        var ordersSet = XmlV5.Text(matchData, "OrdersSet");
+        if (!string.Equals(ordersSet, "true", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"CHPP matchOrders kabul etmedi: {XmlV5.Text(matchData, "Reason")}");
+        return body;
+    }
+
     private HttpRequestMessage CreateRequest(HttpMethod method, string url, string? authorization) { var request = new HttpRequestMessage(method, url); if (!string.IsNullOrWhiteSpace(authorization)) request.Headers.TryAddWithoutValidation("Authorization", authorization); request.Headers.TryAddWithoutValidation("User-Agent", UserAgent); request.Headers.TryAddWithoutValidation("Accept-Language", "en"); request.Headers.TryAddWithoutValidation("Accept", "application/xml, text/xml, */*"); request.Headers.TryAddWithoutValidation("Connection", "keep-alive"); return request; }
     private Dictionary<string,string> CreateOAuth(string? callback, string? token, string? verifier) { var d = new Dictionary<string,string>(StringComparer.Ordinal) { ["oauth_timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ["oauth_nonce"] = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant(), ["oauth_consumer_key"] = _credentials.Key, ["oauth_signature_method"] = "HMAC-SHA1", ["oauth_version"] = "1.0" }; if (!string.IsNullOrWhiteSpace(callback)) d["oauth_callback"] = callback; if (!string.IsNullOrWhiteSpace(token)) d["oauth_token"] = token; if (!string.IsNullOrWhiteSpace(verifier)) d["oauth_verifier"] = verifier; return d; }
     private (string Signature, string AuthorizationHeader) Sign(string method, string baseUrl, IDictionary<string,string> oauth, string? tokenSecret, IEnumerable<KeyValuePair<string,string>>? all) { var values = (all ?? oauth.Select(x => new KeyValuePair<string,string>(x.Key, x.Value))).Select(p => new KeyValuePair<string,string>(Encode(p.Key), Encode(p.Value))).OrderBy(p => p.Key, StringComparer.Ordinal).ThenBy(p => p.Value, StringComparer.Ordinal).ToList(); var normalized = string.Join("&", values.Select(p => p.Key + "=" + p.Value)); var baseString = method.ToUpperInvariant() + "&" + Encode(baseUrl) + "&" + Encode(normalized); var signingKey = Encode(_credentials.Secret) + "&" + Encode(tokenSecret ?? string.Empty); using var hmac = new HMACSHA1(Encoding.ASCII.GetBytes(signingKey)); var signature = Convert.ToBase64String(hmac.ComputeHash(Encoding.ASCII.GetBytes(baseString))); var header = oauth.Select(p => Encode(p.Key) + "=\"" + Encode(p.Value) + "\"").ToList(); header.Add("oauth_signature=\"" + Encode(signature) + "\""); return (signature, "OAuth " + string.Join(", ", header)); }
