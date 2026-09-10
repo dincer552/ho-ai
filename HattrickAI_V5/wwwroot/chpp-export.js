@@ -5,14 +5,36 @@
   const esc=s=>String(s??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[m]));
   const loadBench=()=>{try{return JSON.parse(localStorage.getItem(benchKey)||'{}');}catch(_){return {};}};
   const tacticNames={Normal:'Normal',CounterAttack:'Kontra atak',LongShots:'Uzun şutlar',AttackMiddle:'Ortadan hücum',AttackWings:'Kanatlardan hücum',Creative:'Yaratıcı',Pressing:'Pres'};
+  let chppCanWrite=false;
+  let capabilityChecked=false;
   function host(){const p=document.getElementById('ownPitch');return p&&p.closest('.lineup-card');}
+  function setButtonState(enabled){const b=document.getElementById('chppPreview');if(!b)return;b.disabled=!enabled;b.style.opacity=enabled?'1':'.5';b.style.cursor=enabled?'pointer':'not-allowed';}
+  async function refreshCapability(){
+    const permission=document.getElementById('chppPermission');
+    if(!permission)return;
+    permission.textContent='Supporter durumu kontrol ediliyor…';permission.style.color='#747c76';
+    capabilityChecked=false;chppCanWrite=false;setButtonState(false);
+    try{
+      const r=await fetch('/api/v5/chpp-export/target?ts='+Date.now(),{cache:'no-store'});const d=await r.json().catch(()=>({}));
+      if(!r.ok)throw Error(await apiError(r,d,'CHPP bağlantısı bulunamadı.'));
+      chppCanWrite=!!d.canWrite;capabilityChecked=true;
+      permission.textContent=chppCanWrite?'✓ Supporter aktif — HATTRICK’E AKTAR hazır.':'⛔ Hattrick Supporter gerekli — aktarım butonu pasif.';
+      permission.style.color=chppCanWrite?'#267448':'#b33b32';
+      setButtonState(chppCanWrite);
+    }catch(e){
+      capabilityChecked=true;chppCanWrite=false;
+      permission.textContent='⛔ '+e.message+' — aktarım butonu pasif.';permission.style.color='#b33b32';
+      setButtonState(false);
+    }
+  }
   function ensure(){
     const h=host();if(!h)return null;
     let box=document.getElementById('chppExportBox');if(box)return box;
     box=document.createElement('section');box.id='chppExportBox';box.style.cssText='margin-top:12px;background:#fff;border:1px solid #dfe5e1;border-radius:15px;box-shadow:0 2px 9px #0002;overflow:hidden';
-    box.innerHTML='<div style="padding:14px 16px"><div style="font:900 10px Arial;letter-spacing:.07em;color:#7c837f">CHPP AKTARIM</div><div id="chppTarget" style="font:800 15px Arial;color:#27322d;margin-top:4px">Hedef maç kontrol ediliyor…</div><div id="chppPermission" style="font:11px Arial;color:#747c76;margin-top:4px"></div><button id="chppPreview" type="button" style="width:100%;margin-top:10px;height:46px;border:0;border-radius:10px;background:#21804a;color:#fff;font:900 13px Arial;cursor:pointer">HATTRICK’E AKTAR</button></div><div id="chppPreviewBody" style="display:none;border-top:1px solid #e5ebe7;padding:12px 14px"></div>';
+    box.innerHTML='<div style="padding:14px 16px"><div style="font:900 10px Arial;letter-spacing:.07em;color:#7c837f">CHPP AKTARIM</div><div id="chppTarget" style="font:800 15px Arial;color:#27322d;margin-top:4px">Hedef maç kontrol ediliyor…</div><div id="chppPermission" style="font:11px Arial;color:#747c76;margin-top:4px">Supporter durumu kontrol ediliyor…</div><button id="chppPreview" type="button" disabled style="width:100%;margin-top:10px;height:46px;border:0;border-radius:10px;background:#21804a;color:#fff;font:900 13px Arial;cursor:not-allowed;opacity:.5">HATTRICK’E AKTAR</button></div><div id="chppPreviewBody" style="display:none;border-top:1px solid #e5ebe7;padding:12px 14px"></div>';
     h.parentNode.insertBefore(box,h.nextSibling);
     document.getElementById('chppPreview').onclick=preview;
+    refreshCapability();
     return box;
   }
   function current(){return window.__v5LastAnalysis||null;}
@@ -32,16 +54,19 @@
   }
   async function apiError(r,d,fallback){return d.message||d.detail||d.title||fallback+' (HTTP '+r.status+')';}
   async function preview(){
+    if(!capabilityChecked||!chppCanWrite){await refreshCapability();if(!chppCanWrite)return;}
     const body=document.getElementById('chppPreviewBody'),button=document.getElementById('chppPreview');
     try{
       const req=request();button.disabled=true;button.textContent='KONTROL EDİLİYOR…';
       const r=await fetch('/api/v5/chpp-export/target?ts='+Date.now(),{cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(await apiError(r,d,'Hedef maç alınamadı.'));
+      chppCanWrite=!!d.canWrite;
+      if(!chppCanWrite){document.getElementById('chppPermission').textContent='⛔ Hattrick Supporter gerekli — aktarım butonu pasif.';document.getElementById('chppPermission').style.color='#b33b32';setButtonState(false);throw Error('Hattrick Supporter gerekli.');}
       body.style.display='block';body.innerHTML='<div style="font:900 12px Arial;color:#27322d">'+esc(d.homeTeamName)+' – '+esc(d.awayTeamName)+'</div><div style="font:11px Arial;color:#747c76;margin-top:4px">Başlangıç: '+esc(new Date(d.matchDate).toLocaleString('tr-TR'))+'</div><div style="font:11px Arial;color:#747c76;margin-top:4px">Diziliş: <b>'+esc(req.Formation)+'</b> • Taktik: <b>'+esc(tacticNames[req.Tactic]||req.Tactic)+'</b></div><div style="font:11px Arial;color:#747c76;margin-top:4px">11 ilk oyuncu + 7 yedek hazırlanacak.</div><div id="chppExportState" style="margin-top:10px;font:800 11px Arial;color:#267448"></div><button id="chppConfirm" type="button" style="width:100%;margin-top:10px;height:46px;border:0;border-radius:10px;background:#1f6f43;color:#fff;font:900 13px Arial;cursor:pointer">ONAYLA VE HATTRICK’E AKTAR</button>';
       document.getElementById('chppConfirm').onclick=()=>send(req);
-      document.getElementById('chppPermission').textContent=d.canWrite?'set_matchorder yetkisi hazır.':'set_matchorder yetkisi yok — aktarım engellenecek.';
-      document.getElementById('chppPermission').style.color=d.canWrite?'#267448':'#b33b32';
+      document.getElementById('chppPermission').textContent='✓ Supporter aktif — HATTRICK’E AKTAR hazır.';
+      document.getElementById('chppPermission').style.color='#267448';
     }catch(e){body.style.display='block';body.innerHTML='<div style="font:800 12px Arial;color:#b33b32">'+esc(e.message)+'</div>';}
-    finally{button.disabled=false;button.textContent='HATTRICK’E AKTAR';}
+    finally{if(chppCanWrite){button.disabled=false;button.textContent='HATTRICK’E AKTAR';setButtonState(true);}else{button.textContent='HATTRICK’E AKTAR';setButtonState(false);}}
   }
   async function send(req){
     const state=document.getElementById('chppExportState'),button=document.getElementById('chppConfirm');if(!button)return;
@@ -53,7 +78,7 @@
   }
   function watch(){
     const runtime=document.getElementById('runtime');ensure();
-    if(runtime){let last='';const check=()=>{const t=runtime.textContent||'';if(t!==last){last=t;if(/analiz tamamlandı/i.test(t)){ensure();}}};new MutationObserver(check).observe(runtime,{subtree:true,childList:true,characterData:true});}
+    if(runtime){let last='';const check=()=>{const t=runtime.textContent||'';if(t!==last){last=t;if(/analiz tamamlandı/i.test(t)){ensure();refreshCapability();}}};new MutationObserver(check).observe(runtime,{subtree:true,childList:true,characterData:true});}
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',watch);else watch();
 })();
