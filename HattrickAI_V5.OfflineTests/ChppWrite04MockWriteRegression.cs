@@ -43,7 +43,7 @@ public static class ChppWrite04MockWriteRegression
         Check(json.RootElement.GetProperty("positions")[0].GetProperty("Id").GetInt32() == 1, "GK player id preserved", failures);
         Check(json.RootElement.GetProperty("bench")[0].GetProperty("Id").GetInt32() == 12, "primary bench player id preserved", failures);
         Check(json.RootElement.GetProperty("bench")[7].GetProperty("Id").GetInt32() == 0, "backup bench remains empty", failures);
-        Check(json.RootElement.GetProperty("settings").GetProperty("Tactic")?.GetString() == "4", "tactic code preserved", failures);
+        Check(json.RootElement.GetProperty("settings").GetProperty("Tactic").GetString() == "4", "tactic code preserved", failures);
 
         Check(result.Response.OrdersSet, "mock response OrdersSet=true", failures);
         Check(result.Response.TeamId == 12345 && result.Response.MatchId == 67890, "response target ids", failures);
