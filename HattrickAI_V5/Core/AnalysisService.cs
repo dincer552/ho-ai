@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Http;
 
@@ -90,6 +91,10 @@ public sealed class AnalysisService
         var appliedQuestionnaire = questionnaire with { MatchImportance = pipeline.SelectedMatchApproach };
         var location = next.HomeId == teamId ? "Ev sahibi" : "Deplasman";
         var title = $"{next.Date.ToLocalTime():dd.MM.yyyy HH:mm} • {opponentName} • {location}";
+
+        var sessionId = _http.HttpContext?.Session.Id;
+        if (!string.IsNullOrWhiteSpace(sessionId))
+            BenchSelectionState.Save(sessionId, ownPlayers, finalLineup.Slots);
 
         return new Analysis(build, teamName, opponentName, title, finalLineup, opponentLineup, finalRating, opponentHistoricalRating, appliedQuestionnaire)
         {
