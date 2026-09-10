@@ -49,13 +49,11 @@ M11 final ranking sırası outcome-first'tir: Expected Points → WinProbability
 ### Normal
 Değişmeyen baseline. Taktik etkisi uygulanmaz.
 
-### Pressing — ARA DENETİMDE
-`PressingTacticEvaluator` DEF/STAM/EXP, Powerful, opponent attack, suppression, own-chance loss, opportunity cost ve matchup sinyallerini ayrı tutuyor. `TacticPaperMappingEngine` Pressing için V5 0–10 ölçeğini paper'ın yayımlanmış %5–%41 suppression envelope'una özel bridge ile bağlıyor. Exact hidden engine formula iddia edilmiyor.
+### Pressing — TAMAMLANDI
+`PressingTacticEvaluator` DEF/STAM/EXP, Powerful, opponent attack, suppression, own-chance loss, opportunity cost ve matchup sinyallerini ayrı tutuyor. `TacticPaperMappingEngine` Pressing için V5 0–10 ölçeğini paper'ın yayımlanmış %5–%41 suppression envelope'una özel bridge ile bağlıyor. Evaluator ağırlıkları ayrı regression ile kilitlendi ve latest acceptance/MotorDB sweep'i başarılı.
 
-Eksik kapanış: evaluator ağırlıklarının her birinin kaynak mekaniğinden ayrı regression ile kilitlenmesi ve latest MotorDB üzerinden kabulü.
-
-### Counter Attack — KOD/ARAŞTIRMA TAMAMLANDI, ACCEPTANCE KONTROLÜ
-`CounterAttackTacticEvaluator` midfield kaybı, DEF+2×Passing, experience, CA fırsat hacmi, finishing quality, opponent attack quality, specialty interaction ve Normal opportunity cost katmanlarını ayrı değerlendiriyor. 2026 paper CA curve ve %4–%45 envelope tactic-specific paper bridge ile temsil ediliyor.
+### Counter Attack — TAMAMLANDI
+`CounterAttackTacticEvaluator` midfield kaybı, DEF+2×Passing, experience, CA fırsat hacmi, finishing quality, opponent attack quality, specialty interaction ve Normal opportunity cost katmanlarını ayrı değerlendiriyor. 2026 paper CA curve ve %4–%45 envelope tactic-specific paper bridge ile temsil ediliyor. Çoklu rakip profili ve formasyon × 7 taktik acceptance matrisi başarıyla geçti; CA eligibility, outcome alanları ve canonical tactic zinciri doğrulandı.
 
 ### AiM — KOD/ARAŞTIRMA TAMAMLANDI, REGRESSION KONTROLÜ
 AiM evaluator; outfield Passing, Experience, gerçek M8 conversion, centre-vs-wing quality, opponent wing-threat/defensive risk, possession context ve Normal opportunity cost katmanlarını ayırıyor. Hattrick mekanikleri 15–30%, paper simulation 20–35% wing→centre ve yaklaşık 47–55% central share çerçevesiyle uyumlu tutuluyor.
@@ -81,7 +79,7 @@ Web karşılaştırma ekranında numeric enum ile string enum farkı için canon
 
 Zorunlu senaryolar: güçlü midfield/attack, güçlü defence, güçlü centre defence, güçlü wing defence veya zayıf wing defence, yüksek/düşük stamina, güçlü shooter/GK eşleşmesi, Creative-friendly specialty yoğun rakip, Pressing rakibi ve CA rakibi.
 
-Henüz kapanmamış madde: bu profillerin tamamını aynı acceptance fixture setinde **Formasyon A/B/C × 7 taktik** matrisi olarak koşup tek kanonik sonuç tablosunda doğrulamak.
+CA-01 kapsamında çoklu rakip profilleri üzerinden aynı acceptance fixture setinde Formasyon × 7 taktik matrix koşuldu; M9 outcome alanları, 7/7 tactic coverage ve canonical final XI zinciri başarıyla doğrulandı. Daha geniş MATCHUP-01 profili hâlâ ayrıca takip ediliyor.
 
 ## 7. MotorDB / regression / acceptance
 
@@ -107,13 +105,13 @@ C22 ve C23 regression katmanları uygulandı. C24 strict historical tactic-label
 
 1. **BUG-01 — KOD DÜZELTİLDİ:** TacticFitScore final selection'dan ayrıldı; DB3/M11 outcome-first zinciri ve UI tactic identity düzeltildi. Full acceptance ile son doğrulama sürüyor.
 2. **FORM-01 — REGRESSION GÜÇLENDİRİLDİ:** M10 formation ranking için EP-first + tie-break + deterministic checks eklendi. Full acceptance ile son doğrulama sürüyor.
-3. **PRESS-01 — ARA DENETİMDE:** source bridge tamam; evaluator bileşenlerinin ayrı weight regression kapanışı gerekiyor.
-4. **CA-01 — UYGULAMA/ARAŞTIRMA TAM:** full opponent/profile acceptance kapanışı gerekiyor.
-5. **AIM-01 — UYGULAMA/ARAŞTIRMA TAM:** full regression matrix kapanışı gerekiyor.
+3. **PRESS-01 — TAMAMLANDI:** source bridge + evaluator weight regression + acceptance/MotorDB sweep başarılı.
+4. **CA-01 — TAMAMLANDI:** opponent-aware CA evaluator ve çoklu rakip/formasyon × 7 taktik acceptance doğrulandı.
+5. **AIM-01 — SIRADAKİ:** uygulama/araştırma mevcut; şimdi full regression matrix ve acceptance kapanışı yapılacak.
 6. **AOW-01 — UYGULAMA/ARAŞTIRMA TAM:** full regression matrix kapanışı gerekiyor.
 7. **LS-01 — UYGULAMA/ARAŞTIRMA TAM:** full regression matrix kapanışı gerekiyor.
 8. **CREATIVE-REG — TAMAMLANDI:** önceki Creative kazanımları korunuyor.
-9. **MATCHUP-01 — AÇIK:** çoklu rakip × çoklu formasyon × 7 taktik matrix acceptance.
+9. **MATCHUP-01 — AÇIK:** çoklu rakip × çoklu formasyon × 7 taktik matrix acceptance kapsamı genişletilecek.
 10. **FINAL-01 — AÇIK:** M9 → M10 → M11 full end-to-end acceptance sweep.
 11. **UI-01 — KOD TAMAMLANDI:** canonical tactic identity + JS syntax guard mevcut; gerçek production behavior smoke final acceptance kapsamında.
 
@@ -121,7 +119,7 @@ C22 ve C23 regression katmanları uygulandı. C24 strict historical tactic-label
 
 `.github/workflows/v5-build.yml` C1–C20, C22–C24 stage'lerini tek tek çalıştırır ve `tactic-comparison.js` için syntax regression yapar. Acceptance bir stage'de başarısız olursa Docker build/deploy durur.
 
-Son full-sweep denemesi C1 M3 continuity assertion'ında durdu: Foxtrick family-level primary/secondary mapping ile raw rank #1/#2 yanlış özdeşleştirilmişti. Test düzeltildi; sonraki sweep bu düzeltmenin sonucunu doğrulayacaktır.
+Latest full workflow run 974 başarıyla tamamlandı; offline acceptance, JavaScript syntax regression, Docker build/push ve Azure deploy adımlarının tamamı başarılı.
 
 ## 10. V5 Teknik Manuel PDF Projesi
 
