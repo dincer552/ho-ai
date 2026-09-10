@@ -97,8 +97,33 @@ jobs:
           HAD_OLD=0
           mkdir -p "${LOG_DIR}"; touch "${LOG_FILE}"
           log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$1" | tee -a "${LOG_FILE}"; }
+          dump_container_diagnostics() {
+            log "========== NEXT CONTAINER DIAGNOSTICS =========="
+            docker ps -a --filter "name=${NEXT_CONTAINER}" --no-trunc | tee -a "${LOG_FILE}" || true
+            docker inspect "${NEXT_CONTAINER}" --format 'status={{.State.Status}} exit={{.State.ExitCode}} error={{.State.Error}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' 2>&1 | tee -a "${LOG_FILE}" || true
+            docker logs --tail 250 "${NEXT_CONTAINER}" 2>&1 | tee -a "${LOG_FILE}" || true
+            log "========== HEALTH RESPONSE =========="
+            curl -i --max-time 10 http://127.0.0.1:10000/health 2>&1 | tee -a "${LOG_FILE}" || true
+          }
           cleanup_secrets() { docker logout ghcr.io >/dev/null 2>&1 || true; unset GHCR_TOKEN GHCR_USER CHPP_CONSUMER_SECRET; }
-          rollback_deploy() { local rc=$?; cleanup_secrets; if [ "${DEPLOY_COMMITTED}" -ne 1 ]; then log "⚠️ Yeni deployment başarısız; rollback başlıyor..."; docker rm -f "${NEXT_CONTAINER}" >/dev/null 2>&1 || true; if [ "${HAD_OLD}" -eq 1 ]; then docker rename "${ROLLBACK_CONTAINER}" "${OLD_CONTAINER}" >/dev/null 2>&1 || true; docker start "${OLD_CONTAINER}" >/dev/null 2>&1 || true; curl --fail --silent --show-error http://127.0.0.1:10000/health >/dev/null 2>&1 && log "🟢 Eski container rollback sonrası sağlıklı." || log "❌ Eski container rollback sonrası health check geçemedi."; else log "⚠️ Önceki çalışan container bulunmadı; geri alınacak sürüm yok."; fi; fi; if [ "${rc}" -ne 0 ]; then log "❌ DEPLOY FAILED (exit code ${rc})"; fi; exit "${rc}"; }
+          rollback_deploy() {
+            local rc=$?
+            if [ "${rc}" -ne 0 ] && [ "${DEPLOY_COMMITTED}" -ne 1 ]; then
+              dump_container_diagnostics
+              log "⚠️ Yeni deployment başarısız; rollback başlıyor..."
+              docker rm -f "${NEXT_CONTAINER}" >/dev/null 2>&1 || true
+              if [ "${HAD_OLD}" -eq 1 ]; then
+                docker rename "${ROLLBACK_CONTAINER}" "${OLD_CONTAINER}" >/dev/null 2>&1 || true
+                docker start "${OLD_CONTAINER}" >/dev/null 2>&1 || true
+                if curl --fail --silent --show-error http://127.0.0.1:10000/health >/dev/null 2>&1; then log "🟢 Eski container rollback sonrası sağlıklı."; else log "❌ Eski container rollback sonrası health check geçemedi."; fi
+              else
+                log "⚠️ Önceki çalışan container bulunmadı; geri alınacak sürüm yok."
+              fi
+            fi
+            cleanup_secrets
+            if [ "${rc}" -ne 0 ]; then log "❌ DEPLOY FAILED (exit code ${rc})"; fi
+            exit "${rc}"
+          }
           trap rollback_deploy EXIT
           log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; log "🚀 GHCR VM deployment başladı"; log "Branch: ${GITHUB_REF_NAME}"; log "Commit: ${GITHUB_SHA:0:7}"; log "Image: ${IMAGE}:${TAG}"
           printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
