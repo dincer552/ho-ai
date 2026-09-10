@@ -11,6 +11,33 @@ namespace HattrickAI.V5.Core;
 /// </summary>
 public static class PressingTacticEvaluator
 {
+    // V5 heuristic weights. These are implementation coefficients, not official Hattrick formulas.
+    public const double SquadDefenceWeight = 0.42;
+    public const double SquadStaminaWeight = 0.33;
+    public const double SquadExperienceWeight = 0.15;
+    public const double SquadPowerfulWeight = 0.10;
+    public const double NetSuppressionWeight = 0.60;
+    public const double NetSuppressionExcessWeight = 0.25;
+    public const double NetSuppressionAttackWeight = 0.15;
+    public const double OpportunityOwnChanceLossWeight = 0.48;
+    public const double OpportunityStaminaRiskWeight = 0.22;
+    public const double OpportunityWinProbabilityLossWeight = 0.18;
+    public const double OpportunityMidfieldRiskWeight = 0.12;
+    public const double MatchupAttackWeight = 0.45;
+    public const double MatchupSuppressionWeight = 0.30;
+    public const double MatchupLowOpponentQualityWeight = 0.15;
+    public const double MatchupStaminaGapWeight = 0.10;
+    public const double PrimaryNetSuppressionWeight = 0.55;
+    public const double PrimaryTacticalSignalWeight = 0.25;
+    public const double PrimaryDefenceWeight = 0.20;
+    public const double ScorePrimaryWeight = 0.40;
+    public const double ScoreSquadFitWeight = 0.25;
+    public const double ScoreMatchupWeight = 0.20;
+    public const double ScoreTacticalSignalWeight = 0.15;
+    public const double ScoreOpportunityCostPenalty = 0.25;
+    public const double StaminaAverageWeight = 0.75;
+    public const double StaminaWeakestWeight = 0.25;
+
     public static TacticFitResult Evaluate(
         Lineup lineup,
         ComparisonEvaluationView baselineNormal,
@@ -30,17 +57,16 @@ public static class PressingTacticEvaluator
 
         var own = pressingEvaluation.Chance;
         var baseline = baselineNormal.Chance;
-        var inputs = pressingEvaluation.Advanced.Inputs;
 
         var defenceSupport = DefenceSupport(outfield);
         var staminaSupport = StaminaSupport(outfield);
         var experienceSupport = ExperienceSupport(outfield);
         var powerfulBoost = PowerfulDefenceBoost(outfield);
         var squadFit = Math.Clamp(
-            0.42 * defenceSupport +
-            0.33 * staminaSupport +
-            0.15 * experienceSupport +
-            0.10 * powerfulBoost,
+            SquadDefenceWeight * defenceSupport +
+            SquadStaminaWeight * staminaSupport +
+            SquadExperienceWeight * experienceSupport +
+            SquadPowerfulWeight * powerfulBoost,
             0, 1);
 
         var opponentSuppression = RelativeReduction(baseline.OpponentRegularChanceExpected, own.OpponentRegularChanceExpected);
@@ -48,38 +74,30 @@ public static class PressingTacticEvaluator
         var opponentAttackValue = Clamp01(own.OpponentRegularQuality);
         var midfieldRisk = Clamp01((0.50 - own.MidfieldShare) / 0.50);
 
-        // Pressing is valuable when it removes opponent normal chances without
-        // sacrificing a disproportionate share of our own normal chances.
-        var netSuppression = Clamp01(0.60 * opponentSuppression + 0.25 * Math.Max(0, opponentSuppression - ownChanceLoss) + 0.15 * opponentAttackValue);
+        var netSuppression = Clamp01(NetSuppressionWeight * opponentSuppression + NetSuppressionExcessWeight * Math.Max(0, opponentSuppression - ownChanceLoss) + NetSuppressionAttackWeight * opponentAttackValue);
 
-        // Low stamina is a specific Pressing failure mode because pressure is
-        // maintained by every outfield player and fatigue can erode later match play.
         var staminaRisk = 1.0 - staminaSupport;
         var opportunityCost = Clamp01(
-            0.48 * ownChanceLoss +
-            0.22 * staminaRisk +
-            0.18 * Math.Max(0, baselineNormal.Prediction.Prediction.WinProbability - pressingEvaluation.Prediction.Prediction.WinProbability) +
-            0.12 * midfieldRisk);
+            OpportunityOwnChanceLossWeight * ownChanceLoss +
+            OpportunityStaminaRiskWeight * staminaRisk +
+            OpportunityWinProbabilityLossWeight * Math.Max(0, baselineNormal.Prediction.Prediction.WinProbability - pressingEvaluation.Prediction.Prediction.WinProbability) +
+            OpportunityMidfieldRiskWeight * midfieldRisk);
 
-        // A strong midfield/attack opponent is a meaningful Pressing target, while
-        // a weak opponent attack gives Pressing less value because there is less to suppress.
         var matchup = Clamp01(
-            0.45 * opponentAttackValue +
-            0.30 * opponentSuppression +
-            0.15 * (1.0 - Clamp01(own.OpponentRegularQuality)) +
-            0.10 * StaminaGap(outfield, opponentPlayers));
+            MatchupAttackWeight * opponentAttackValue +
+            MatchupSuppressionWeight * opponentSuppression +
+            MatchupLowOpponentQualityWeight * (1.0 - Clamp01(own.OpponentRegularQuality)) +
+            MatchupStaminaGapWeight * StaminaGap(outfield, opponentPlayers));
 
-        // The tactical level is already represented by M7.2/M8. Here it is used as
-        // an objective signal, not as a replacement for the player-by-player checks.
         var tacticalSignal = Clamp01(pressingEvaluation.Advanced.Level.Value / 10.0);
-        var primary = Clamp01(0.55 * netSuppression + 0.25 * tacticalSignal + 0.20 * defenceSupport);
+        var primary = Clamp01(PrimaryNetSuppressionWeight * netSuppression + PrimaryTacticalSignalWeight * tacticalSignal + PrimaryDefenceWeight * defenceSupport);
 
         var score = Math.Clamp(
-            0.40 * primary +
-            0.25 * squadFit +
-            0.20 * matchup +
-            0.15 * tacticalSignal -
-            0.25 * opportunityCost,
+            ScorePrimaryWeight * primary +
+            ScoreSquadFitWeight * squadFit +
+            ScoreMatchupWeight * matchup +
+            ScoreTacticalSignalWeight * tacticalSignal -
+            ScoreOpportunityCostPenalty * opportunityCost,
             0, 1);
 
         var explanation =
@@ -121,9 +139,7 @@ public static class PressingTacticEvaluator
     {
         var average = Clamp01(outfield.Average(p => p.Stamina) / 10.0);
         var weakest = Clamp01(outfield.Min(p => p.Stamina) / 10.0);
-        // Pressing uses every outfield player's stamina, so avoid treating one weak
-        // stamina link as harmless while still keeping the average dominant.
-        return Clamp01(0.75 * average + 0.25 * weakest);
+        return Clamp01(StaminaAverageWeight * average + StaminaWeakestWeight * weakest);
     }
 
     private static double ExperienceSupport(IReadOnlyList<Player> outfield)
