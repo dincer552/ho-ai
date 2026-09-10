@@ -30,6 +30,7 @@ builder.Services.AddScoped<ChppV5>(sp =>
 });
 builder.Services.AddScoped<AnalysisService>();
 builder.Services.AddScoped<ReferenceMatchService>();
+builder.Services.AddScoped<ChppMatchOrderReadService>();
 
 var app = builder.Build();
 var portText = Environment.GetEnvironmentVariable("PORT");
