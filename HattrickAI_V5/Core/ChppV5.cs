@@ -86,28 +86,41 @@ public sealed class ChppV5
         ChppMatchOrderPermissionGuard.EnsureCanWrite(this);
         if (matchId <= 0 || teamId <= 0) throw new ArgumentOutOfRangeException(nameof(matchId));
         ArgumentNullException.ThrowIfNull(payload);
-        var lineup = ChppMatchOrderPayloadBuilder.Serialize(payload);
-        var form = new List<KeyValuePair<string,string>>
+
+        // CHPP's matchorders setmatchorder contract is deliberately different
+        // from the normal form POST: every parameter except the lineup JSON is
+        // in the query string. The lineup itself is the raw application/json
+        // request body. The OAuth signature therefore covers the query
+        // parameters, not the JSON body.
+        var query = new List<KeyValuePair<string,string>>
         {
-            new("file", "matchorders"), new("version", "3.1"), new("actionType", "setmatchorder"),
-            new("matchID", matchId.ToString(CultureInfo.InvariantCulture)), new("teamID", teamId.ToString(CultureInfo.InvariantCulture)),
-            new("lineup", lineup)
+            new("file", "matchorders"),
+            new("version", "3.1"),
+            new("actionType", "setmatchorder"),
+            new("matchID", matchId.ToString(CultureInfo.InvariantCulture)),
+            new("teamId", teamId.ToString(CultureInfo.InvariantCulture)),
+            new("sourceSystem", "hattrick")
         };
+        var lineup = ChppMatchOrderPayloadBuilder.Serialize(payload);
+        var requestUrl = ApiUrl + "?" + string.Join("&", query.Select(p => Encode(p.Key) + "=" + Encode(p.Value)));
         var oauth = CreateOAuth(null, AccessToken!, null);
-        var signed = Sign("POST", ApiUrl, oauth, AccessSecret, form.Concat(oauth.Select(p => new KeyValuePair<string,string>(p.Key, p.Value))));
-        using var request = new HttpRequestMessage(HttpMethod.Post, ApiUrl);
+        var signed = Sign("POST", ApiUrl, oauth, AccessSecret, query.Concat(oauth.Select(p => new KeyValuePair<string,string>(p.Key, p.Value))));
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
         request.Headers.TryAddWithoutValidation("Authorization", signed.AuthorizationHeader);
         request.Headers.TryAddWithoutValidation("User-Agent", UserAgent);
         request.Headers.TryAddWithoutValidation("Accept-Language", "en");
-        request.Content = new FormUrlEncodedContent(form);
+        request.Headers.TryAddWithoutValidation("Accept", "application/xml, text/xml, */*");
+        request.Content = new StringContent(lineup, Encoding.UTF8, "application/json");
         using var response = await _http.SendAsync(request, ct);
         var body = await response.Content.ReadAsStringAsync(ct);
         if (!response.IsSuccessStatusCode) throw new HttpRequestException($"CHPP matchOrders write başarısız ({(int)response.StatusCode}): {body}");
         var root = XmlV5.Root(body);
         var matchData = root?.Descendants("MatchData").FirstOrDefault() ?? root;
-        var ordersSet = XmlV5.Text(matchData, "OrdersSet");
-        if (!string.Equals(ordersSet, "true", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"CHPP matchOrders kabul etmedi: {XmlV5.Text(matchData, "Reason")}");
+        var ordersSetText = (string?)matchData?.Attribute("OrdersSet") ?? XmlV5.Text(matchData, "OrdersSet");
+        var reason = XmlV5.Text(matchData, "Reason");
+        if (!string.Equals(ordersSetText, "true", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"CHPP matchOrders kabul etmedi. Reason: {reason}. Response: {body}");
         return body;
     }
 
