@@ -8,7 +8,7 @@ namespace HattrickAI.V5.OfflineTests;
 /// </summary>
 public static class M4LegalFormationRegression
 {
-    private static readonly string[] ExpectedFormationNames = ["2-5-3", "3-4-3", "3-5-2", "4-4-2", "4-5-1", "5-3-2"];
+    private static readonly string[] ExpectedFormationNames = ["2-5-3", "3-4-3", "3-5-2", "4-4-2", "4-5-1", "5-3-2", "5-5-0"];
     private static readonly string[] AllSlots = ["GK", "DEF-L", "DEF-CL", "DEF-C", "DEF-CR", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"];
 
     public static int Run()
@@ -27,6 +27,11 @@ public static class M4LegalFormationRegression
                 Check(definition.SlotCodes.All(code => AllSlots.Contains(code, StringComparer.Ordinal)), $"registry {definition.Formation} contains an unknown slot code");
                 Check(definition.SlotCodes.Count(x => x == "GK") == 1, $"registry {definition.Formation} must contain exactly one GK");
             }
+            var fiveFiveZero = registry.Single(x => x.Formation == "5-5-0");
+            Check(fiveFiveZero.SlotCodes.Count(x => x.StartsWith("DEF-", StringComparison.Ordinal)) == 5, "5-5-0 must contain five defenders");
+            Check(fiveFiveZero.SlotCodes.Count(x => x.StartsWith("W-", StringComparison.Ordinal) || x.StartsWith("IM-", StringComparison.Ordinal)) == 5, "5-5-0 must contain five midfield slots");
+            Check(fiveFiveZero.SlotCodes.All(x => !x.StartsWith("FW-", StringComparison.Ordinal)), "5-5-0 must contain no forward slot");
+
             var players = Enumerable.Range(1, 11).Select(id => new PlayerAnalysisProfile(id, $"Fixture Player {id}", true, 0, PlayerSpecialty.None, new PlayerSpecialtyProfile(PlayerSpecialty.None, false, false, false, false, false, false, false, ""), AllSlots.Select(code => new PlayerPositionCandidate(code, 1.0)).ToList(), "GK", "DEF-C")).ToList();
             var m3 = new PlayerAnalysisResult(players);
             var formationEngine = new FormationCandidateEngine();
@@ -43,7 +48,7 @@ public static class M4LegalFormationRegression
             var ineligible = players.Take(10).Append(players[0] with { InjuryLevel = 999 }).ToList();
             Check(formationEngine.Generate(new PlayerAnalysisResult(ineligible)).Candidates.Count == 0, "M4 must exclude injured/ineligible players from feasibility");
             Console.WriteLine("PASS: C2 M4 legal formations + authoritative registry");
-            Console.WriteLine($"Legal set={registry.Count} | slot contract=11 each | registry source=production | feasibility guard=10-player rejection");
+            Console.WriteLine($"Legal set={registry.Count} | slot contract=11 each | 5-5-0=5 DEF + 5 MID + 0 FW | feasibility guard=10-player rejection");
             Console.WriteLine("NEXT: C3 M5 XI candidates");
             return 0;
         }
