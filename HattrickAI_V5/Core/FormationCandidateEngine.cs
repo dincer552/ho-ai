@@ -21,7 +21,8 @@ public sealed class FormationCandidateEngine : IFormationCandidateEngine
         new("4-4-2", ["GK", "DEF-L", "DEF-CL", "DEF-CR", "DEF-R", "W-L", "IM-L", "IM-R", "W-R", "FW-L", "FW-R"]),
         new("4-5-1", ["GK", "DEF-L", "DEF-CL", "DEF-CR", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-C"]),
         new("2-5-3", ["GK", "DEF-CL", "DEF-CR", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"]),
-        new("5-3-2", ["GK", "DEF-L", "DEF-CL", "DEF-C", "DEF-CR", "DEF-R", "IM-L", "IM-C", "IM-R", "FW-L", "FW-R"])
+        new("5-3-2", ["GK", "DEF-L", "DEF-CL", "DEF-C", "DEF-CR", "DEF-R", "IM-L", "IM-C", "IM-R", "FW-L", "FW-R"]),
+        new("5-5-0", ["GK", "DEF-L", "DEF-CL", "DEF-C", "DEF-CR", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R"])
     ];
 
     public FormationCandidateSet Generate(MatchDataContext context, PlayerAnalysisResult players)
