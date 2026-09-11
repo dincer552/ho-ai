@@ -27,6 +27,14 @@ public static class M4LegalFormationRegression
                 Check(definition.SlotCodes.All(code => AllSlots.Contains(code, StringComparer.Ordinal)), $"registry {definition.Formation} contains an unknown slot code");
                 Check(definition.SlotCodes.Count(x => x == "GK") == 1, $"registry {definition.Formation} must contain exactly one GK");
             }
+
+            var twoFiveThree = registry.Single(x => x.Formation == "2-5-3");
+            Check(twoFiveThree.SlotCodes.SequenceEqual(["GK", "DEF-L", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"]), "2-5-3 must be the two-wing-back variant");
+            Check(twoFiveThree.SlotCodes.Count(x => x == "DEF-L" || x == "DEF-R") == 2, "2-5-3 must contain two wing-back slots");
+            Check(twoFiveThree.SlotCodes.All(x => x is not "DEF-CL" and not "DEF-C" and not "DEF-CR"), "2-5-3 must leave all central-stopper slots empty");
+            Check(twoFiveThree.SlotCodes.Count(x => x.StartsWith("W-", StringComparison.Ordinal) || x.StartsWith("IM-", StringComparison.Ordinal)) == 5, "2-5-3 must contain five midfield slots");
+            Check(twoFiveThree.SlotCodes.Count(x => x.StartsWith("FW-", StringComparison.Ordinal)) == 3, "2-5-3 must contain three forward slots");
+
             var fiveFiveZero = registry.Single(x => x.Formation == "5-5-0");
             Check(fiveFiveZero.SlotCodes.Count(x => x.StartsWith("DEF-", StringComparison.Ordinal)) == 5, "5-5-0 must contain five defenders");
             Check(fiveFiveZero.SlotCodes.Count(x => x.StartsWith("W-", StringComparison.Ordinal) || x.StartsWith("IM-", StringComparison.Ordinal)) == 5, "5-5-0 must contain five midfield slots");
@@ -48,7 +56,7 @@ public static class M4LegalFormationRegression
             var ineligible = players.Take(10).Append(players[0] with { InjuryLevel = 999 }).ToList();
             Check(formationEngine.Generate(new PlayerAnalysisResult(ineligible)).Candidates.Count == 0, "M4 must exclude injured/ineligible players from feasibility");
             Console.WriteLine("PASS: C2 M4 legal formations + authoritative registry");
-            Console.WriteLine($"Legal set={registry.Count} | slot contract=11 each | 5-5-0=5 DEF + 5 MID + 0 FW | feasibility guard=10-player rejection");
+            Console.WriteLine($"Legal set={registry.Count} | slot contract=11 each | 2-5-3=2 wing-backs + 5 MID + 3 FW | 5-5-0=5 DEF + 5 MID + 0 FW | feasibility guard=10-player rejection");
             Console.WriteLine("NEXT: C3 M5 XI candidates");
             return 0;
         }
