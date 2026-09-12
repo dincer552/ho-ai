@@ -240,6 +240,7 @@ app.MapGet("/auth/chpp/callback", async (ChppV5 chpp, string? oauth_token, strin
     catch (Exception ex) { return Results.Redirect("/?error=" + Uri.EscapeDataString(ex.Message)); }
 });
 app.MapPost("/auth/chpp/logout", (ChppV5 chpp) => { chpp.Disconnect(); return Results.Ok(new { ok = true }); });
+RatingEngineWebEndpoints.Map(app);
 app.Run();
 
 public sealed record QuestionnaireRequest(string CoachStyle, string TeamSpirit, string MatchImportance);
