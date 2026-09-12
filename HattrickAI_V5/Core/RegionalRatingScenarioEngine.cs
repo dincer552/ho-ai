@@ -5,13 +5,12 @@ namespace HattrickAI.V5.Core;
 
 /// <summary>
 /// V5.1 M7 scenario layer.
-/// Keeps the proven RegionalRatingEngine contribution model intact while adding
-/// an explicit match-state contract and questionnaire context effects.
-/// M7 evaluates a complete scenario; it does not choose the scenario.
+/// Uses the Stage 2 regional-rating engine so raw contribution and displayed
+/// rating conversion remain separate and deterministic.
 /// </summary>
 public sealed class RegionalRatingScenarioEngine
 {
-    private readonly RegionalRatingEngine _baseEngine = new();
+    private readonly Stage2RegionalRatingEngine _baseEngine = new();
 
     public RatingScenarioResult Calculate(
         IReadOnlyList<RegionalPlayer> players,
@@ -63,23 +62,12 @@ public sealed class RegionalRatingScenarioEngine
             BuildModifiers(state));
     }
 
-    /// <summary>
-    /// Team Spirit affects midfield only. The legacy engine already applies
-    /// venue/attitude/tactic effects, so this layer adds the TS component only.
-    /// The sqrt curve is consistent with the existing V1 engine and with the
-    /// published TS reference table; composed (4.5) is approximately 1.0.
-    /// </summary>
     public static double TeamSpiritMultiplier(double teamSpirit)
     {
         if (teamSpirit <= 0) return 1.0;
         return 0.10 + 0.425 * Math.Sqrt(Math.Clamp(teamSpirit, 0.0, 10.0));
     }
 
-    /// <summary>
-    /// Coach style is applied after the base rating and Team Spirit adjustment.
-    /// This avoids applying Team Spirit twice while making the questionnaire's
-    /// Offensive / Defensive choice observable by M7 -> M8 -> M9 -> M10.
-    /// </summary>
     public static (double AttackMultiplier, double DefenceMultiplier) CoachStyleMultipliers(CoachStyle coach)
         => coach switch
         {
@@ -157,20 +145,16 @@ public sealed class RegionalRatingScenarioEngine
 
         return new RegionalRatingSnapshot(
             rawLd, rawCd, rawRd, rawMid, rawLa, rawCa, rawRa,
-            RegionalRatingEngine.Display(rawLd),
-            RegionalRatingEngine.Display(rawCd),
-            RegionalRatingEngine.Display(rawRd),
-            RegionalRatingEngine.Display(rawMid),
-            RegionalRatingEngine.Display(rawLa),
-            RegionalRatingEngine.Display(rawCa),
-            RegionalRatingEngine.Display(rawRa));
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftDefence, rawLd),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralDefence, rawCd),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightDefence, rawRd),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.Midfield, rawMid),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftAttack, rawLa),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralAttack, rawCa),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightAttack, rawRa));
     }
 }
 
-/// <summary>
-/// Complete state used by M7 to simulate one candidate match scenario.
-/// Candidate selection remains outside M7 (M6/M6B/M10).
-/// </summary>
 public sealed record MatchState(
     string CandidateId,
     string FormationId,
