@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Http;
 
@@ -98,6 +99,11 @@ public sealed class AnalysisService
             var bench = BenchSelectionState.Build(ownPlayers, finalLineup.Slots);
             var runId = MotorRunLogContext.CurrentRunId;
             if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.SetBench(runId, bench);
+            var http = _http.HttpContext!;
+            http.Session.SetString("v5.rating.players", JsonSerializer.Serialize(ownPlayers));
+            http.Session.SetString("v5.rating.lineup", JsonSerializer.Serialize(finalLineup));
+            http.Session.SetString("v5.rating.context", JsonSerializer.Serialize(ratingContext));
+            http.Session.SetString("v5.rating.selected", RatingEngineKind.V5.ToString());
         }
 
         return new Analysis(build, teamName, opponentName, title, finalLineup, opponentLineup, finalRating, opponentHistoricalRating, appliedQuestionnaire)
