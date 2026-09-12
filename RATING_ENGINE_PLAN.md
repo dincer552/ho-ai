@@ -1,311 +1,181 @@
-# HattrickAI — Multi Rating Engine Plan
-
-## Amaç
-
-Mevcut **V5 Rating Engine kesinlikle korunacak**.
-
-Yeni rating motorları V5'i değiştirmeden ayrı modüller olarak eklenecek.
-
-Sitede üst bölümde motor seçimi olacak:
-
-**V5 | HO | HattrickDash | Foxtrick**
-
-Seçilen motor aynı kadro/veri üzerinde kendi rating hesabını gösterecek.
-
----
-
-## Aşama 1 — Motor mimarisi
-
-Ortak `RatingEngine` arayüzü oluşturulacak.
-
-```text
-RatingEngine
- ├── V5Engine          ← mevcut motor, DOKUNULMAYACAK
- ├── HOEngine
- ├── HattrickDashEngine
- └── FoxtrickEngine
-```
-
-Her motor bağımsız çalışacak.
-
----
-
-## Aşama 2 — HO Engine
-
-Açık kaynak **Hattrick Organizer** kodu incelenecek ve rating hesaplama mantığı ayrı `HOEngine` içine aktarılacak.
-
-Öncelik:
-
-- RatingPredictionModel
-- pozisyon katkıları
-- sektör ratingleri
-- midfield / defense / attack
-- HatStats
-- LoddarStats
-- lineup rating
-
-**V5 koduna müdahale edilmeyecek.**
-
-### Aşama 2 mevcut durum
-
-**TAMAMLANDI**
-
-- [x] Mevcut legacy HO `LineupRatingEngine` / `RatingContributionTable` / `PlayerRatingCalculator` / `TeamRatings` kaynakları izole referans olarak V5 projesine bağlandı.
-- [x] `HOEngineAdapter` ile `IRatingEngine` sözleşmesine bağlandı.
-- [x] HO pozisyon/slot davranışları canonical V5 `Lineup` + `Player` verisinden legacy HO modeline dönüştürülüyor.
-- [x] Canonical 3-5-2 slotları ile legacy HO 3-5-2 rolleri arasındaki IM/FW eşleştirme farkları adapter seviyesinde kapatıldı.
-- [x] HO sektör sonuçları ortak `RegionalRatingSnapshot` formatına dönüştürülüyor.
-- [x] HO HatStats hesaplaması eklendi.
-- [x] HO LoddarStats hesaplaması, upstream Hattrick Organizer formülü ile adapter katmanına eklendi.
-- [x] Canonical context içindeki `Home/Away`, `PIC/MOTS`, `tactic` ve `matchMinute` bilgileri legacy HO context'e aktarılıyor.
-- [x] Legacy HO'nun common contract'ta karşılığı olmayan `CoachModifier`, `TeamSpirit`, `Confidence`, `Weather`, `OpponentRatings` alanları deterministik olarak defaultlanıyor; bunlar V5 ortak modeline zorunlu alan olarak eklenmedi.
-- [x] Deterministik `HOEngineStage2Regression` eklendi.
-- [x] Gerçek CHPP fixture regression'ı eklendi: `HattrickAI_V5.OfflineTests/Fixtures/HO_Real_CHPP_Fixture_2026-09-01.json` + `HORealFixtureRegression.cs`.
-- [x] Gerçek fixture için 7 sektör + HatStats + LoddarStats expected-value değerleri sabitlendi.
-- [x] Fixture regression içinde minute/stamina, home ve PIC/MOTS context davranışları da kontrol ediliyor.
-- [x] CI üzerinde `HOEngineStage2Regression` ve gerçek CHPP fixture regression adımları tanımlandı.
-- [x] `CAL-001`, model-variant matrix, Stage-2 HO regression ve gerçek CHPP fixture regression aynı CI koşusunda başarıyla doğrulandı.
-
-### Aşama 2 kapanış kriteri
-
-HO motoru artık:
-
-- bağımsız
-- canonical V5 verisinden beslenen
-- legacy HO hesap mantığını kullanan
-- 7 sektör + HatStats + LoddarStats üreten
-- gerçek CHPP fixture ile deterministic regression'a sahip
-- mevcut V5 rating pipeline'ını değiştirmeyen
-
-durumdadır.
-
----
-
-## Aşama 3 — HattrickDash Engine
-
-HattrickDash açık kaynak kodu incelenecek.
-
-Rating hesaplama mantıkları ayrı `DashEngine` içine uygulanacak.
-
-HO ve V5 ile aynı test verileri üzerinden karşılaştırılacak.
-
-### Aşama 3 mevcut durum
-
-**DEVAM EDİYOR**
-
-- [x] HattrickDash açık kaynak `lineup_service.py` rating mantığı incelendi.
-- [x] Dash'ın pozisyon rating tahmini izole edildi: `primary skill × 0.70 + form × 0.20 + stamina × 0.10`.
-- [x] Dash'ın midfield / defence / attack aggregate hesaplaması uygulandı.
-- [x] Dash'ın kullandığı HatStats ve LoddarStats aggregate formülleri uygulandı.
-- [x] `HattrickDashEngine` → `IRatingEngine` sözleşmesine bağlandı.
-- [x] Canonical V5 slot kodları Dash rol hesaplamasına bağlandı.
-- [x] Deterministik `HattrickDashEngineStage3Regression` eklendi.
-- [x] Regression runner'a `dash-stage3` komutu eklendi.
-- [x] CI pipeline'a Stage-3 Dash regression adımı eklendi.
-- [ ] CI Stage-3 regression'ın yeşil sonuç vermesi doğrulanacak.
-- [ ] Aynı gerçek CHPP fixture üzerinde HO / Dash / V5 sonuç farkları kilitlenecek.
-
-**Not:** HattrickDash'ın kendi README'sinde lineup rating preview'ın Hattrick tarafından hesaplanan ayrı bir server-side preview olduğu belirtiliyor. Buradaki Stage-3 motor, Dash'ın açık kaynak `lineup_service` içindeki yerel pozisyon-rating / aggregate mantığını izole eder; Hattrick'ın kapalı server-side algoritmasını taklit ettiği iddia edilmez.
-
----
-
-## Aşama 4 — Foxtrick Engine
-
-Foxtrick'in açık kaynak rating hesaplamaları incelenecek.
-
-Özellikle:
-
-- HatStats
-- LoddarStats
-- PeasoStats
-- VnukStats
-- GardierStats
-- HTitaVal
-
-mümkün olduğu ölçüde ayrı modüller halinde uygulanacak.
-
-### Aşama 4 mevcut durum
-
-**KOD TAMAMLANDI — CI SON KAPANIŞ GATE'İ**
-
-- [x] Foxtrick açık kaynak `content/matches/ratings.js` incelendi.
-- [x] HatStats formülü izole edildi.
-- [x] LoddarStats formülü izole edildi.
-- [x] PeasoStats formülü izole edildi.
-- [x] VnukStats formülü izole edildi.
-- [x] HTitaVal formülü izole edildi.
-- [x] GardierStats formülü izole edildi.
-- [x] `FoxtrickEngine` → `IRatingEngine` sözleşmesine bağlandı.
-- [x] Deterministik `FoxtrickEngineStage4Regression` eklendi.
-- [x] Foxtrick Stage-4 regression gerçek CHPP fixture'a genişletildi.
-- [x] Gerçek CHPP fixture üzerinde Foxtrick/V5 sektörleri kilitlendi.
-- [x] Aynı fixture üzerinde HO / HattrickDash / Foxtrick sonuçları ve farkları expected-value olarak kilitlendi.
-- [x] Regression runner'a `foxtrick-stage4` komutu eklendi.
-- [x] CI pipeline'a Stage-4 Foxtrick regression adımı eklendi.
-- [ ] Son push sonrası CI Stage-4 regression'ın yeşil sonucu doğrulanacak.
-
-**Not:** Foxtrick'in `ratings.js` kodu sektör ratinglerini Hattrick match sayfasından alıp istatistikleri türetiyor; Foxtrick'in kendisi kapalı Hattrick server-side sektör-rating üretimini yeniden hesaplamıyor. Bu nedenle Stage-4 motorunda yedi sektör için mevcut canonical regional calculator yalnızca ortak veri kaynağı olarak kullanılıyor; HatStats/LoddarStats/PeasoStats/VnukStats/HTitaVal/GardierStats hesaplarının tamamı Foxtrick kodundan ayrı olarak uygulanıyor.
-
----
-
-## Aşama 5 — Ortak sonuç modeli
-
-Bütün motorlar aynı sonuç formatını döndürecek:
-
-```text
-Team Rating
-Midfield
-Left Defense
-Central Defense
-Right Defense
-Left Attack
-Central Attack
-Right Attack
-HatStats
-LoddarStats
-```
-
-Böylece motorlar doğrudan karşılaştırılabilecek.
-
----
-
-## Aşama 6 — Web arayüzü
-
-Sayfanın üst kısmına motor seçici eklenecek:
-
-```text
-Rating Engine: [ V5 ▼ ]
-```
-
-Seçenekler:
-
-```text
-V5
-HO
-HattrickDash
-Foxtrick
-```
-
-V5 varsayılan motor olarak kalacak.
-
-Motor değiştirildiğinde aynı kadro seçilen motorla yeniden hesaplanacak.
-
----
-
-## Aşama 7 — Motor karşılaştırması
-
-İlerleyen aşamada aynı kadro için motor sonuçları yan yana gösterilecek.
-
-Bu özellik V5'in hesaplamasını değiştirmeyecek.
-
----
-
-## Aşama 8 — Validation
-
-Aynı gerçek Hattrick maç/kadro verileri bütün motorlara verilecek.
-
-```text
-Gerçek Hattrick Rating
-        ↓
-V5 / HO / Dash / Foxtrick
-        ↓
-Fark analizi
-```
-
-Amaç her motorun gerçek Hattrick sonucuna ne kadar yakın olduğunu ölçmek.
-
----
-
-## Geliştirme sırası
-
-**V5'i kilitle → HO → HattrickDash → Foxtrick → ortak sonuç modeli → web motor selector → karşılaştırma → validation**
-
----
-
-## İş Bitiminde Temizlik ve Kapanış
-
-Motor geliştirme aşamaları tamamlandığında proje yarım kalmış testler, geçici dosyalar veya neyin neden yapıldığının belirsiz olduğu bir durumda bırakılmayacak.
-
-Kapanış sırası:
-
-1. **Tüm regression testleri yeşil olacak.**
-   - CAL-001
-   - model-variant matrix
-   - HO Stage-2
-   - gerçek CHPP fixture
-   - HattrickDash Stage-3
-   - Foxtrick Stage-4
-   - ortak contract testleri
-
-2. **Deploy workflow'u ayrıca yeşil olacak.**
-   - Uygulama build'i başarılı olacak.
-   - Docker image başarıyla oluşturulacak ve GHCR'a gönderilecek.
-   - Azure deployment ve health check başarılı olacak.
-
-3. **Açık kalan acceptance maddeleri kapatılacak.**
-   - Plan içinde `[ ]` kalan maddeler ya gerçekten tamamlanacak ya da neden ertelendiği açıkça yazılacak.
-   - Tamamlanmış gibi işaretleme yapılmayacak.
-
-4. **Geçici/debug dosyaları temizlenecek.**
-   - Sadece regression, fixture, kaynak kodu ve dokümantasyon için gerekli dosyalar repository'de bırakılacak.
-   - Geçici çıktılar, local test artıkları ve kullanılmayan deneme dosyaları repository'de tutulmayacak.
-
-5. **Dokümantasyon son durumla eşitlenecek.**
-   - `RATING_ENGINE_PLAN.md`, README ve ilgili teknik dokümanlar gerçek uygulama durumunu yansıtacak.
-   - Eski/yanlış “DEVAM EDİYOR” veya “TAMAMLANDI” işaretleri kontrol edilecek.
-
-6. **V5 davranışının değişmediği son kez doğrulanacak.**
-   - Yeni motorlar V5 pipeline'ını değiştirmeyecek.
-   - V5 varsayılan motor olarak kalacak.
-
-7. **Son repository kontrolü yapılacak.**
-   - Build temiz olacak.
-   - Regression temiz olacak.
-   - Deploy temiz olacak.
-   - Kullanılmayan dosya bırakılmayacak.
-   - Plan ile gerçek kod arasında açık bir uyumsuzluk kalmayacak.
-
-### Kapanış kriteri
-
-**Proje ancak testler + build + deploy + dokümantasyon + repository temizliği tamamlandığında ilgili rating-engine çalışması için “TAMAMLANDI” kabul edilir.**
-
-Amaç: geliştirme bittikten sonra repository'nin geçici dosyalar, yarım acceptance maddeleri ve belirsiz durumlarla dolu bir “çöplük” haline gelmesini önlemek.
-
----
+# HattrickAI — Multi Rating Engine Plan / Current Status
 
 ## Ana kural
 
-**V5 mevcut haliyle korunacak.**
+**Mevcut V5 rating davranışı korunur.** Yeni motorlar V5 pipeline'ına katsayı veya akış değişikliği olarak eklenmez; ayrı `IRatingEngine` implementasyonları olarak çalışır.
 
-Yeni motor eklenmesi V5'in davranışını veya mevcut sonuçlarını değiştirmeyecek.
+Production motor seçimi:
 
-Her motor:
+**V5 | HO | HattrickDash | Foxtrick**
 
-- bağımsız
-- test edilebilir
-- seçilebilir
-- gerektiğinde devre dışı bırakılabilir
-
-olacak.
+V5 varsayılandır.
 
 ---
 
-## Durum
+## Aşama sırası
 
-### Aşama 1 — Motor mimarisi
+`V5'i kilitle → HO → HattrickDash → Foxtrick → ortak sonuç modeli → web selector → karşılaştırma → validation`
 
-**DEVAM EDİYOR**
+### Aşama 1 — Motor mimarisi — TAMAMLANDI
 
-- [x] `RATING_ENGINE_PLAN.md` repository'ye eklendi.
-- [x] Ortak `RatingEngineKind` tanımlandı.
-- [x] Ortak `RatingEngineRequest` tanımlandı.
-- [x] Ortak `RatingEngineResult` tanımlandı.
-- [x] `IRatingEngine` sözleşmesi eklendi.
-- [x] V5 mevcut pipeline'a bağlanmadı; mevcut hesap akışı korunuyor.
-- [x] Contract regression testi eklendi: `HattrickAI_V5.OfflineTests/RatingEngineContractsRegression.cs`.
-- [ ] Contract regression'ın CI/build üzerinde çalıştığı doğrulanacak.
-- [ ] V5 adapter'ı mevcut rating üretimini birebir koruyacak şekilde bağlanacak.
-- [ ] Engine registry/factory oluşturulacak.
-- [ ] Production pipeline'a selector bağlanmayacak; selector sonraki aşamada eklenecek.
+- [x] `RatingEngineKind` / `RatingEngineRequest` / `RatingEngineResult` ortak sözleşmesi.
+- [x] `IRatingEngine` ortak arayüzü.
+- [x] `V5RatingEngine` mevcut `Stage2RegionalRatingEngineFixed` hesaplamasına adapter olarak bağlandı; mevcut V5 pipeline değiştirilmedi.
+- [x] `RatingEngineRegistry` / factory oluşturuldu.
+- [x] Registry dört motoru deterministik biçimde sunuyor: V5, HO, HattrickDash, Foxtrick.
+- [x] Contract regression artık registry bütünlüğünü ve V5 adapter parity'sini kontrol ediyor.
 
-Aşama 1 yalnızca mimari sınırı kurar. **Bu aşamada V5 rating katsayıları ve mevcut hesap akışı değiştirilmez.**
+### Aşama 2 — HO Engine — TAMAMLANDI
+
+- [x] Legacy HO rating kaynakları izole adapter katmanında kullanılıyor.
+- [x] Canonical V5 `Lineup` + `Player` verisi HO modeline çevriliyor.
+- [x] 7 sektör, HatStats ve LoddarStats ortak sonuca çevriliyor.
+- [x] Home/Away, PIC/MOTS, tactic ve match-minute context aktarımı regression ile kilitli.
+- [x] Deterministik Stage-2 regression.
+- [x] Gerçek CHPP fixture regression.
+
+Gerçek fixture beklenen HO sektörleri:
+
+`8.9278407632371284 / 14.241616934311249 / 8.8845667124997263 / 5.437522215250981 / 8.1350636338080307 / 9.5241231738830496 / 7.647351119659394`
+
+### Aşama 3 — HattrickDash Engine — KOD TAMAMLANDI / CI KAPANIŞI
+
+- [x] Dash `lineup_service` yerel rating mantığı izole edildi.
+- [x] Pozisyon tahmini: `primary × 0.70 + form × 0.20 + stamina × 0.10`.
+- [x] Midfield / defence / attack aggregate.
+- [x] HatStats / LoddarStats.
+- [x] `IRatingEngine` adapter.
+- [x] Deterministik Stage-3 regression.
+- [x] Gerçek CHPP fixture beklenen değerleri validation katmanında kilitli.
+- [x] CI Stage-3 komutu workflow'a bağlı.
+
+**Kaynak sınırı:** Dash açık kaynak projesinin local lineup/analytics mantığı uygulanır. Hattrick'ın kapalı server-side rating preview algoritması yeniden oluşturuluyor iddiası yoktur.
+
+### Aşama 4 — Foxtrick Engine — KOD TAMAMLANDI / CI KAPANIŞI
+
+- [x] Foxtrick `ratings.js` formülleri ayrıştırıldı.
+- [x] HatStats.
+- [x] LoddarStats.
+- [x] PeasoStats.
+- [x] VnukStats.
+- [x] HTitaVal.
+- [x] GardierStats.
+- [x] `IRatingEngine` adapter.
+- [x] Deterministik synthetic regression.
+- [x] Gerçek CHPP fixture regression.
+- [x] Foxtrick sektörlerinde canonical V5 **raw** regional source kullanımı açıkça korunuyor.
+- [x] Gerçek fixture Foxtrick istatistik expected-value'ları kilitli.
+
+Foxtrick gerçek fixture expected stats:
+
+- HatStats `317.36089615638735`
+- LoddarStats `23.78`
+- PeasoStats `33.04`
+- VnukStats `8.97`
+- HTitaVal `301.7`
+- GardierStats `335`
+
+**Kaynak sınırı:** Foxtrick'ın açık kaynak kodu sektörleri Hattrick match verisinden okuyup istatistikleri türetiyor; kapalı Hattrick server-side sektör-rating üretimi Foxtrick tarafından yeniden hesaplanmıyor.
+
+### Aşama 5 — Ortak sonuç modeli — TAMAMLANDI
+
+Bütün motorlar `RatingEngineResult` üzerinden aynı canonical result modelini verir:
+
+- 7 regional sectors
+- optional HatStats
+- optional LoddarStats
+- engine identity
+
+`RegionalRatingSnapshot` raw ve display ratingleri ayrı tutar.
+
+### Aşama 6 — Web motor selector — TAMAMLANDI
+
+Production web API:
+
+- `GET /api/v5/rating-engines`
+- `GET /api/v5/rating-engine/selection`
+- `POST /api/v5/rating-engine/selection`
+- `GET /api/v5/rating-engine/selected`
+- `GET /api/v5/rating-engines/compare`
+
+UI'da `rating-engines.js` ile selector ve comparison panel bulunur.
+
+Selection aynı analizdeki oyuncu/kadro/context'i session'dan tekrar kullanır; V5 default olarak kalır.
+
+### Aşama 7 — Motor karşılaştırması — TAMAMLANDI
+
+Aynı XI ve aynı `RatingContext` üzerinde:
+
+- V5
+- HO
+- HattrickDash
+- Foxtrick
+
+yan yana gösterilir. Karşılaştırma V5'i değiştirmez; V5 baseline'a göre 7 sektör farkları ayrıca tutulur.
+
+### Aşama 8 — Validation — TAMAMLANDI / CI KAPANIŞI
+
+Gerçek CHPP fixture üzerinden bütün registry motorları çalıştırılır.
+
+Validation şunları kilitler:
+
+- dört motorun registry'de bulunması,
+- V5 raw sector expected-values,
+- HO sector expected-values,
+- Dash sector expected-values,
+- Foxtrick'in V5 canonical raw sektörleri kullanması,
+- Foxtrick HatStats/LoddarStats expected-values,
+- comparison baseline/selected/result-row bütünlüğü.
+
+Validation komutu:
+
+`dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- rating-validation`
+
+---
+
+## Regression / CI kapanış sırası
+
+`.github/workflows/cal001-regression.yml` sırası:
+
+1. Rating engine contract
+2. CAL-001 current motor
+3. CAL-001 model variants
+4. HO Stage-2
+5. HO real CHPP fixture
+6. HattrickDash Stage-3
+7. Foxtrick Stage-4
+8. Rating engine real-fixture validation
+
+`.github/workflows/v5-build.yml` içinde ayrıca `rating-engines.js` syntax check, Docker build, GHCR push, Azure deploy ve health/homepage smoke korunur.
+
+---
+
+## V5 invariance
+
+- [x] V5 production rating coefficients değiştirilmedi.
+- [x] Existing `AnalysisService` pipeline aynı M3→M11 zincirini çalıştırıyor.
+- [x] Rating engine selector yalnızca ayrı engine calculation endpointlerini kullanıyor.
+- [x] V5 default seçim.
+- [x] V5 adapter parity regression mevcut.
+
+---
+
+## Dokümantasyon sınırı
+
+- Source-derived mekanik ile V5 heuristiği birbirine karıştırılmaz.
+- Dash/Foxtrick için kapalı Hattrick server-side formüller uydurulmaz.
+- Gerçek Hattrick ground truth ile araştırma/engine sonuçları ayrı tutulur.
+- Raw sector ve display rating aynı şey değildir; validation buna göre yapılır.
+
+---
+
+## Kapanış kriteri
+
+Rating-engine çalışması aşağıdaki dört kapı yeşil olmadan **TAMAMLANDI** sayılmaz:
+
+1. regression,
+2. production build/deploy,
+3. documentation,
+4. V5 invariance.
+
+Son CI sonucu görülmeden yeşil kabul edilmez. Failure çıkarsa aynı stage düzeltilir ve tekrar koşturulur.
