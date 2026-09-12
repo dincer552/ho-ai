@@ -9,9 +9,11 @@ public static class Stage6OvercrowdingRegression
         var failures = new List<string>();
         var engine = new RegionalRatingEngineFixed();
 
-        var cd = new RegionalPlayer(1, RegionalPosition.CentralDefender, PlayerSide.Center, PlayerOrder.Normal, 1, 12, 10, 8, 3, 6, 7, 0, 1, 7);
-        var im = new RegionalPlayer(2, RegionalPosition.InnerMidfielder, PlayerSide.Left, PlayerOrder.Normal, 1, 8, 14, 10, 8, 6, 7, 0, 1, 7);
-        var fw = new RegionalPlayer(3, RegionalPosition.Forward, PlayerSide.Left, PlayerOrder.Normal, 1, 4, 5, 6, 9, 13, 7, 0, 1, 7);
+        // Keep form/stamina identical and disable loyalty/experience so this gate
+        // measures only the position-crowding layer described in the reconstruction plan.
+        var cd = new RegionalPlayer(1, RegionalPosition.CentralDefender, PlayerSide.Center, PlayerOrder.Normal, 1, 12, 10, 8, 3, 6, 7, 7, 0, 0);
+        var im = new RegionalPlayer(2, RegionalPosition.InnerMidfielder, PlayerSide.Left, PlayerOrder.Normal, 1, 8, 14, 10, 8, 6, 7, 7, 0, 0);
+        var fw = new RegionalPlayer(3, RegionalPosition.Forward, PlayerSide.Left, PlayerOrder.Normal, 1, 4, 5, 6, 9, 13, 7, 7, 0, 0);
 
         var cd1 = engine.Calculate(new[] { cd });
         var cd2 = engine.Calculate(new[] { cd, cd with { Id = 4 } });
