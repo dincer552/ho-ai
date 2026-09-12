@@ -36,8 +36,9 @@ public static class FoxtrickEngineStage4Regression
         var request = new RatingEngineRequest(lineup, players, RatingContext.Default);
 
         var v5FixtureRating = ReadRating(analysis.GetProperty("ownRating"));
+        var fixtureRawValues = RawValues(v5FixtureRating).ToArray();
         for (var i = 0; i < ExpectedV5RawSectors.Length; i++)
-            CheckNear(RawValues(v5FixtureRating).ElementAt(i), ExpectedV5RawSectors[i], 1e-9, $"fixture V5 raw sector {i}", failures);
+            CheckNear(fixtureRawValues[i], ExpectedV5RawSectors[i], 1e-9, $"fixture V5 raw sector {i}", failures);
 
         var fox = engine.Calculate(request);
         var dash = new HattrickDashEngine().Calculate(request);
@@ -46,9 +47,11 @@ public static class FoxtrickEngineStage4Regression
         for (var i = 0; i < ExpectedV5RawSectors.Length; i++)
             CheckNear(foxValues[i], ExpectedV5RawSectors[i], 1e-9, $"Foxtrick/V5 raw sector {i}", failures);
 
-        Check(dash.Rating is not null && Values(dash.Rating).All(double.IsFinite), "Dash real-fixture rating finite", failures);
-        Check(ho.Rating is not null && Values(ho.Rating).All(double.IsFinite), "HO real-fixture rating finite", failures);
-        Console.WriteLine($"Real fixture engine comparison: HO={string.Join('/', Values(ho.Rating).Select(x => x.ToString("0.###")))} | Dash={string.Join('/', Values(dash.Rating).Select(x => x.ToString("0.###"))}");
+        var hoText = string.Join("/", Values(ho.Rating).Select(x => x.ToString("0.###")));
+        var dashText = string.Join("/", Values(dash.Rating).Select(x => x.ToString("0.###")));
+        Check(Values(dash.Rating).All(double.IsFinite), "Dash real-fixture rating finite", failures);
+        Check(Values(ho.Rating).All(double.IsFinite), "HO real-fixture rating finite", failures);
+        Console.WriteLine("Real fixture engine comparison: HO=" + hoText + " | Dash=" + dashText);
 
         CheckNear(fox.HatStats!.Value, ExpectedFoxHatStats, 1e-9, "Foxtrick HatStats", failures);
         CheckNear(fox.LoddarStats!.Value, ExpectedFoxLoddarStats, 1e-9, "Foxtrick LoddarStats", failures);
