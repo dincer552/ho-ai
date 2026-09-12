@@ -1,0 +1,23 @@
+{
+  "teamName": "S4MSUNFC",
+  "formation": "3-5-2",
+  "context": {
+    "matchLocation": "Away",
+    "attitude": "Normal",
+    "tactic": "Normal",
+    "matchMinute": 0
+  },
+  "players": [
+    {"id":479235895,"name":"Enzo Bultot","slot":"GK","keeper":17,"defending":4,"playmaking":1,"passing":2,"winger":1,"scoring":4,"stamina":7,"form":6,"experience":5,"loyalty":0,"specialty":0,"order":0},
+    {"id":468363070,"name":"Abeiku Takyi","slot":"DEF-CL","keeper":1,"defending":17,"playmaking":3,"passing":8,"winger":4,"scoring":7,"stamina":5,"form":6,"experience":10,"loyalty":0,"specialty":0,"order":0},
+    {"id":458524225,"name":"Dawid Nocoń","slot":"DEF-C","keeper":0,"defending":17,"playmaking":3,"passing":5,"winger":4,"scoring":7,"stamina":5,"form":6,"experience":12,"loyalty":0,"specialty":0,"order":0},
+    {"id":476114406,"name":"Cristian Pesalovo","slot":"DEF-CR","keeper":1,"defending":16,"playmaking":6,"passing":9,"winger":3,"scoring":6,"stamina":7,"form":7,"experience":6,"loyalty":0,"specialty":0,"order":0},
+    {"id":492052456,"name":"Felix Gustavsson","slot":"W-L","keeper":1,"defending":3,"playmaking":3,"passing":8,"winger":17,"scoring":5,"stamina":7,"form":7,"experience":4,"loyalty":0,"specialty":0,"order":0},
+    {"id":454418419,"name":"Francisco Manuel","slot":"IM-L","keeper":0,"defending":2,"playmaking":15,"passing":8,"winger":2,"scoring":7,"stamina":4,"form":5,"experience":10,"loyalty":0,"specialty":0,"order":0},
+    {"id":465141092,"name":"Milen Bozev","slot":"IM-C","keeper":1,"defending":5,"playmaking":12,"passing":9,"winger":14,"scoring":6,"stamina":6,"form":6,"experience":7,"loyalty":0,"specialty":0,"order":0},
+    {"id":465805392,"name":"Bertalan Doktor","slot":"IM-R","keeper":1,"defending":2,"playmaking":17,"passing":11,"winger":6,"scoring":6,"stamina":6,"form":4,"experience":8,"loyalty":0,"specialty":0,"order":0},
+    {"id":492253331,"name":"Nándor Dobóvári","slot":"W-R","keeper":2,"defending":3,"playmaking":5,"passing":7,"winger":17,"scoring":4,"stamina":7,"form":6,"experience":3,"loyalty":0,"specialty":0,"order":0},
+    {"id":491743384,"name":"Adrian Beţa","slot":"FW-L","keeper":1,"defending":4,"playmaking":5,"passing":8,"winger":3,"scoring":15,"stamina":7,"form":7,"experience":3,"loyalty":0,"specialty":0,"order":0},
+    {"id":497641568,"name":"Ersin Akşın","slot":"FW-R","keeper":1,"defending":2,"playmaking":5,"passing":8,"winger":4,"scoring":13,"stamina":6,"form":7,"experience":3,"loyalty":0,"specialty":0,"order":0}
+  ]
+}
