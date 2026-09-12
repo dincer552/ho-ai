@@ -48,7 +48,7 @@ public sealed class AdvancedTacticalScenarioEngine
     {
         ArgumentNullException.ThrowIfNull(lineup); ArgumentNullException.ThrowIfNull(players);
         var byId = players.ToDictionary(p => p.Id);
-        var mapped = lineup.Slots.Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId)).Select(s => ToRegionalPlayer(s, byId[s.PlayerId])).ToList();
+        var mapped = lineup.Slots.Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId)).Select(s => ToRegionalPlayer(lineup.Formation, s, byId[s.PlayerId])).ToList();
         return Calculate(mapped, state, opponentAverageMainSkill);
     }
 
@@ -59,9 +59,9 @@ public sealed class AdvancedTacticalScenarioEngine
         return new M8TacticalMatchupInput(m72.CandidateId, m7.State.FormationId, m7.State.LineupId, m7.State.BehaviourSetId, m7.Rating, m7.State.MatchLocation, m7.State.TeamAttitude, m7.State.TeamSpirit, m72.Tactic, m72.Level, m72.ChanceDistribution, m72.Pressing, m72.CounterAttack, m72.LongShots, m72.PlayCreatively, m72.Inputs, m72.CalibrationStatus, m7.Confidence);
     }
 
-    private static RegionalPlayer ToRegionalPlayer(Slot slot, Player p)
+    private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p)
     {
-        var position = slot.Code switch { "GK" => RegionalPosition.Goalkeeper, "DEF-L" or "DEF-R" => RegionalPosition.WingBack, "DEF-CL" or "DEF-C" or "DEF-CR" => RegionalPosition.CentralDefender, "W-L" or "W-R" => RegionalPosition.Winger, "IM-L" or "IM-C" or "IM-R" => RegionalPosition.InnerMidfielder, "FW-L" or "FW-C" or "FW-R" => RegionalPosition.Forward, _ => RegionalPosition.InnerMidfielder };
+        var position = RatingPositionResolver.Resolve(formation, slot.Code);
         var side = slot.Code.EndsWith("-L", StringComparison.Ordinal) ? PlayerSide.Left : slot.Code.EndsWith("-R", StringComparison.Ordinal) ? PlayerSide.Right : PlayerSide.Center;
         return new RegionalPlayer(p.Id, position, side, slot.Order, p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring, p.Form, p.Loyalty, p.Experience, p.Stamina);
     }
