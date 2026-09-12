@@ -17,6 +17,8 @@ if (args.Length > 0 && string.Equals(args[0], "stage2", StringComparison.Ordinal
     return Stage2RatingDisplayRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "stage5", StringComparison.OrdinalIgnoreCase))
     return Stage5ExperienceLoyaltyRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "stage6", StringComparison.OrdinalIgnoreCase))
+    return Stage6OvercrowdingRegression.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
