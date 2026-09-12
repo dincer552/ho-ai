@@ -33,6 +33,8 @@ if (args.Length > 0 && string.Equals(args[0], "stage10", StringComparison.Ordina
     return Stage10TacticRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "cal001", StringComparison.OrdinalIgnoreCase))
     return CAL001CurrentMotorRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "cal001-variants", StringComparison.OrdinalIgnoreCase))
+    return CAL001ModelVariantRegression.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
@@ -68,8 +70,8 @@ if (From(18)) { var r = await DeterministicRerunRegression.RunAsync(path); if (r
 if (From(19)) { var r = C19MotorDatabaseJsonRegression.Run(); if (r != 0) return r; r = TacticalMatchupDatabaseRegression.Run(); if (r != 0) return r; }
 if (From(20)) { var r = C20MotorDatabaseDeterministicJsonRegression.Run(); if (r != 0) return r; }
 if (From(21)) return await C21TacticalMatchupMatrixRegression.RunAsync(path);
-if (From(22)) { var r = C22TacticalOutcomeEdgeCaseRegression.Run(); if (r != 0) return r; }
-if (From(23)) { var r = C23TacticalOutcomeCalibrationRegression.Run(); if (r != 0) return r; }
+if (From(22)) return C22TacticalOutcomeEdgeCaseRegression.Run();
+if (From(23)) return C23TacticalOutcomeCalibrationRegression.Run();
 if (From(24)) return C24TacticalOutcomeCalibrationCorpusRegression.Run(path);
 if (From(25)) return C25FormationAwareRatingPositionRegression.Run();
 return 0;
