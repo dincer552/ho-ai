@@ -3,7 +3,10 @@ namespace HattrickAI.V5.Core;
 
 public sealed class FoxtrickEngine : IRatingEngine
 {
-    private readonly RegionalRatingEngine _sectorSource = new();
+    // Foxtrick statistics are layered on top of the same canonical V5 raw
+    // regional sectors used by the locked CAL-001 ground-truth regression.
+    // Keep this separate from the researched RegionalRatingEngine variant.
+    private readonly RegionalRatingEngineFixed _sectorSource = new();
     public RatingEngineKind Kind => RatingEngineKind.Foxtrick;
     public string Name => "Foxtrick";
 
