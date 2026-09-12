@@ -26,7 +26,7 @@ public sealed class Stage2RegionalRatingEngine
         RatingContext? opponentContext = null)
         => new(CalculateLineup(ownLineup, ownPlayers, ownContext), CalculateLineup(opponentLineup, opponentPlayers, opponentContext));
 
-    internal static RegionalRatingSnapshot Convert(RegionalRatingSnapshot raw) => new(
+    public static RegionalRatingSnapshot Convert(RegionalRatingSnapshot raw) => new(
         raw.RawLeftDefence, raw.RawCentralDefence, raw.RawRightDefence,
         raw.RawMidfield, raw.RawLeftAttack, raw.RawCentralAttack, raw.RawRightAttack,
         HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftDefence, raw.RawLeftDefence),
