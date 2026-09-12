@@ -7,9 +7,10 @@
   const BUTTON_ID = 'v5TeamPlayerChppExport';
   const ANALYZE_ID = 'analyze';
   const STATUS_URL = '/api/v5/status';
-  const EXPORT_URL = '/api/v5/offline-export';
+  const EXPORT_URL = '/api/v5/team-player-export';
 
   let connected = false;
+  let busy = false;
 
   function ensureButton() {
     const analyze = document.getElementById(ANALYZE_ID);
@@ -44,7 +45,7 @@
   function setButtonState(isConnected, text, disabled) {
     connected = !!isConnected;
     const button = ensureButton();
-    if (!button) return;
+    if (!button || busy) return;
     button.disabled = disabled ?? !connected;
     button.textContent = text || (connected ? '👥 TAKIM + OYUNCU JSON AL' : '👥 TAKIM + OYUNCU JSON AL (CHPP bağla)');
     button.style.opacity = button.disabled ? '.55' : '1';
@@ -70,60 +71,26 @@
     }
   }
 
-  function makeExport(payload) {
-    const players = payload?.normalized?.ownPlayers || [];
-    const analysis = payload?.v5Analysis || {};
-    const match = payload?.match || {};
-    return {
-      schema: 'hattrickai-v5-team-player-chpp-v1',
-      exportedAt: new Date().toISOString(),
-      source: 'CHPP',
-      purpose: 'Takım oyuncularının yetenek/form verilerini ileride model ve kalibrasyon çalışmalarında kullanmak',
-      security: {
-        credentialsIncluded: false,
-        oauthTokensIncluded: false,
-        sessionCookiesIncluded: false,
-        rawChppXmlIncluded: false
-      },
-      team: {
-        teamId: match.ownTeamId ?? null,
-        teamName: match.ownTeam ?? analysis.teamName ?? null,
-        playerCount: players.length
-      },
-      players,
-      sourceSnapshot: {
-        build: payload?.build ?? null,
-        matchContext: match.nextMatch ?? null
-      }
-    };
-  }
-
-  function downloadJson(data) {
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'hattrickai-team-players-' + stamp + '.json';
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-
   async function exportPlayers() {
     const button = ensureButton();
-    if (!button || !connected) return;
+    if (!button || !connected || busy) return;
+    busy = true;
     button.disabled = true;
     button.textContent = '⏳ CHPP oyuncu verileri alınıyor…';
     button.style.opacity = '.75';
+    button.style.cursor = 'wait';
+    button.title = '';
+
     try {
-      const payload = await readJson(EXPORT_URL);
-      const result = makeExport(payload);
-      downloadJson(result);
-      button.textContent = '✅ ' + result.players.length + ' oyuncu JSON indirildi';
-      setTimeout(refreshConnectionState, 1500);
+      // The API responds with Content-Disposition: attachment. Navigating directly
+      // avoids mobile-browser blocking of an async Blob/anchor download after fetch().
+      window.location.assign(EXPORT_URL);
+      window.setTimeout(() => {
+        busy = false;
+        refreshConnectionState();
+      }, 2500);
     } catch (error) {
+      busy = false;
       button.textContent = '❌ Oyuncu JSON alınamadı';
       button.title = error?.message || String(error);
       setTimeout(refreshConnectionState, 2500);
