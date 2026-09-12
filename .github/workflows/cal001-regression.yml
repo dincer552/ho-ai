@@ -17,3 +17,5 @@ jobs:
           dotnet-version: 9.0.x
       - name: Run CAL-001 current motor regression
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- cal001
+      - name: Run CAL-001 model variant matrix
+        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- cal001-variants
