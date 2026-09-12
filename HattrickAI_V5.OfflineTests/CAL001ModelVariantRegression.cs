@@ -4,8 +4,8 @@ namespace HattrickAI.V5.OfflineTests;
 
 /// <summary>
 /// CAL-001 diagnostic matrix. The production Fixed engine is kept unchanged;
-/// input skill/experience transformations are used to isolate the competing
-/// model hypotheses without retuning contribution coefficients.
+/// input skill/experience transformations isolate competing model hypotheses
+/// without retuning contribution coefficients.
 /// </summary>
 public static class CAL001ModelVariantRegression
 {
@@ -26,12 +26,12 @@ public static class CAL001ModelVariantRegression
 
         var variants = new[]
         {
-            new Variant("A Fixed: skill-1 + separate experience", players, SkillMode.Normalized, ExperienceMode.Separate),
-            new Variant("B Fixed: raw skill + separate experience", Transform(players, SkillMode.Raw, ExperienceMode.Separate), SkillMode.Raw, ExperienceMode.Separate),
-            new Variant("C Fixed: skill-1 + effective experience delta", Transform(players, SkillMode.Normalized, ExperienceMode.EffectiveDelta), SkillMode.Normalized, ExperienceMode.EffectiveDelta),
-            new Variant("D Fixed: raw skill + effective experience delta", Transform(players, SkillMode.Raw, ExperienceMode.EffectiveDelta), SkillMode.Raw, ExperienceMode.EffectiveDelta),
-            new Variant("E Fixed: skill-1 + no experience", Transform(players, SkillMode.Normalized, ExperienceMode.None), SkillMode.Normalized, ExperienceMode.None),
-            new Variant("F Fixed: raw skill + no experience", Transform(players, SkillMode.Raw, ExperienceMode.None), SkillMode.Raw, ExperienceMode.None)
+            new Variant("A Fixed: skill-1 + separate experience", players),
+            new Variant("B Fixed: raw skill + separate experience", Transform(players, SkillMode.Raw, ExperienceMode.Separate)),
+            new Variant("C Fixed: skill-1 + effective experience delta", Transform(players, SkillMode.Normalized, ExperienceMode.EffectiveDelta)),
+            new Variant("D Fixed: raw skill + effective experience delta", Transform(players, SkillMode.Raw, ExperienceMode.EffectiveDelta)),
+            new Variant("E Fixed: skill-1 + no experience", Transform(players, SkillMode.Normalized, ExperienceMode.None)),
+            new Variant("F Fixed: raw skill + no experience", Transform(players, SkillMode.Raw, ExperienceMode.None))
         };
 
         var failures = 0;
@@ -48,7 +48,6 @@ public static class CAL001ModelVariantRegression
                 Console.WriteLine($"  {Labels[i]}={values[i]:F4} gt={GroundTruth[i]:F2} err={errors[i]:+0.0000;-0.0000;0.0000}");
         }
 
-        // The current production baseline must remain exactly reproducible.
         var baseline = engine.CalculateLineup(lineup, players, RatingContext.Default);
         var baselineRaw = new[]
         {
@@ -74,24 +73,22 @@ public static class CAL001ModelVariantRegression
         return source.Select(p =>
         {
             var delta = experienceMode == ExperienceMode.EffectiveDelta ? ExperienceBonus(p.Experience) - 1.13 : 0.0;
-            // Fixed internally applies max(0, inputSkill - 1). Adding 1 here
-            // therefore lets this test feed either raw skill or raw+experienceDelta.
-            var offset = 1.0 + delta;
+            // Fixed internally applies max(0, inputSkill - 1).
+            // Normalized: input = skill. Raw: input = skill + 1.
+            // Effective delta is added before Fixed's skill normalization.
+            var inputOffset = skillMode == SkillMode.Raw ? 1.0 : 0.0;
             var experience = experienceMode == ExperienceMode.Separate ? p.Experience : 1;
             return new Player(
                 p.Id, p.Name,
-                TransformSkill(p.Keeper, skillMode, offset),
-                TransformSkill(p.Defending, skillMode, offset),
-                TransformSkill(p.Playmaking, skillMode, offset),
-                TransformSkill(p.Passing, skillMode, offset),
-                TransformSkill(p.Winger, skillMode, offset),
-                TransformSkill(p.Scoring, skillMode, offset),
+                p.Keeper + inputOffset + delta,
+                p.Defending + inputOffset + delta,
+                p.Playmaking + inputOffset + delta,
+                p.Passing + inputOffset + delta,
+                p.Winger + inputOffset + delta,
+                p.Scoring + inputOffset + delta,
                 p.Stamina, p.Form, experience);
         }).ToArray();
     }
-
-    private static double TransformSkill(double skill, SkillMode mode, double offset)
-        => mode == SkillMode.Raw ? skill + offset : skill + offset;
 
     private static double ExperienceBonus(double experience)
     {
@@ -124,5 +121,5 @@ public static class CAL001ModelVariantRegression
 
     private enum SkillMode { Normalized, Raw }
     private enum ExperienceMode { Separate, EffectiveDelta, None }
-    private sealed record Variant(string Name, Player[] Players, SkillMode SkillMode, ExperienceMode ExperienceMode);
+    private sealed record Variant(string Name, Player[] Players);
 }
