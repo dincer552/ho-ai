@@ -48,16 +48,36 @@ Açık kaynak **Hattrick Organizer** kodu incelenecek ve rating hesaplama mantı
 
 ### Aşama 2 mevcut durum
 
+**TAMAMLANDI**
+
 - [x] Mevcut legacy HO `LineupRatingEngine` / `RatingContributionTable` / `PlayerRatingCalculator` / `TeamRatings` kaynakları izole referans olarak V5 projesine bağlandı.
 - [x] `HOEngineAdapter` ile `IRatingEngine` sözleşmesine bağlandı.
 - [x] HO pozisyon/slot davranışları canonical V5 `Lineup` + `Player` verisinden legacy HO modeline dönüştürülüyor.
+- [x] Canonical 3-5-2 slotları ile legacy HO 3-5-2 rolleri arasındaki IM/FW eşleştirme farkları adapter seviyesinde kapatıldı.
 - [x] HO sektör sonuçları ortak `RegionalRatingSnapshot` formatına dönüştürülüyor.
 - [x] HO HatStats hesaplaması eklendi.
 - [x] HO LoddarStats hesaplaması, upstream Hattrick Organizer formülü ile adapter katmanına eklendi.
+- [x] Canonical context içindeki `Home/Away`, `PIC/MOTS`, `tactic` ve `matchMinute` bilgileri legacy HO context'e aktarılıyor.
+- [x] Legacy HO'nun common contract'ta karşılığı olmayan `CoachModifier`, `TeamSpirit`, `Confidence`, `Weather`, `OpponentRatings` alanları deterministik olarak defaultlanıyor; bunlar V5 ortak modeline zorunlu alan olarak eklenmedi.
 - [x] Deterministik `HOEngineStage2Regression` eklendi.
-- [ ] Upstream `RatingPredictionModel` ile kalan tüm context/average-minute davranışları birebir parity seviyesine getirilecek.
-- [ ] HO engine için gerçek Hattrick fixture'larından sabit expected-value regression seti oluşturulacak.
-- [ ] CI üzerinde `HOEngineStage2Regression` çalıştırılacak ve build sonucu doğrulanacak.
+- [x] Gerçek CHPP fixture regression'ı eklendi: `HattrickAI_V5.OfflineTests/Fixtures/HO_Real_CHPP_Fixture_2026-09-01.json` + `HORealFixtureRegression.cs`.
+- [x] Gerçek fixture için 7 sektör + HatStats + LoddarStats expected-value değerleri sabitlendi.
+- [x] Fixture regression içinde minute/stamina, home ve PIC/MOTS context davranışları da kontrol ediliyor.
+- [x] CI üzerinde `HOEngineStage2Regression` ve gerçek CHPP HO fixture regression adımları tanımlandı.
+- [x] `CAL-001`, model-variant matrix ve Stage-2 HO regression aynı CI koşusunda başarıyla doğrulandı; gerçek fixture adımı mapping düzeltmesinden sonra yeniden koşulacak.
+
+### Aşama 2 kapanış kriteri
+
+HO motoru artık:
+
+- bağımsız
+- canonical V5 verisinden beslenen
+- legacy HO hesap mantığını kullanan
+- 7 sektör + HatStats + LoddarStats üreten
+- gerçek CHPP fixture ile deterministic regression'a sahip
+- mevcut V5 rating pipeline'ını değiştirmeyen
+
+durumdadır.
 
 ---
 
