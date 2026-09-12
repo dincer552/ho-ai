@@ -103,6 +103,7 @@ public sealed class AnalysisService
             http.Session.SetString("v5.rating.players", JsonSerializer.Serialize(ownPlayers));
             http.Session.SetString("v5.rating.lineup", JsonSerializer.Serialize(finalLineup));
             http.Session.SetString("v5.rating.context", JsonSerializer.Serialize(ratingContext));
+            http.Session.SetString("v5.rating.canonical", JsonSerializer.Serialize(finalRating));
             http.Session.SetString("v5.rating.selected", RatingEngineKind.V5.ToString());
         }
 
