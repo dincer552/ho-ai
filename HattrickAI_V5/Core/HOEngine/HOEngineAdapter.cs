@@ -192,10 +192,8 @@ public sealed class HOEngineAdapter : IRatingEngine
             return true;
         }
 
-        // Hattrick's 3-5-2 / 4-5-1 style formations expose wing-side midfielder
-        // slots in canonical input, while legacy HO models them as central midfield
-        // roles in GetRoles(). Treat the two representations as equivalent only as
-        // a role-mapping concern; the legacy calculation still receives the HO role.
+        // Canonical V5 can describe formation-equivalent side slots while the
+        // legacy HO role table uses a central role for the same formation.
         if (bucket == "IM-C")
         {
             if (buckets.TryGetValue("IM-L", out var left) && left.Count > 0)
@@ -206,6 +204,20 @@ public sealed class HOEngineAdapter : IRatingEngine
             if (buckets.TryGetValue("IM-R", out var right) && right.Count > 0)
             {
                 slot = right.Dequeue();
+                return true;
+            }
+        }
+
+        if (bucket == "FW-C")
+        {
+            if (buckets.TryGetValue("FW-R", out var right) && right.Count > 0)
+            {
+                slot = right.Dequeue();
+                return true;
+            }
+            if (buckets.TryGetValue("FW-L", out var left) && left.Count > 0)
+            {
+                slot = left.Dequeue();
                 return true;
             }
         }
