@@ -23,3 +23,5 @@ jobs:
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- ho-stage2
       - name: Run Stage-2 HO real CHPP fixture regression
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- ho-real-fixture
+      - name: Run Stage-3 HattrickDash regression
+        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- dash-stage3
