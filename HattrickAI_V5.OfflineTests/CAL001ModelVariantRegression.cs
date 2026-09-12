@@ -3,9 +3,8 @@ using HattrickAI.V5.Core;
 namespace HattrickAI.V5.OfflineTests;
 
 /// <summary>
-/// CAL-001 diagnostic matrix. The production Fixed engine is kept unchanged;
-/// input skill/experience transformations isolate competing model hypotheses
-/// without retuning contribution coefficients.
+/// CAL-001 diagnostic matrix. Production engines are not retuned; the test
+/// compares controlled skill/experience hypotheses and the researched engine.
 /// </summary>
 public static class CAL001ModelVariantRegression
 {
@@ -22,23 +21,22 @@ public static class CAL001ModelVariantRegression
             Slot("FW-L", players[8]), Slot("FW-C", players[9]), Slot("FW-R", players[10])
         };
         var lineup = new Lineup("CAL-001", "3-4-3", slots);
-        var engine = new RegionalRatingEngineFixed();
+        var fixedEngine = new RegionalRatingEngineFixed();
+        var researchedEngine = new RegionalRatingEngine();
 
         var variants = new[]
         {
-            new Variant("A Fixed: skill-1 + separate experience", players),
-            new Variant("B Fixed: raw skill + separate experience", Transform(players, SkillMode.Raw, ExperienceMode.Separate)),
-            new Variant("C Fixed: skill-1 + effective experience delta", Transform(players, SkillMode.Normalized, ExperienceMode.EffectiveDelta)),
-            new Variant("D Fixed: raw skill + effective experience delta", Transform(players, SkillMode.Raw, ExperienceMode.EffectiveDelta)),
-            new Variant("E Fixed: skill-1 + no experience", Transform(players, SkillMode.Normalized, ExperienceMode.None)),
-            new Variant("F Fixed: raw skill + no experience", Transform(players, SkillMode.Raw, ExperienceMode.None))
+            new Variant("A Fixed: skill-1 + separate experience", fixedEngine.CalculateLineup(lineup, players, RatingContext.Default)),
+            new Variant("B Fixed: raw skill + separate experience", fixedEngine.CalculateLineup(lineup, Transform(players, rawSkill: true, effectiveExperience: false, noExperience: false), RatingContext.Default)),
+            new Variant("C Fixed: effective-skill experience delta", fixedEngine.CalculateLineup(lineup, Transform(players, rawSkill: false, effectiveExperience: true, noExperience: true), RatingContext.Default)),
+            new Variant("D Research engine: raw skill + effective experience delta", researchedEngine.CalculateLineup(lineup, players, RatingContext.Default)),
+            new Variant("E Fixed: skill-1 + no experience", fixedEngine.CalculateLineup(lineup, Transform(players, rawSkill: false, effectiveExperience: false, noExperience: true), RatingContext.Default)),
+            new Variant("F Fixed: raw skill + no experience", fixedEngine.CalculateLineup(lineup, Transform(players, rawSkill: true, effectiveExperience: false, noExperience: true), RatingContext.Default))
         };
 
-        var failures = 0;
         foreach (var variant in variants)
         {
-            var snapshot = engine.CalculateLineup(lineup, variant.Players, RatingContext.Default);
-            var values = Values(snapshot);
+            var values = Values(variant.Snapshot);
             var errors = values.Zip(GroundTruth, (actual, gt) => actual - gt).ToArray();
             var mae = errors.Select(Math.Abs).Average();
             var bias = errors.Average();
@@ -48,7 +46,7 @@ public static class CAL001ModelVariantRegression
                 Console.WriteLine($"  {Labels[i]}={values[i]:F4} gt={GroundTruth[i]:F2} err={errors[i]:+0.0000;-0.0000;0.0000}");
         }
 
-        var baseline = engine.CalculateLineup(lineup, players, RatingContext.Default);
+        var baseline = fixedEngine.CalculateLineup(lineup, players, RatingContext.Default);
         var baselineRaw = new[]
         {
             baseline.RawLeftDefence, baseline.RawCentralDefence, baseline.RawRightDefence,
@@ -59,25 +57,24 @@ public static class CAL001ModelVariantRegression
             7.547173492520718, 15.38792826270137, 8.722175800147264,
             8.356595269523073, 9.736919924603303, 12.138912750812356, 9.931162425931916
         };
-        for (var i = 0; i < baselineRaw.Length; i++)
-            if (Math.Abs(baselineRaw[i] - expectedRaw[i]) > 1e-12) failures++;
-
+        var failures = baselineRaw.Where((value, i) => Math.Abs(value - expectedRaw[i]) > 1e-12).Count();
         Console.WriteLine(failures == 0
             ? "PASS: CAL-001 model variant matrix; production baseline unchanged"
             : $"FAIL: CAL-001 production baseline changed ({failures} raw mismatches)");
         return failures == 0 ? 0 : 1;
     }
 
-    private static Player[] Transform(Player[] source, SkillMode skillMode, ExperienceMode experienceMode)
+    private static Player[] Transform(Player[] source, bool rawSkill, bool effectiveExperience, bool noExperience)
     {
         return source.Select(p =>
         {
-            var delta = experienceMode == ExperienceMode.EffectiveDelta ? ExperienceBonus(p.Experience) - 1.13 : 0.0;
-            // Fixed internally applies max(0, inputSkill - 1).
-            // Normalized: input = skill. Raw: input = skill + 1.
-            // Effective delta is added before Fixed's skill normalization.
-            var inputOffset = skillMode == SkillMode.Raw ? 1.0 : 0.0;
-            var experience = experienceMode == ExperienceMode.Separate ? p.Experience : 1;
+            var delta = effectiveExperience ? ExperienceBonus(p.Experience) - 1.13 : 0.0;
+            // Fixed internally computes max(0, inputSkill - 1). Therefore:
+            // normalized + no experience -> skill input;
+            // raw + no experience -> skill + 1 input;
+            // effective experience -> skill + delta + 1 input.
+            var inputOffset = rawSkill || effectiveExperience ? 1.0 : 0.0;
+            var experience = noExperience ? 1 : p.Experience;
             return new Player(
                 p.Id, p.Name,
                 p.Keeper + inputOffset + delta,
@@ -119,7 +116,5 @@ public static class CAL001ModelVariantRegression
 
     private static Slot Slot(string code, Player player) => new(code, code, "CAL-001", player.Name, player.Id, 0, 0, 0, PlayerOrder.Normal);
 
-    private enum SkillMode { Normalized, Raw }
-    private enum ExperienceMode { Separate, EffectiveDelta, None }
-    private sealed record Variant(string Name, Player[] Players);
+    private sealed record Variant(string Name, RegionalRatingSnapshot Snapshot);
 }
