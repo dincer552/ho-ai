@@ -31,6 +31,8 @@ if (args.Length > 0 && string.Equals(args[0], "stage9", StringComparison.Ordinal
     return Stage9FormationRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "stage10", StringComparison.OrdinalIgnoreCase))
     return Stage10TacticRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "cal001", StringComparison.OrdinalIgnoreCase))
+    return CAL001CurrentMotorRegression.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
