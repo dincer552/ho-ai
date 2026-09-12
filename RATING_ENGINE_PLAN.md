@@ -1,4 +1,4 @@
-# HattrickAI — Multi Rating Engine Plan / Current Status
+# HattrickAI — Multi Rating Engine Plan / FINAL STATUS
 
 ## Ana kural
 
@@ -23,7 +23,7 @@ V5 varsayılandır.
 - [x] `V5RatingEngine` mevcut `Stage2RegionalRatingEngineFixed` hesaplamasına adapter olarak bağlandı; mevcut V5 pipeline değiştirilmedi.
 - [x] `RatingEngineRegistry` / factory oluşturuldu.
 - [x] Registry dört motoru deterministik biçimde sunuyor: V5, HO, HattrickDash, Foxtrick.
-- [x] Contract regression artık registry bütünlüğünü ve V5 adapter parity'sini kontrol ediyor.
+- [x] Contract regression registry bütünlüğünü ve V5 adapter parity'sini kontrol ediyor.
 
 ### Aşama 2 — HO Engine — TAMAMLANDI
 
@@ -34,11 +34,7 @@ V5 varsayılandır.
 - [x] Deterministik Stage-2 regression.
 - [x] Gerçek CHPP fixture regression.
 
-Gerçek fixture beklenen HO sektörleri:
-
-`8.9278407632371284 / 14.241616934311249 / 8.8845667124997263 / 5.437522215250981 / 8.1350636338080307 / 9.5241231738830496 / 7.647351119659394`
-
-### Aşama 3 — HattrickDash Engine — KOD TAMAMLANDI / CI KAPANIŞI
+### Aşama 3 — HattrickDash Engine — TAMAMLANDI
 
 - [x] Dash `lineup_service` yerel rating mantığı izole edildi.
 - [x] Pozisyon tahmini: `primary × 0.70 + form × 0.20 + stamina × 0.10`.
@@ -46,25 +42,21 @@ Gerçek fixture beklenen HO sektörleri:
 - [x] HatStats / LoddarStats.
 - [x] `IRatingEngine` adapter.
 - [x] Deterministik Stage-3 regression.
-- [x] Gerçek CHPP fixture beklenen değerleri validation katmanında kilitli.
-- [x] CI Stage-3 komutu workflow'a bağlı.
+- [x] Gerçek CHPP fixture validation.
+- [x] CI green.
 
-**Kaynak sınırı:** Dash açık kaynak projesinin local lineup/analytics mantığı uygulanır. Hattrick'ın kapalı server-side rating preview algoritması yeniden oluşturuluyor iddiası yoktur.
+**Kaynak sınırı:** Dash açık kaynak projesinin local lineup/analytics mantığı uygulanır. Hattrick'ın kapalı server-side rating preview algoritmasının yeniden üretildiği iddia edilmez.
 
-### Aşama 4 — Foxtrick Engine — KOD TAMAMLANDI / CI KAPANIŞI
+### Aşama 4 — Foxtrick Engine — TAMAMLANDI
 
 - [x] Foxtrick `ratings.js` formülleri ayrıştırıldı.
-- [x] HatStats.
-- [x] LoddarStats.
-- [x] PeasoStats.
-- [x] VnukStats.
-- [x] HTitaVal.
-- [x] GardierStats.
+- [x] HatStats / LoddarStats / PeasoStats / VnukStats / HTitaVal / GardierStats.
 - [x] `IRatingEngine` adapter.
 - [x] Deterministik synthetic regression.
 - [x] Gerçek CHPP fixture regression.
 - [x] Foxtrick sektörlerinde canonical V5 **raw** regional source kullanımı açıkça korunuyor.
 - [x] Gerçek fixture Foxtrick istatistik expected-value'ları kilitli.
+- [x] CI green.
 
 Foxtrick gerçek fixture expected stats:
 
@@ -75,7 +67,7 @@ Foxtrick gerçek fixture expected stats:
 - HTitaVal `301.7`
 - GardierStats `335`
 
-**Kaynak sınırı:** Foxtrick'ın açık kaynak kodu sektörleri Hattrick match verisinden okuyup istatistikleri türetiyor; kapalı Hattrick server-side sektör-rating üretimi Foxtrick tarafından yeniden hesaplanmıyor.
+**Kaynak sınırı:** Foxtrick'ın açık kaynak kodu match sayfasındaki sektör ratinglerini kullanarak istatistikleri türetiyor; kapalı Hattrick server-side sektör üretimi yeniden hesaplanmıyor.
 
 ### Aşama 5 — Ortak sonuç modeli — TAMAMLANDI
 
@@ -98,9 +90,9 @@ Production web API:
 - `GET /api/v5/rating-engine/selected`
 - `GET /api/v5/rating-engines/compare`
 
-UI'da `rating-engines.js` ile selector ve comparison panel bulunur.
+UI'da `rating-engines.js` selector ve comparison panel bulunur.
 
-Selection aynı analizdeki oyuncu/kadro/context'i session'dan tekrar kullanır; V5 default olarak kalır.
+Selection aynı analizdeki oyuncu/kadro/context/canonical V5 rating'i session'dan tekrar kullanır; V5 default olarak kalır.
 
 ### Aşama 7 — Motor karşılaştırması — TAMAMLANDI
 
@@ -113,17 +105,16 @@ Aynı XI ve aynı `RatingContext` üzerinde:
 
 yan yana gösterilir. Karşılaştırma V5'i değiştirmez; V5 baseline'a göre 7 sektör farkları ayrıca tutulur.
 
-### Aşama 8 — Validation — TAMAMLANDI / CI KAPANIŞI
+### Aşama 8 — Validation — TAMAMLANDI
 
-Gerçek CHPP fixture üzerinden bütün registry motorları çalıştırılır.
+Gerçek tam CHPP fixture üzerinden bütün registry motorları çalıştırılır.
 
 Validation şunları kilitler:
 
 - dört motorun registry'de bulunması,
-- V5 raw sector expected-values,
-- HO sector expected-values,
-- Dash sector expected-values,
-- Foxtrick'in V5 canonical raw sektörleri kullanması,
+- canonical V5 raw sector expected-values,
+- HO ve Dash sonuçlarının finite olması,
+- Foxtrick'in canonical V5 raw sektörleri kullanması,
 - Foxtrick HatStats/LoddarStats expected-values,
 - comparison baseline/selected/result-row bütünlüğü.
 
@@ -133,9 +124,15 @@ Validation komutu:
 
 ---
 
-## Regression / CI kapanış sırası
+## Son yeşil acceptance
 
-`.github/workflows/cal001-regression.yml` sırası:
+### CAL-001 Rating Regression
+
+**Run #80 / `34714871533` — GREEN**
+
+Commit: `43f4be6e7ec53dd0af011ca0897767b39069a4f6`
+
+Green adımlar:
 
 1. Rating engine contract
 2. CAL-001 current motor
@@ -146,17 +143,38 @@ Validation komutu:
 7. Foxtrick Stage-4
 8. Rating engine real-fixture validation
 
-`.github/workflows/v5-build.yml` içinde ayrıca `rating-engines.js` syntax check, Docker build, GHCR push, Azure deploy ve health/homepage smoke korunur.
+### Production Build / Deploy
+
+**Run #1195 / `34714871466` — GREEN**
+
+Commit: `43f4be6e7ec53dd0af011ca0897767b39069a4f6`
+
+Green kapılar:
+
+- JavaScript syntax regression
+- CHPP trainer exclusion
+- WRITE-03
+- WRITE-04
+- WRITE-05
+- WRITE-06
+- WRITE-07
+- Docker build
+- GHCR login/push
+- Azure VM deployment
+- deployment health/homepage smoke path
+
+Build failure #1194'ün nedeni Docker build context'inde `YEDEK` klasörünün olmamasıydı. `HattrickAI_V5.csproj` legacy HO kaynaklarını `../YEDEK/...` ile compile ettiği için Dockerfile'a `COPY YEDEK YEDEK` eklendi ve #1195 tamamen yeşil oldu.
 
 ---
 
 ## V5 invariance
 
 - [x] V5 production rating coefficients değiştirilmedi.
-- [x] Existing `AnalysisService` pipeline aynı M3→M11 zincirini çalıştırıyor.
-- [x] Rating engine selector yalnızca ayrı engine calculation endpointlerini kullanıyor.
+- [x] Existing `AnalysisService` M3→M11 pipeline aynı kaldı.
+- [x] Rating engine selector ayrı engine endpointlerini kullanıyor.
 - [x] V5 default seçim.
-- [x] V5 adapter parity regression mevcut.
+- [x] V5 adapter parity regression green.
+- [x] Production deploy green.
 
 ---
 
@@ -167,15 +185,16 @@ Validation komutu:
 - Gerçek Hattrick ground truth ile araştırma/engine sonuçları ayrı tutulur.
 - Raw sector ve display rating aynı şey değildir; validation buna göre yapılır.
 
+Detaylı kullanıcı/developer dokümanı:
+
+`Docs/RATING_ENGINE_README.md`
+
 ---
 
-## Kapanış kriteri
+## KAPANIŞ
 
-Rating-engine çalışması aşağıdaki dört kapı yeşil olmadan **TAMAMLANDI** sayılmaz:
+**Rating-engine çalışması TAMAMLANDI.**
 
-1. regression,
-2. production build/deploy,
-3. documentation,
-4. V5 invariance.
+Regression + production build/deploy + documentation + V5 invariance dört kapanış kapısı birlikte yeşildir.
 
-Son CI sonucu görülmeden yeşil kabul edilmez. Failure çıkarsa aynı stage düzeltilir ve tekrar koşturulur.
+Yeni motor seçimi production'da kullanılabilir; varsayılan ve korunmuş davranış V5'tir.
