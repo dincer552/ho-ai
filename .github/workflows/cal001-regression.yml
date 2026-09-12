@@ -1,0 +1,19 @@
+name: CAL-001 Rating Regression
+
+on:
+  push:
+    branches: [v5]
+  workflow_dispatch:
+
+jobs:
+  cal001:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V5
+        uses: actions/checkout@v4
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Run CAL-001 current motor regression
+        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- cal001
