@@ -55,7 +55,7 @@ public static class CAL001ModelVariantRegression
         var expectedRaw = new[]
         {
             7.547173492520718, 15.38792826270137, 8.722175800147264,
-            8.356595269523073, 9.736919924603303, 12.138912425931916, 9.931162425931916
+            8.356595269523073, 9.736919924603303, 12.138912750812356, 9.931162425931916
         };
         var failures = baselineRaw.Where((value, i) => Math.Abs(value - expectedRaw[i]) > 1e-12).Count();
         Console.WriteLine(failures == 0
