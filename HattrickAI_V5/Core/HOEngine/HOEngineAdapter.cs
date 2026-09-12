@@ -174,11 +174,44 @@ public sealed class HOEngineAdapter : IRatingEngine
         foreach (var role in roles)
         {
             var bucket = BucketFor(role);
-            if (!buckets.TryGetValue(bucket, out var queue) || queue.Count == 0)
+            if (!TryDequeue(buckets, bucket, out var slot))
                 throw new ArgumentException($"No lineup slot available for HO role {role}.", nameof(lineup));
-            result.Add(queue.Dequeue());
+            result.Add(slot);
         }
         return result;
+    }
+
+    private static bool TryDequeue(
+        Dictionary<string, Queue<Slot>> buckets,
+        string bucket,
+        out Slot slot)
+    {
+        if (buckets.TryGetValue(bucket, out var direct) && direct.Count > 0)
+        {
+            slot = direct.Dequeue();
+            return true;
+        }
+
+        // Hattrick's 3-5-2 / 4-5-1 style formations expose wing-side midfielder
+        // slots in canonical input, while legacy HO models them as central midfield
+        // roles in GetRoles(). Treat the two representations as equivalent only as
+        // a role-mapping concern; the legacy calculation still receives the HO role.
+        if (bucket == "IM-C")
+        {
+            if (buckets.TryGetValue("IM-L", out var left) && left.Count > 0)
+            {
+                slot = left.Dequeue();
+                return true;
+            }
+            if (buckets.TryGetValue("IM-R", out var right) && right.Count > 0)
+            {
+                slot = right.Dequeue();
+                return true;
+            }
+        }
+
+        slot = default!;
+        return false;
     }
 
     private static string GetRoleBucket(Slot slot) => slot.Code switch
