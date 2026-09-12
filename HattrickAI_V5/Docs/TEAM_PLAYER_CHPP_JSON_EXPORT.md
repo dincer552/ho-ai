@@ -40,17 +40,26 @@ Durum kontrolü:
 
 `connected === true` olduğunda buton aktif olur.
 
-Bu nedenle frontend tarafında access token veya OAuth secret okunmaz. Browser yalnızca mevcut HTTP session üzerinden `/api/v5/status` ve `/api/v5/offline-export` çağrılarını yapar.
+Frontend access token veya OAuth secret okumaz. Browser yalnızca mevcut HTTP session üzerinden status endpoint'ini kontrol eder.
 
 ## Veri kaynağı
 
-V1 yeni bir backend CHPP endpoint'i eklemez.
+Buton için özel ve **hafif bir backend endpoint'i** kullanılır:
 
-Mevcut endpoint tekrar kullanılır:
+`GET /api/v5/team-player-export`
 
-`GET /api/v5/offline-export`
+Bu endpoint yalnızca iki CHPP çağrısı yapar:
 
-Mevcut `OfflineExportService` CHPP'den `players` verisini okuyup `normalized.ownPlayers` altında V5 `Player` modeline normalize eder. Bu export'ta ham CHPP XML ayrıca indirilecek JSON'a konmaz.
+1. `teamdetails` v3.0 — takım ID ve takım adını almak için.
+2. `players` v1.3 — mevcut takımın oyuncularını almak için.
+
+Böylece butona basıldığında `/api/v5/offline-export` gibi tam offline/regression paketinin maç, rakip, lineup ve analiz verileri tekrar çekilmez. Bu özellikle mobil kullanımda önemlidir.
+
+Backend sınıfı:
+
+`HattrickAI_V5/Core/TeamPlayerChppExportService.cs`
+
+Oyuncular mevcut V5 `Player` modeliyle aynı alanlara normalize edilir. Takımın trainer/coach PlayerID'si oyuncu listesinden çıkarılır.
 
 Oyuncu alanları mevcut V5 modelindeki gerçek alanlarla sınırlıdır:
 
@@ -67,14 +76,24 @@ Oyuncu alanları mevcut V5 modelindeki gerçek alanlarla sınırlıdır:
 - `experience`
 - `loyalty`
 - `injuryLevel`
-- `specialty` (modelde mevcutsa)
-- `setPiecesSkill` (modelde mevcutsa)
+- `specialty`
+- `setPiecesSkill`
+
+## İndirme yöntemi
+
+Endpoint JSON'u doğrudan HTTP **attachment** olarak döndürür:
+
+`Content-Disposition: attachment`
+
+Frontend bu nedenle `fetch() + Blob + <a>.click()` yöntemi kullanmaz. Mobil tarayıcılarda async `fetch()` sonrasında programatik Blob indirmesinin engellenebilmesi nedeniyle buton doğrudan `/api/v5/team-player-export` adresine yönlenir.
+
+Bu davranış özellikle Android mobil testinde korunmalıdır.
 
 ## İndirilen JSON
 
 Dosya adı:
 
-`hattrickai-team-players-YYYY-MM-DDTHH-mm-ss-sssZ.json`
+`hattrickai-team-players-YYYY-MM-DDTHH-mm-ss-fffZ.json`
 
 Şema:
 
@@ -83,7 +102,6 @@ Dosya adı:
   "schema": "hattrickai-v5-team-player-chpp-v1",
   "exportedAt": "...",
   "source": "CHPP",
-  "purpose": "...",
   "security": {
     "credentialsIncluded": false,
     "oauthTokensIncluded": false,
@@ -98,16 +116,11 @@ Dosya adı:
   "players": [],
   "sourceSnapshot": {
     "build": "...",
-    "matchContext": {}
+    "playerSource": "CHPP players v1.3",
+    "trainerExcluded": true
   }
 }
 ```
-
-## Neden mevcut `offline-export` tekrar kullanılıyor?
-
-Böylece aynı CHPP oyuncu parser'ı ve aynı V5 `Player` modeli tekrar kullanılmaktadır. Yeni bir ikinci `players.xml` parser'ı oluşturulmaz; bu da iki farklı yerde oyuncu verisinin farklı yorumlanması riskini azaltır.
-
-Dezavantajı: `/api/v5/offline-export` yalnız oyuncuları değil, mevcut offline test paketinin diğer verilerini de CHPP'den toplar. Frontend yalnızca `normalized.ownPlayers` ve gerekli takım bilgisini ayırıp yeni küçük JSON'u oluşturur. Bu nedenle butonun amacı hafif bir canlı API değildir; **geliştirme amaçlı snapshot alma aracıdır**.
 
 ## Güvenlik
 
@@ -119,17 +132,32 @@ JSON içine özellikle şunlar alınmaz:
 - browser session cookie
 - ham `teamdetails.xml` / `players.xml`
 
-Button yalnızca browser'da oluşturulan indirilebilir JSON'u üretir.
+CHPP tokenları yalnızca backend session tarafında kalır.
 
 ## Kod işaretleri / removal marker
 
-Kodun başında şu sabit removal marker bulunur:
+Bu özellikte ortak removal marker:
 
 `TEAM_PLAYER_CHPP_JSON_EXPORT_V1`
 
-Frontend dosyasının hemen başındaki yorum, bu belgeyi kaldırma referansı olarak gösterir.
+Bu marker hem frontend hem backend kodunda ve bu dokümanda aranabilir.
+
+İlgili diğer sabitler:
+
+- `v5TeamPlayerChppExport`
+- `/api/v5/team-player-export`
+- `team-player-chpp-export.js`
 
 ## İleride siteden tamamen kaldırma prosedürü
+
+Bu özellik kaldırılacağı zaman repository'de önce şu aramayı yap:
+
+```text
+TEAM_PLAYER_CHPP_JSON_EXPORT_V1
+v5TeamPlayerChppExport
+/api/v5/team-player-export
+team-player-chpp-export.js
+```
 
 ### 1. Frontend dosyasını sil
 
@@ -161,38 +189,41 @@ Workflow'a bu helper için syntax kontrolü eklendiyse şu satırı kaldır:
 node --check HattrickAI_V5/wwwroot/team-player-chpp-export.js
 ```
 
-### 5. Bu dokümanı sil
+### 5. Backend endpoint'i kaldır
 
-Bu dosya da artık gerekli değil:
+`HattrickAI_V5/Program.cs` içindeki şu blok kaldırılmalı:
+
+```csharp
+// TEAM_PLAYER_CHPP_JSON_EXPORT_V1: lightweight DEV data collection endpoint.
+app.MapGet("/api/v5/team-player-export", ...);
+```
+
+### 6. Backend servis sınıfını sil
+
+Sil:
+
+`HattrickAI_V5/Core/TeamPlayerChppExportService.cs`
+
+### 7. Bu dokümanı sil
+
+Sil:
 
 `HattrickAI_V5/Docs/TEAM_PLAYER_CHPP_JSON_EXPORT.md`
 
-### 6. Backend'i silmek gerekmez
+### 8. `OfflineExportService` kaldırılmamalı
 
-V1 yeni backend endpoint'i eklemediği için **`/api/v5/offline-export` ve `OfflineExportService` sırf bu buton yüzünden kaldırılmamalıdır**. Başka offline/regression kullanımları devam edebilir.
+Bu buton artık `OfflineExportService` kullanmadığı için kaldırma sırasında `OfflineExportService` veya `/api/v5/offline-export` özelliğine dokunulmaz. Bunlar başka offline/regression işleri için kullanılabilir.
 
-## Hızlı kaldırma kontrol listesi
+## Test / kabul
 
-Repository içinde arat:
-
-```text
-TEAM_PLAYER_CHPP_JSON_EXPORT_V1
-v5TeamPlayerChppExport
-team-player-chpp-export.js
-👥 TAKIM + OYUNCU JSON AL
-```
-
-Arama sonucunda yalnızca eski dokümantasyon/artifact referansları kalıyorsa UI özelliği kaldırılmıştır.
-
-## Test
-
-CI'da JavaScript syntax regression adımında bu dosya `node --check` ile doğrulanmalıdır.
-
-Deploy sonrasında kontrol:
+Deploy sonrasında:
 
 1. CHPP bağlı değilken buton pasif.
 2. CHPP bağlandıktan sonra buton aktif.
-3. Butona basıldığında CHPP oyuncu verileri alınır.
-4. JSON indirilir.
-5. JSON'da oyuncu sayısı ve yetenek/form alanları bulunur.
-6. JSON'da OAuth secret/token bulunmaz.
+3. Butona basınca kısa CHPP veri toplama işlemi başlar.
+4. Mobil tarayıcı JSON attachment indirmesini başlatır.
+5. JSON'da takım bilgisi bulunur.
+6. JSON'da oyuncu sayısı ve yetenek/form alanları bulunur.
+7. Trainer oyuncu olarak export edilmez.
+8. JSON'da OAuth secret/token bulunmaz.
+9. Buton match order write işlemi yapmaz.
