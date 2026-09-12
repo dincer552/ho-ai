@@ -31,8 +31,6 @@ public enum TeamSpiritLevel
 
 public static class QuestionnaireRatingAdjuster
 {
-    // Hattrick Wiki: offensive coach +8% attack / -11% defence;
-    // defensive coach +14% defence / -8% attack versus neutral.
     public static RegionalRatingSnapshot Apply(RegionalRatingSnapshot rating, MatchQuestionnaire q)
     {
         var attack = q.Coach switch
@@ -48,7 +46,6 @@ public static class QuestionnaireRatingAdjuster
             _ => 1.0
         };
 
-        // Team spirit directly affects midfield. Values are normalized to composed/normal = 1.0.
         var spirit = q.TeamSpirit switch
         {
             TeamSpiritLevel.Murderous => .72,
@@ -95,12 +92,12 @@ public static class QuestionnaireRatingAdjuster
 
         return new RegionalRatingSnapshot(
             rawLd, rawCd, rawRd, rawMid, rawLa, rawCa, rawRa,
-            RegionalRatingEngine.Display(rawLd),
-            RegionalRatingEngine.Display(rawCd),
-            RegionalRatingEngine.Display(rawRd),
-            RegionalRatingEngine.Display(rawMid),
-            RegionalRatingEngine.Display(rawLa),
-            RegionalRatingEngine.Display(rawCa),
-            RegionalRatingEngine.Display(rawRa));
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftDefence, rawLd),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralDefence, rawCd),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightDefence, rawRd),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.Midfield, rawMid),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftAttack, rawLa),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralAttack, rawCa),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightAttack, rawRa));
     }
 }
