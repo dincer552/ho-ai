@@ -111,10 +111,17 @@ app.MapGet("/api/v5/analysis", async (HttpContext http, AnalysisService service,
 });
 
 // TEAM_PLAYER_CHPP_JSON_EXPORT_V1: lightweight DEV data collection endpoint.
+// Returns a real attachment so mobile browsers can download it without Blob/async gesture issues.
 app.MapGet("/api/v5/team-player-export", async (ChppV5 chpp, CancellationToken ct) =>
 {
     if (!chpp.Connected) return Results.Unauthorized();
-    try { return Results.Ok(await new TeamPlayerChppExportService(chpp).ExportAsync(build, ct)); }
+    try
+    {
+        var data = await new TeamPlayerChppExportService(chpp).ExportAsync(build, ct);
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(data, new JsonSerializerOptions { WriteIndented = true });
+        var filename = $"hattrickai-team-players-{DateTimeOffset.UtcNow:yyyy-MM-ddTHH-mm-ss-fffZ}.json";
+        return Results.File(bytes, "application/json", filename);
+    }
     catch (UnauthorizedAccessException) { return Results.Unauthorized(); }
     catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 502); }
 });
