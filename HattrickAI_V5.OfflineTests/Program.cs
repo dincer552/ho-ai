@@ -23,7 +23,7 @@ var path = args.Length > 1
             ? "TestJSON/TacticalOutcomeCalibrationCorpus_2026-09-07.json"
             : "TestJSON/HattrickAI_V5_CHPP_FullOffline_2026-09-01.json";
 var startNumber = startFrom.Length > 1 && int.TryParse(startFrom[1..], out var parsed) ? parsed : 1;
-if (startNumber < 1 || startNumber > 24) throw new ArgumentException($"Geçersiz acceptance başlangıcı: {startFrom}. c1-c24 kullanın.");
+if (startNumber < 1 || startNumber > 25) throw new ArgumentException($"Geçersiz acceptance başlangıcı: {startFrom}. c1-c25 kullanın.");
 
 bool From(int c) => startNumber == c;
 
@@ -51,4 +51,5 @@ if (From(21)) return await C21TacticalMatchupMatrixRegression.RunAsync(path);
 if (From(22)) { var r = C22TacticalOutcomeEdgeCaseRegression.Run(); if (r != 0) return r; }
 if (From(23)) { var r = C23TacticalOutcomeCalibrationRegression.Run(); if (r != 0) return r; }
 if (From(24)) return C24TacticalOutcomeCalibrationCorpusRegression.Run(path);
+if (From(25)) return C25FormationAwareRatingPositionRegression.Run();
 return 0;
