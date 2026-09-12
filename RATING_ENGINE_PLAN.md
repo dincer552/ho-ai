@@ -126,7 +126,7 @@ mümkün olduğu ölçüde ayrı modüller halinde uygulanacak.
 
 ### Aşama 4 mevcut durum
 
-**DEVAM EDİYOR**
+**KOD TAMAMLANDI — CI SON KAPANIŞ GATE'İ**
 
 - [x] Foxtrick açık kaynak `content/matches/ratings.js` incelendi.
 - [x] HatStats formülü izole edildi.
@@ -137,10 +137,12 @@ mümkün olduğu ölçüde ayrı modüller halinde uygulanacak.
 - [x] GardierStats formülü izole edildi.
 - [x] `FoxtrickEngine` → `IRatingEngine` sözleşmesine bağlandı.
 - [x] Deterministik `FoxtrickEngineStage4Regression` eklendi.
+- [x] Foxtrick Stage-4 regression gerçek CHPP fixture'a genişletildi.
+- [x] Gerçek CHPP fixture üzerinde Foxtrick/V5 sektörleri kilitlendi.
+- [x] Aynı fixture üzerinde HO / HattrickDash / Foxtrick sonuçları ve farkları expected-value olarak kilitlendi.
 - [x] Regression runner'a `foxtrick-stage4` komutu eklendi.
 - [x] CI pipeline'a Stage-4 Foxtrick regression adımı eklendi.
-- [ ] CI Stage-4 regression'ın yeşil sonuç vermesi doğrulanacak.
-- [ ] Foxtrick motorunun gerçek CHPP fixture üzerinde HO / Dash / V5 ile farkları kilitlenecek.
+- [ ] Son push sonrası CI Stage-4 regression'ın yeşil sonucu doğrulanacak.
 
 **Not:** Foxtrick'in `ratings.js` kodu sektör ratinglerini Hattrick match sayfasından alıp istatistikleri türetiyor; Foxtrick'in kendisi kapalı Hattrick server-side sektör-rating üretimini yeniden hesaplamıyor. Bu nedenle Stage-4 motorunda yedi sektör için mevcut canonical regional calculator yalnızca ortak veri kaynağı olarak kullanılıyor; HatStats/LoddarStats/PeasoStats/VnukStats/HTitaVal/GardierStats hesaplarının tamamı Foxtrick kodundan ayrı olarak uygulanıyor.
 
