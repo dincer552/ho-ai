@@ -46,6 +46,19 @@ Açık kaynak **Hattrick Organizer** kodu incelenecek ve rating hesaplama mantı
 
 **V5 koduna müdahale edilmeyecek.**
 
+### Aşama 2 mevcut durum
+
+- [x] Mevcut legacy HO `LineupRatingEngine` / `RatingContributionTable` / `PlayerRatingCalculator` / `TeamRatings` kaynakları izole referans olarak V5 projesine bağlandı.
+- [x] `HOEngineAdapter` ile `IRatingEngine` sözleşmesine bağlandı.
+- [x] HO pozisyon/slot davranışları canonical V5 `Lineup` + `Player` verisinden legacy HO modeline dönüştürülüyor.
+- [x] HO sektör sonuçları ortak `RegionalRatingSnapshot` formatına dönüştürülüyor.
+- [x] HO HatStats hesaplaması eklendi.
+- [x] HO LoddarStats hesaplaması, upstream Hattrick Organizer formülü ile adapter katmanına eklendi.
+- [x] Deterministik `HOEngineStage2Regression` eklendi.
+- [ ] Upstream `RatingPredictionModel` ile kalan tüm context/average-minute davranışları birebir parity seviyesine getirilecek.
+- [ ] HO engine için gerçek Hattrick fixture'larından sabit expected-value regression seti oluşturulacak.
+- [ ] CI üzerinde `HOEngineStage2Regression` çalıştırılacak ve build sonucu doğrulanacak.
+
 ---
 
 ## Aşama 3 — HattrickDash Engine
