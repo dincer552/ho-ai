@@ -9,10 +9,14 @@ namespace HattrickAI.V5.Core;
 /// Stage 3 uses the researched Hattrick/HO skill normalization:
 /// skill contribution starts from max(0, skill - 1), rather than the raw
 /// displayed skill level. Loyalty and experience remain separate additions.
+/// Stage 4 replaces the empirical form lookup table with the researched
+/// Hattrick/HO form contribution curve.
 /// </summary>
 public sealed class RegionalRatingEngineFixed
 {
-    private const double BaselineFormFactor = .755;
+    // The researched form curve is normalized against form 5 so the historical
+    // reference point remains unchanged while the shape is no longer empirical.
+    private const double BaselineFormFactor = .756;
     private const double BaselineExperienceBonus = 1.13;
 
     private const double ReferenceMidfieldCalibration = .8285714285714286;
@@ -157,7 +161,12 @@ public sealed class RegionalRatingEngineFixed
     private static void ApplyReferenceCalibration(Dictionary<RatingSector, double> s) { s[RatingSector.Midfield] *= ReferenceMidfieldCalibration; s[RatingSector.LeftAttack] *= ReferenceLeftAttackCalibration; s[RatingSector.RightAttack] *= ReferenceRightAttackCalibration; }
     private static double LoyaltyEffect(double loyalty) => loyalty <= 0 ? 0 : Math.Clamp(loyalty * .05, 0.0, 1.0);
     private static double ExperienceBonus(double experience) { var values = new[] { 0.00,0.00,.40,.64,.80,.93,1.04,1.13,1.20,1.27,1.33,1.39,1.44,1.49,1.53,1.57,1.61,1.64,1.67,1.71,1.73 }; return values[Math.Clamp((int)Math.Round(experience), 1, 20)]; }
-    private static double FormFactor(double form) { var points = new[] { (1.5,.282),(2.0,.379),(2.5,.462),(3.0,.534),(3.5,.598),(4.0,.655),(4.5,.707),(5.0,.755),(5.5,.800),(6.0,.844),(6.5,.885),(7.0,.925),(7.5,.964),(8.0,1.000) }; if (form <= points[0].Item1) return points[0].Item2; if (form >= points[^1].Item1) return points[^1].Item2; for (var i = 1; i < points.Length; i++) if (form <= points[i].Item1) { var (x0,y0) = points[i-1]; var (x1,y1) = points[i]; return y0 + (form - x0) * (y1 - y0) / (x1 - x0); } return 1.0; }
+    private static double FormFactor(double form)
+    {
+        // Community/HO-researched form contribution:
+        // 0.378 * sqrt(clamp(form - 1, 0, 7)).
+        return 0.378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
+    }
     private static void AddBothSides(Dictionary<RatingSector,double> s, RatingSector left, RatingSector right, double value, double multiplier = 1.0) { s[left] += value * multiplier; s[right] += value * multiplier; }
     private static void AddSideOnly(Dictionary<RatingSector,double> s, PlayerSide side, RatingSector left, RatingSector right, double value, double multiplier = 1.0) { value *= multiplier; if (side == PlayerSide.Left) s[left] += value; else if (side == PlayerSide.Right) s[right] += value; else AddBothSides(s, left, right, value); }
     private static void Add(Dictionary<RatingSector,double> s, RatingSector sector, double value, double multiplier = 1.0) => s[sector] += value * multiplier;
