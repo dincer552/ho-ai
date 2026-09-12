@@ -26,20 +26,20 @@ public static class FoxtrickEngineStage4Regression
         CheckNear(normal.HTitaVal, 344.4, .0001, "synthetic HTitaVal", failures);
         CheckNear(normal.GardierStats, 410.0, .0001, "synthetic GardierStats", failures);
 
-        var engine = new FoxtrickEngine();
         using var document = JsonDocument.Parse(File.ReadAllText(FixturePath));
         var root = document.RootElement;
         var normalized = root.GetProperty("normalized");
         var analysis = root.GetProperty("v5Analysis");
         var players = normalized.GetProperty("ownPlayers").EnumerateArray().Select(ToPlayer).ToList();
         var lineup = ReadLineup(analysis.GetProperty("ownLineup"));
-        var request = new RatingEngineRequest(lineup, players, RatingContext.Default);
+        var canonical = ReadRating(analysis.GetProperty("ownRating"));
+        var request = new RatingEngineRequest(lineup, players, RatingContext.Default, canonical);
 
-        var v5FixtureRating = ReadRating(analysis.GetProperty("ownRating"));
-        var fixtureRawValues = RawValues(v5FixtureRating).ToArray();
+        var fixtureRawValues = RawValues(canonical).ToArray();
         for (var i = 0; i < ExpectedV5RawSectors.Length; i++)
             CheckNear(fixtureRawValues[i], ExpectedV5RawSectors[i], 1e-9, $"fixture V5 raw sector {i}", failures);
 
+        var engine = new FoxtrickEngine();
         var fox = engine.Calculate(request);
         var dash = new HattrickDashEngine().Calculate(request);
         var ho = new HOEngineAdapter().Calculate(request);
@@ -68,7 +68,7 @@ public static class FoxtrickEngineStage4Regression
             return 1;
         }
         Console.WriteLine("FoxtrickEngineStage4Regression PASS");
-        Console.WriteLine("Real CHPP V5 fixture locked: V5 raw sectors + Foxtrick statistics; HO/Dash comparison finite.");
+        Console.WriteLine("Real CHPP V5 fixture locked: canonical V5 rating -> Foxtrick statistics; HO/Dash comparison finite.");
         return 0;
     }
 
