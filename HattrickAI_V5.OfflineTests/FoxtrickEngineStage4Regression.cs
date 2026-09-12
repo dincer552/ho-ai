@@ -6,32 +6,10 @@ namespace HattrickAI.V5.OfflineTests;
 public static class FoxtrickEngineStage4Regression
 {
     private const string FixturePath = "HattrickAI_V5.OfflineTests/Fixtures/HO_Real_CHPP_Fixture_2026-09-01.json";
-
-    private static readonly double[] ExpectedV5RawSectors =
-    {
-        8.814876331125825,
-        15.131275059602647,
-        8.755167139072846,
-        5.3073582240775785,
-        9.3881423692354,
-        10.733139483443706,
-        8.34554898438368
-    };
-
-    private static readonly double[] ExpectedDashSectors =
-    {
-        13.033333333333333,
-        13.033333333333333,
-        13.033333333333333,
-        12.64,
-        11.85,
-        11.85,
-        11.85
-    };
-
+    private static readonly double[] ExpectedV5RawSectors = { 8.814876331125825, 15.131275059602647, 8.755167139072846, 5.3073582240775785, 9.3881423692354, 10.733139483443706, 8.34554898438368 };
+    private static readonly double[] ExpectedDashSectors = { 13.033333333333333, 13.033333333333333, 13.033333333333333, 12.64, 11.85, 11.85, 11.85 };
     private const double ExpectedDashHatStats = 112.57;
     private const double ExpectedDashLoddarStats = 25.081666666666666;
-
     private const double ExpectedFoxHatStats = 317.36089615638735;
     private const double ExpectedFoxLoddarStats = 23.78;
     private const double ExpectedFoxPeasoStats = 33.04;
@@ -75,13 +53,12 @@ public static class FoxtrickEngineStage4Regression
         var fox = engine.Calculate(request);
         var dash = new HattrickDashEngine().Calculate(request);
         var ho = new HOEngineAdapter().Calculate(request);
-        var foxValues = Values(fox.Rating).ToArray();
+        var foxValues = RawValues(fox.Rating).ToArray();
         var dashValues = Values(dash.Rating).ToArray();
         var hoValues = Values(ho.Rating).ToArray();
-
         for (var i = 0; i < ExpectedV5RawSectors.Length; i++)
         {
-            CheckNear(foxValues[i], ExpectedV5RawSectors[i], 1e-9, $"Foxtrick/V5 sector {i}", failures);
+            CheckNear(foxValues[i], ExpectedV5RawSectors[i], 1e-9, $"Foxtrick/V5 raw sector {i}", failures);
             CheckNear(dashValues[i], ExpectedDashSectors[i], 1e-9, $"Dash sector {i}", failures);
         }
         var expectedHo = new[] { 8.9278407632371284, 14.241616934311249, 8.8845667124997263, 5.437522215250981, 8.1350636338080307, 9.5241231738830496, 7.647351119659394 };
@@ -113,30 +90,27 @@ public static class FoxtrickEngineStage4Regression
         if (!condition) failures.Add($"{label}: condition was false");
     }
 
-    private static Player ToPlayer(JsonElement p)
-        => new(
-            p.GetProperty("id").GetInt32(), p.GetProperty("name").GetString() ?? "",
-            p.GetProperty("keeper").GetInt32(), p.GetProperty("defending").GetInt32(),
-            p.GetProperty("playmaking").GetInt32(), p.GetProperty("passing").GetInt32(),
-            p.GetProperty("winger").GetInt32(), p.GetProperty("scoring").GetInt32(),
-            p.GetProperty("stamina").GetInt32(), p.GetProperty("form").GetInt32(),
-            p.GetProperty("experience").GetInt32(), p.GetProperty("loyalty").GetInt32(), -1,
-            (PlayerSpecialty)p.GetProperty("specialty").GetInt32(), 0);
+    private static Player ToPlayer(JsonElement p) => new(
+        p.GetProperty("id").GetInt32(), p.GetProperty("name").GetString() ?? "",
+        p.GetProperty("keeper").GetInt32(), p.GetProperty("defending").GetInt32(), p.GetProperty("playmaking").GetInt32(),
+        p.GetProperty("passing").GetInt32(), p.GetProperty("winger").GetInt32(), p.GetProperty("scoring").GetInt32(),
+        p.GetProperty("stamina").GetInt32(), p.GetProperty("form").GetInt32(), p.GetProperty("experience").GetInt32(),
+        p.GetProperty("loyalty").GetInt32(), -1, (PlayerSpecialty)p.GetProperty("specialty").GetInt32(), 0);
+
+    private static IEnumerable<double> RawValues(RegionalRatingSnapshot s)
+    {
+        yield return s.RawLeftDefence; yield return s.RawCentralDefence; yield return s.RawRightDefence; yield return s.RawMidfield;
+        yield return s.RawLeftAttack; yield return s.RawCentralAttack; yield return s.RawRightAttack;
+    }
 
     private static IEnumerable<double> Values(RegionalRatingSnapshot s)
     {
-        yield return s.LeftDefence;
-        yield return s.CentralDefence;
-        yield return s.RightDefence;
-        yield return s.Midfield;
-        yield return s.LeftAttack;
-        yield return s.CentralAttack;
-        yield return s.RightAttack;
+        yield return s.LeftDefence; yield return s.CentralDefence; yield return s.RightDefence; yield return s.Midfield;
+        yield return s.LeftAttack; yield return s.CentralAttack; yield return s.RightAttack;
     }
 
     private static void CheckNear(double actual, double expected, double tolerance, string label, ICollection<string> failures)
     {
-        if (Math.Abs(actual - expected) > tolerance)
-            failures.Add($"{label}: expected {expected:0.############}, got {actual:0.############}");
+        if (Math.Abs(actual - expected) > tolerance) failures.Add($"{label}: expected {expected:0.############}, got {actual:0.############}");
     }
 }
