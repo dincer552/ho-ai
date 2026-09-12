@@ -21,6 +21,8 @@ if (args.Length > 0 && string.Equals(args[0], "stage6", StringComparison.Ordinal
     return Stage6OvercrowdingRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "stage7", StringComparison.OrdinalIgnoreCase))
     return Stage7StaminaRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "stage8", StringComparison.OrdinalIgnoreCase))
+    return Stage8ContextRegression.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
