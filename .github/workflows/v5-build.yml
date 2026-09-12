@@ -27,6 +27,7 @@ jobs:
           node --check HattrickAI_V5/wwwroot/bench-selection.js
           node --check HattrickAI_V5/wwwroot/chpp-export.js
           node --check HattrickAI_V5/wwwroot/team-player-chpp-export.js
+          node --check HattrickAI_V5/wwwroot/rating-engines.js
       - name: CHPP trainer exclusion regression
         shell: bash
         run: |
