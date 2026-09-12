@@ -1,23 +1,29 @@
 # HattrickAI V5 — Rating Engine Katmanı
 
-## Amaç
+## Durum
 
-Mevcut V5 rating davranışını değiştirmeden aynı canonical `Lineup + Player + RatingContext` girdisini bağımsız rating motorlarında çalıştırmak:
+**TAMAMLANDI.**
+
+Production motorları:
 
 `V5 | HO | HattrickDash | Foxtrick`
 
-**Varsayılan motor: V5.** Yeni motorlar mevcut M3→M11 production pipeline'ına katsayı veya akış değişikliği olarak eklenmez.
+**Varsayılan motor: V5.** Mevcut V5 davranışı ve M3→M11 production pipeline'ı korunur.
+
+## Amaç
+
+Aynı canonical `Lineup + Player + RatingContext` girdisini bağımsız rating motorlarında çalıştırmak ve motorları V5 davranışını değiştirmeden karşılaştırabilmek.
 
 ## Motorlar
 
 ### V5
-Mevcut V5 rating katmanının adapter'ıdır. `Stage2RegionalRatingEngineFixed` üzerinden canonical V5 regional rating üretir. Contract regression, adapter parity'sini doğrudan mevcut Fixed motoruna karşı kontrol eder.
+Mevcut V5 rating katmanının adapter'ıdır. `Stage2RegionalRatingEngineFixed` üzerinden canonical V5 regional rating üretir. Contract regression, adapter parity'sini mevcut Fixed motoruna karşı kontrol eder.
 
 ### HO
 Legacy HO rating hesapları bağımsız adapter altında çalışır. 7 bölgesel sektör ile HatStats/LoddarStats ortak `RatingEngineResult` modeline taşınır. Gerçek 2026-09-01 CHPP fixture regression ile sektör ve context davranışları kilitlidir.
 
 ### HattrickDash
-Açık kaynak Dash local lineup/analytics mantığı uygulanır. Pozisyon tahmini `primary × 0.70 + form × 0.20 + stamina × 0.10` ile başlar; midfield/defence/attack aggregate'leri ve Dash HatStats/LoddarStats hesapları ayrıdır.
+Açık kaynak Dash local lineup/analytics mantığı uygulanır. Pozisyon tahmini `primary × 0.70 + form × 0.20 + stamina × 0.10` ile başlar; midfield/defence/attack aggregate'leri ve Dash HatStats/LoddarStats ayrıdır.
 
 Dash'in açık kaynak kodu Hattrick'ın kapalı server-side rating preview algoritmasını yeniden üretmez; bu sınır korunur.
 
@@ -41,6 +47,8 @@ Foxtrick sektör üretiminin Hattrick server-side kısmı kapalı olduğu için 
 - `Name`
 - `Calculate(RatingEngineRequest)`
 
+`RatingEngineRequest` canonical V5 snapshot'ını opsiyonel olarak taşıyabilir. Böylece Foxtrick gibi server-side sektör üretimini yeniden kurmayan motorlar gerçek analizde Hattrick/V5'nin doğrulanmış raw sektörlerini kullanır.
+
 `RatingEngineResult`:
 
 - engine identity
@@ -50,7 +58,7 @@ Foxtrick sektör üretiminin Hattrick server-side kısmı kapalı olduğu için 
 
 `RegionalRatingSnapshot` raw ve display ratingleri ayrı tutar. Validation'da V5/Foxtrick raw değerleri ile HO/Dash display değerleri birbirine karıştırılmaz.
 
-## Registry
+## Registry ve karşılaştırma
 
 `RatingEngineRegistry` dört motoru deterministik biçimde sunar. V5 registry'de zorunludur.
 
@@ -66,7 +74,7 @@ Production endpoint'leri:
 - `GET /api/v5/rating-engine/selected`
 - `GET /api/v5/rating-engines/compare`
 
-Web UI'da `rating-engines.js` selector ve comparison panelini sağlar. Analiz sonrası aynı oyuncu havuzu, XI ve rating context session'dan tekrar kullanılır.
+Web UI'da `rating-engines.js` selector ve comparison panelini sağlar. Analiz sonrası oyuncu havuzu, XI, rating context ve canonical V5 rating session'dan tekrar kullanılır.
 
 ## CI / regression sırası
 
@@ -83,6 +91,26 @@ Web UI'da `rating-engines.js` selector ve comparison panelini sağlar. Analiz so
 
 `.github/workflows/v5-build.yml` ayrıca rating selector JavaScript syntax checkini production Docker buildinden önce çalıştırır.
 
+## Final acceptance
+
+### CAL-001 Rating Regression
+
+**Run #80 / `34714871533` — GREEN**
+
+Commit: `43f4be6e7ec53dd0af011ca0897767b39069a4f6`
+
+Contract, CAL-001, model variants, HO Stage-2, HO real fixture, Dash Stage-3, Foxtrick Stage-4 ve full rating-engine validation tamamı başarılı.
+
+### Production Build / Deploy
+
+**Run #1195 / `34714871466` — GREEN**
+
+Commit: `43f4be6e7ec53dd0af011ca0897767b39069a4f6`
+
+JavaScript syntax, CHPP regression seti, Docker build, GHCR push ve Azure VM deployment başarıyla tamamlandı.
+
+Build #1194'teki Docker hatasının kökü, `.csproj` tarafından `../YEDEK/YEDEK/V1/webapp/HOEngine/*.cs` üzerinden kullanılan legacy HO kaynaklarının Docker build context'ine alınmamış olmasıydı. Dockerfile'a `COPY YEDEK YEDEK` eklendi ve #1195 tamamen yeşil oldu.
+
 ## Gerçek fixture acceptance
 
 Canonical V5 raw sectors:
@@ -98,16 +126,17 @@ Foxtrick real-fixture stats:
 - HTitaVal: `301.7`
 - GardierStats: `335`
 
-HO real-fixture sectors ve Dash real-fixture outputları bağımsız motorların kendi hesaplarından gelir; hard-coded çapraz motor eşitliği varsayılmaz.
+HO ve HattrickDash real-fixture sonuçları bağımsız motorların kendi hesaplarından gelir; hard-coded çapraz motor eşitliği varsayılmaz.
 
 ## V5 invariance
 
 - V5 production coefficients değişmez.
 - Existing M3→M11 pipeline değişmez.
-- Selector yalnızca ayrı engine endpoint'lerini kullanır.
+- Selector yalnızca ayrı engine endpointlerini kullanır.
 - Default engine V5'tir.
-- V5 adapter parity regression vardır.
+- V5 adapter parity regression green.
+- Production build/deploy green.
 
 ## Kapanış
 
-Rating-engine çalışması ancak regression, production build/deploy, documentation ve V5 invariance kapıları birlikte yeşil olduğunda tamamlanmış kabul edilir.
+Regression + production build/deploy + documentation + V5 invariance dört kapanış kapısı yeşildir. Rating-engine çalışması **TAMAMLANDI**.
