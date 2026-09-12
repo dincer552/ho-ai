@@ -12,13 +12,7 @@ public static class RatingEngineContractsRegression
         if (kinds.Length != 4)
             throw new InvalidOperationException($"Rating engine contract drift: expected 4 engines, found {kinds.Length}.");
 
-        var expected = new[]
-        {
-            RatingEngineKind.V5,
-            RatingEngineKind.HO,
-            RatingEngineKind.HattrickDash,
-            RatingEngineKind.Foxtrick
-        };
+        var expected = new[] { RatingEngineKind.V5, RatingEngineKind.HO, RatingEngineKind.HattrickDash, RatingEngineKind.Foxtrick };
         for (var i = 0; i < expected.Length; i++)
             if (kinds[i] != expected[i])
                 throw new InvalidOperationException($"Rating engine enum order drift at index {i}: {kinds[i]}.");
@@ -44,9 +38,12 @@ public static class RatingEngineContractsRegression
         var request = new RatingEngineRequest(new Lineup("Contract", "3-5-2", slots), players, RatingContext.Default);
         var expectedV5 = new Stage2RegionalRatingEngineFixed().CalculateLineup(request.Lineup, request.Players, request.Context);
         var actualV5 = registry.Calculate(RatingEngineKind.V5, request).Rating;
-        foreach (var (actual, expectedValue, label) in Values(actualV5).Zip(Values(expectedV5), new[] { "LD", "CD", "RD", "MF", "LA", "CA", "RA" }))
-            if (Math.Abs(actual - expectedValue) > 1e-12)
-                throw new InvalidOperationException($"V5 adapter parity drift at {label}: expected {expectedValue:R}, got {actual:R}.");
+        var actual = Values(actualV5).ToArray();
+        var expectedValues = Values(expectedV5).ToArray();
+        var labels = new[] { "LD", "CD", "RD", "MF", "LA", "CA", "RA" };
+        for (var i = 0; i < labels.Length; i++)
+            if (Math.Abs(actual[i] - expectedValues[i]) > 1e-12)
+                throw new InvalidOperationException($"V5 adapter parity drift at {labels[i]}: expected {expectedValues[i]:R}, got {actual[i]:R}.");
 
         return 0;
     }
