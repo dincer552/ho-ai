@@ -6,7 +6,6 @@ namespace HattrickAI.V5.OfflineTests;
 public static class RatingEngineValidationRegression
 {
     private const string FixturePath = "HattrickAI_V5.OfflineTests/Fixtures/HO_Real_CHPP_Fixture_2026-09-01.json";
-
     private static readonly double[] ExpectedV5 = { 8.814876331125825, 15.131275059602647, 8.755167139072846, 5.3073582240775785, 9.3881423692354, 10.733139483443706, 8.34554898438368 };
     private static readonly double[] ExpectedHO = { 8.9278407632371284, 14.241616934311249, 8.8845667124997263, 5.437522215250981, 8.1350636338080307, 9.5241231738830496, 7.647351119659394 };
     private static readonly double[] ExpectedDash = { 13.033333333333333, 13.033333333333333, 13.033333333333333, 12.64, 11.85, 11.85, 11.85 };
@@ -29,13 +28,11 @@ public static class RatingEngineValidationRegression
         var registry = new RatingEngineRegistry();
         var results = registry.All.Select(engine => engine.Calculate(request)).ToDictionary(x => x.Engine);
 
-        if (results.Count != 4)
-            throw new InvalidOperationException($"Expected 4 rating engine results, got {results.Count}.");
-
-        CheckSectors(results[RatingEngineKind.V5].Rating, ExpectedV5, "V5");
-        CheckSectors(results[RatingEngineKind.HO].Rating, ExpectedHO, "HO");
-        CheckSectors(results[RatingEngineKind.HattrickDash].Rating, ExpectedDash, "HattrickDash");
-        CheckSectors(results[RatingEngineKind.Foxtrick].Rating, ExpectedV5, "Foxtrick sector source");
+        if (results.Count != 4) throw new InvalidOperationException($"Expected 4 rating engine results, got {results.Count}.");
+        CheckRawSectors(results[RatingEngineKind.V5].Rating, ExpectedV5, "V5");
+        CheckRawSectors(results[RatingEngineKind.Foxtrick].Rating, ExpectedV5, "Foxtrick sector source");
+        CheckDisplaySectors(results[RatingEngineKind.HO].Rating, ExpectedHO, "HO");
+        CheckDisplaySectors(results[RatingEngineKind.HattrickDash].Rating, ExpectedDash, "HattrickDash");
 
         var fox = results[RatingEngineKind.Foxtrick];
         CheckNear(fox.HatStats!.Value, 317.36089615638735, 1e-9, "Fox HatStats");
@@ -50,11 +47,16 @@ public static class RatingEngineValidationRegression
         return 0;
     }
 
-    private static void CheckSectors(RegionalRatingSnapshot snapshot, double[] expected, string label)
+    private static void CheckRawSectors(RegionalRatingSnapshot snapshot, double[] expected, string label)
+        => CheckNearArray(RawValues(snapshot), expected, label);
+
+    private static void CheckDisplaySectors(RegionalRatingSnapshot snapshot, double[] expected, string label)
+        => CheckNearArray(DisplayValues(snapshot), expected, label);
+
+    private static void CheckNearArray(IEnumerable<double> values, double[] expected, string label)
     {
-        var actual = Values(snapshot).ToArray();
-        for (var i = 0; i < expected.Length; i++)
-            CheckNear(actual[i], expected[i], 1e-9, $"{label} sector {i}");
+        var actual = values.ToArray();
+        for (var i = 0; i < expected.Length; i++) CheckNear(actual[i], expected[i], 1e-9, $"{label} sector {i}");
     }
 
     private static void CheckNear(double actual, double expected, double tolerance, string label)
@@ -63,26 +65,22 @@ public static class RatingEngineValidationRegression
             throw new InvalidOperationException($"{label}: expected {expected:R}, got {actual:R}");
     }
 
-    private static IEnumerable<double> Values(RegionalRatingSnapshot s)
+    private static IEnumerable<double> RawValues(RegionalRatingSnapshot s)
     {
-        yield return s.LeftDefence; yield return s.CentralDefence; yield return s.RightDefence;
-        yield return s.Midfield; yield return s.LeftAttack; yield return s.CentralAttack; yield return s.RightAttack;
+        yield return s.RawLeftDefence; yield return s.RawCentralDefence; yield return s.RawRightDefence; yield return s.RawMidfield;
+        yield return s.RawLeftAttack; yield return s.RawCentralAttack; yield return s.RawRightAttack;
+    }
+
+    private static IEnumerable<double> DisplayValues(RegionalRatingSnapshot s)
+    {
+        yield return s.LeftDefence; yield return s.CentralDefence; yield return s.RightDefence; yield return s.Midfield;
+        yield return s.LeftAttack; yield return s.CentralAttack; yield return s.RightAttack;
     }
 
     private static Player ToPlayer(JsonElement p) => new(
-        p.GetProperty("id").GetInt32(),
-        p.GetProperty("name").GetString() ?? "",
-        p.GetProperty("keeper").GetInt32(),
-        p.GetProperty("defending").GetInt32(),
-        p.GetProperty("playmaking").GetInt32(),
-        p.GetProperty("passing").GetInt32(),
-        p.GetProperty("winger").GetInt32(),
-        p.GetProperty("scoring").GetInt32(),
-        p.GetProperty("stamina").GetInt32(),
-        p.GetProperty("form").GetInt32(),
-        p.GetProperty("experience").GetInt32(),
-        p.GetProperty("loyalty").GetInt32(),
-        -1,
-        (PlayerSpecialty)p.GetProperty("specialty").GetInt32(),
-        0);
+        p.GetProperty("id").GetInt32(), p.GetProperty("name").GetString() ?? "",
+        p.GetProperty("keeper").GetInt32(), p.GetProperty("defending").GetInt32(), p.GetProperty("playmaking").GetInt32(),
+        p.GetProperty("passing").GetInt32(), p.GetProperty("winger").GetInt32(), p.GetProperty("scoring").GetInt32(),
+        p.GetProperty("stamina").GetInt32(), p.GetProperty("form").GetInt32(), p.GetProperty("experience").GetInt32(),
+        p.GetProperty("loyalty").GetInt32(), -1, (PlayerSpecialty)p.GetProperty("specialty").GetInt32(), 0);
 }
