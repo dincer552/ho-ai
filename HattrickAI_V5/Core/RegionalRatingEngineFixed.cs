@@ -6,19 +6,13 @@ namespace HattrickAI.V5.Core;
 
 /// <summary>
 /// Corrected V5 regional-rating engine.
-/// Stage 3 uses the researched Hattrick/HO skill normalization:
-/// skill contribution starts from max(0, skill - 1), rather than the raw
-/// displayed skill level. Loyalty and experience remain separate additions.
-/// Stage 4 replaces the empirical form lookup table with the researched
-/// Hattrick/HO form contribution curve.
+/// Stage 5 applies researched Hattrick/HO ordering for skill, loyalty,
+/// form, overcrowding and experience contribution.
 /// </summary>
 public sealed class RegionalRatingEngineFixed
 {
-    // The researched form curve is normalized against form 5 so the historical
-    // reference point remains unchanged while the shape is no longer empirical.
+    // Form 5 is the historical reference point used by the existing motor.
     private const double BaselineFormFactor = .756;
-    private const double BaselineExperienceBonus = 1.13;
-
     private const double ReferenceMidfieldCalibration = .8285714285714286;
     private const double ReferenceLeftAttackCalibration = 1.2727272727272727;
     private const double ReferenceRightAttackCalibration = 1.2258064516129032;
@@ -35,21 +29,21 @@ public sealed class RegionalRatingEngineFixed
         {
             var formMultiplier = FormFactor(p.Form) / BaselineFormFactor;
             var loyalty = LoyaltyEffect(p.Loyalty);
-            var experienceDelta = ExperienceBonus(p.Experience) - BaselineExperienceBonus;
             var crowding = p.Position == RegionalPosition.Forward ? ForwardCrowding(fws) : 1.0;
 
-            // Stage 3: Hattrick skill denomination is max(0, skill - 1).
-            // Loyalty and experience are separate additions and are not shifted.
+            // Stage 5: skill + loyalty is transformed first. Experience is a
+            // separate post-contribution addition and is not folded into skills.
             var k = new EffectiveSkillsFixed(
-                (SkillRating(p.Keeper) + loyalty + experienceDelta) * crowding,
-                (SkillRating(p.Defending) + loyalty + experienceDelta) * crowding,
-                (SkillRating(p.Playmaking) + loyalty + experienceDelta) * crowding,
-                (SkillRating(p.Passing) + loyalty + experienceDelta) * crowding,
-                (SkillRating(p.Winger) + loyalty + experienceDelta) * crowding,
-                (SkillRating(p.Scoring) + loyalty + experienceDelta) * crowding,
+                (SkillRating(p.Keeper) + loyalty) * crowding,
+                (SkillRating(p.Defending) + loyalty) * crowding,
+                (SkillRating(p.Playmaking) + loyalty) * crowding,
+                (SkillRating(p.Passing) + loyalty) * crowding,
+                (SkillRating(p.Winger) + loyalty) * crowding,
+                (SkillRating(p.Scoring) + loyalty) * crowding,
                 formMultiplier);
 
             AddPositionContribution(sectors, p, k, cds, ims);
+            AddExperienceContribution(sectors, p);
         }
 
         ApplyContext(sectors, context);
@@ -99,6 +93,41 @@ public sealed class RegionalRatingEngineFixed
             case RegionalPosition.InnerMidfielder: AddInnerMidfielder(s, p, k, ims); break;
             case RegionalPosition.Winger: AddWinger(s, p, k); break;
             case RegionalPosition.Forward: AddForward(s, p, k); break;
+        }
+    }
+
+    private static void AddExperienceContribution(Dictionary<RatingSector, double> s, RegionalPlayer p)
+    {
+        var exp = ExperienceBonus(p.Experience);
+        if (exp <= 0) return;
+        var scale = exp / 1.73;
+        void AddExp(RatingSector sector, double divineWeight) => s[sector] += scale * divineWeight;
+
+        switch (p.Position)
+        {
+            case RegionalPosition.Goalkeeper:
+                AddExp(RatingSector.CentralDefence, .480); AddExp(RatingSector.LeftDefence, .345); AddExp(RatingSector.RightDefence, .345); break;
+            case RegionalPosition.CentralDefender:
+                AddExp(RatingSector.CentralDefence, .480); AddExp(RatingSector.LeftDefence, .345); AddExp(RatingSector.RightDefence, .345); AddExp(RatingSector.Midfield, .730);
+                if (p.Order == PlayerOrder.TowardsWing && p.Side != PlayerSide.Center)
+                    AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375);
+                break;
+            case RegionalPosition.WingBack:
+                AddExp(RatingSector.CentralDefence, .480); AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, .345);
+                AddExp(RatingSector.Midfield, .730); AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375); break;
+            case RegionalPosition.InnerMidfielder:
+                AddExp(RatingSector.CentralDefence, .480); AddExp(RatingSector.Midfield, .730); AddExp(RatingSector.CentralAttack, .450);
+                if (p.Side == PlayerSide.Center) { AddExp(RatingSector.LeftDefence, .345); AddExp(RatingSector.RightDefence, .345); AddExp(RatingSector.LeftAttack, .375); AddExp(RatingSector.RightAttack, .375); }
+                else { AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, .345); AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375); }
+                break;
+            case RegionalPosition.Winger:
+                AddExp(RatingSector.CentralDefence, .480); AddExp(RatingSector.Midfield, .730); AddExp(RatingSector.CentralAttack, .450);
+                AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, .345); AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375); break;
+            case RegionalPosition.Forward:
+                AddExp(RatingSector.Midfield, .730); AddExp(RatingSector.CentralAttack, .450);
+                if (p.Side == PlayerSide.Center) { AddExp(RatingSector.LeftAttack, .375); AddExp(RatingSector.RightAttack, .375); }
+                else { AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375); AddExp(p.Side == PlayerSide.Left ? RatingSector.RightAttack : RatingSector.LeftAttack, .375); }
+                break;
         }
     }
 
@@ -159,14 +188,9 @@ public sealed class RegionalRatingEngineFixed
     }
 
     private static void ApplyReferenceCalibration(Dictionary<RatingSector, double> s) { s[RatingSector.Midfield] *= ReferenceMidfieldCalibration; s[RatingSector.LeftAttack] *= ReferenceLeftAttackCalibration; s[RatingSector.RightAttack] *= ReferenceRightAttackCalibration; }
-    private static double LoyaltyEffect(double loyalty) => loyalty <= 0 ? 0 : Math.Clamp(loyalty * .05, 0.0, 1.0);
+    private static double LoyaltyEffect(double loyalty) => loyalty >= 20 ? 1.5 : Math.Clamp(loyalty / 19.0, 0.0, 1.0);
     private static double ExperienceBonus(double experience) { var values = new[] { 0.00,0.00,.40,.64,.80,.93,1.04,1.13,1.20,1.27,1.33,1.39,1.44,1.49,1.53,1.57,1.61,1.64,1.67,1.71,1.73 }; return values[Math.Clamp((int)Math.Round(experience), 1, 20)]; }
-    private static double FormFactor(double form)
-    {
-        // Community/HO-researched form contribution:
-        // 0.378 * sqrt(clamp(form - 1, 0, 7)).
-        return 0.378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
-    }
+    private static double FormFactor(double form) => 0.378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
     private static void AddBothSides(Dictionary<RatingSector,double> s, RatingSector left, RatingSector right, double value, double multiplier = 1.0) { s[left] += value * multiplier; s[right] += value * multiplier; }
     private static void AddSideOnly(Dictionary<RatingSector,double> s, PlayerSide side, RatingSector left, RatingSector right, double value, double multiplier = 1.0) { value *= multiplier; if (side == PlayerSide.Left) s[left] += value; else if (side == PlayerSide.Right) s[right] += value; else AddBothSides(s, left, right, value); }
     private static void Add(Dictionary<RatingSector,double> s, RatingSector sector, double value, double multiplier = 1.0) => s[sector] += value * multiplier;
