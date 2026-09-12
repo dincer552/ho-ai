@@ -64,7 +64,7 @@ Açık kaynak **Hattrick Organizer** kodu incelenecek ve rating hesaplama mantı
 - [x] Gerçek fixture için 7 sektör + HatStats + LoddarStats expected-value değerleri sabitlendi.
 - [x] Fixture regression içinde minute/stamina, home ve PIC/MOTS context davranışları da kontrol ediliyor.
 - [x] CI üzerinde `HOEngineStage2Regression` ve gerçek CHPP HO fixture regression adımları tanımlandı.
-- [x] `CAL-001`, model-variant matrix ve Stage-2 HO regression aynı CI koşusunda başarıyla doğrulandı; gerçek fixture adımı mapping düzeltmesinden sonra yeniden koşulacak.
+- [x] `CAL-001`, model-variant matrix, Stage-2 HO regression ve gerçek CHPP fixture regression aynı CI koşusunda başarıyla doğrulandı.
 
 ### Aşama 2 kapanış kriteri
 
@@ -88,6 +88,24 @@ HattrickDash açık kaynak kodu incelenecek.
 Rating hesaplama mantıkları ayrı `DashEngine` içine uygulanacak.
 
 HO ve V5 ile aynı test verileri üzerinden karşılaştırılacak.
+
+### Aşama 3 mevcut durum
+
+**DEVAM EDİYOR**
+
+- [x] HattrickDash açık kaynak `lineup_service.py` rating mantığı incelendi.
+- [x] Dash'ın pozisyon rating tahmini izole edildi: `primary skill × 0.70 + form × 0.20 + stamina × 0.10`.
+- [x] Dash'ın midfield / defence / attack aggregate hesaplaması uygulandı.
+- [x] Dash'ın kullandığı HatStats ve LoddarStats aggregate formülleri uygulandı.
+- [x] `HattrickDashEngine` → `IRatingEngine` sözleşmesine bağlandı.
+- [x] Canonical V5 slot kodları Dash rol hesaplamasına bağlandı.
+- [x] Deterministik `HattrickDashEngineStage3Regression` eklendi.
+- [x] Regression runner'a `dash-stage3` komutu eklendi.
+- [x] CI pipeline'a Stage-3 Dash regression adımı eklendi.
+- [ ] CI Stage-3 regression'ın yeşil sonuç vermesi doğrulanacak.
+- [ ] Aynı gerçek CHPP fixture üzerinde HO / Dash / V5 sonuç farkları kilitlenecek.
+
+**Not:** HattrickDash'ın kendi README'sinde lineup rating preview'ın Hattrick tarafından hesaplanan ayrı bir server-side preview olduğu belirtiliyor. Buradaki Stage-3 motor, Dash'ın açık kaynak `lineup_service` içindeki yerel pozisyon-rating / aggregate mantığını izole eder; Hattrick'ın kapalı server-side algoritmasını taklit ettiği iddia edilmez.
 
 ---
 
