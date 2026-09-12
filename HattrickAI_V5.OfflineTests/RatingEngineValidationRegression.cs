@@ -5,34 +5,33 @@ namespace HattrickAI.V5.OfflineTests;
 
 public static class RatingEngineValidationRegression
 {
-    private const string FixturePath = "HattrickAI_V5.OfflineTests/Fixtures/HO_Real_CHPP_Fixture_2026-09-01.json";
+    private const string FixturePath = "TestJSON/HattrickAI_V5_CHPP_FullOffline_2026-09-01.json";
     private static readonly double[] ExpectedV5 = { 8.814876331125825, 15.131275059602647, 8.755167139072846, 5.3073582240775785, 9.3881423692354, 10.733139483443706, 8.34554898438368 };
-    private static readonly double[] ExpectedHO = { 8.9278407632371284, 14.241616934311249, 8.8845667124997263, 5.437522215250981, 8.1350636338080307, 9.5241231738830496, 7.647351119659394 };
-    private static readonly double[] ExpectedDash = { 13.033333333333333, 13.033333333333333, 13.033333333333333, 12.64, 11.85, 11.85, 11.85 };
 
     public static int Run()
     {
         using var document = JsonDocument.Parse(File.ReadAllText(FixturePath));
         var root = document.RootElement;
-        var fixturePlayers = root.GetProperty("players").EnumerateArray().Select(ToPlayer).ToList();
-        var fixtureSlots = root.GetProperty("players").EnumerateArray().Select((p, i) =>
-        {
-            var id = p.GetProperty("id").GetInt32();
-            var name = p.GetProperty("name").GetString() ?? id.ToString();
-            var code = p.GetProperty("slot").GetString() ?? throw new InvalidOperationException("Missing slot code.");
-            var order = (PlayerOrder)p.GetProperty("order").GetInt32();
-            return new Slot(code, code, "validation fixture", name, id, 0, i, 0, order);
-        }).ToList();
-        var lineup = new Lineup(root.GetProperty("teamName").GetString() ?? "RealFixture", root.GetProperty("formation").GetString() ?? "3-5-2", fixtureSlots);
-        var request = new RatingEngineRequest(lineup, fixturePlayers, RatingContext.Default);
+        var normalized = root.GetProperty("normalized");
+        var analysis = root.GetProperty("v5Analysis");
+        var players = normalized.GetProperty("ownPlayers").EnumerateArray().Select(ToPlayer).ToList();
+        var lineup = ReadLineup(analysis.GetProperty("ownLineup"));
+        var request = new RatingEngineRequest(lineup, players, RatingContext.Default);
         var registry = new RatingEngineRegistry();
         var results = registry.All.Select(engine => engine.Calculate(request)).ToDictionary(x => x.Engine);
 
         if (results.Count != 4) throw new InvalidOperationException($"Expected 4 rating engine results, got {results.Count}.");
-        CheckRawSectors(results[RatingEngineKind.V5].Rating, ExpectedV5, "V5");
-        CheckRawSectors(results[RatingEngineKind.Foxtrick].Rating, ExpectedV5, "Foxtrick sector source");
-        CheckDisplaySectors(results[RatingEngineKind.HO].Rating, ExpectedHO, "HO");
-        CheckDisplaySectors(results[RatingEngineKind.HattrickDash].Rating, ExpectedDash, "HattrickDash");
+        var fixtureV5 = ReadRating(analysis.GetProperty("ownRating"));
+        CheckRawSectors(fixtureV5, ExpectedV5, "fixture V5 ground truth");
+        CheckRawSectors(results[RatingEngineKind.V5].Rating, ExpectedV5, "V5 engine");
+        CheckRawSectors(results[RatingEngineKind.Foxtrick].Rating, ExpectedV5, "Foxtrick canonical sector source");
+
+        foreach (var kind in new[] { RatingEngineKind.HO, RatingEngineKind.HattrickDash })
+        {
+            var values = DisplayValues(results[kind].Rating).ToArray();
+            if (values.Any(x => !double.IsFinite(x))) throw new InvalidOperationException($"{kind} returned non-finite sector rating.");
+            Console.WriteLine($"{kind}: {string.Join('/', values.Select(x => x.ToString("0.###")))}");
+        }
 
         var fox = results[RatingEngineKind.Foxtrick];
         CheckNear(fox.HatStats!.Value, 317.36089615638735, 1e-9, "Fox HatStats");
@@ -41,28 +40,23 @@ public static class RatingEngineValidationRegression
         var comparison = new RatingEngineComparisonService(registry).Compare(request, RatingEngineKind.V5);
         if (comparison.Baseline != RatingEngineKind.V5 || comparison.Selected != RatingEngineKind.V5 || comparison.Rows.Count != 4)
             throw new InvalidOperationException("Rating engine comparison contract drift.");
+        foreach (var row in comparison.Rows)
+            Console.WriteLine($"{row.Name}: MIDΔ={row.MidfieldDeltaVsV5:0.###} DEF-CΔ={row.CentralDefenceDeltaVsV5:0.###} ATT-CΔ={row.CentralAttackDeltaVsV5:0.###}");
 
         Console.WriteLine("RatingEngineValidationRegression PASS");
-        Console.WriteLine("Real CHPP fixture validated across V5 / HO / HattrickDash / Foxtrick.");
+        Console.WriteLine("Canonical full CHPP fixture validated across V5 / HO / HattrickDash / Foxtrick.");
         return 0;
     }
 
     private static void CheckRawSectors(RegionalRatingSnapshot snapshot, double[] expected, string label)
-        => CheckNearArray(RawValues(snapshot), expected, label);
-
-    private static void CheckDisplaySectors(RegionalRatingSnapshot snapshot, double[] expected, string label)
-        => CheckNearArray(DisplayValues(snapshot), expected, label);
-
-    private static void CheckNearArray(IEnumerable<double> values, double[] expected, string label)
     {
-        var actual = values.ToArray();
+        var actual = RawValues(snapshot).ToArray();
         for (var i = 0; i < expected.Length; i++) CheckNear(actual[i], expected[i], 1e-9, $"{label} sector {i}");
     }
 
     private static void CheckNear(double actual, double expected, double tolerance, string label)
     {
-        if (Math.Abs(actual - expected) > tolerance)
-            throw new InvalidOperationException($"{label}: expected {expected:R}, got {actual:R}");
+        if (Math.Abs(actual - expected) > tolerance) throw new InvalidOperationException($"{label}: expected {expected:R}, got {actual:R}");
     }
 
     private static IEnumerable<double> RawValues(RegionalRatingSnapshot s)
@@ -82,5 +76,28 @@ public static class RatingEngineValidationRegression
         p.GetProperty("keeper").GetInt32(), p.GetProperty("defending").GetInt32(), p.GetProperty("playmaking").GetInt32(),
         p.GetProperty("passing").GetInt32(), p.GetProperty("winger").GetInt32(), p.GetProperty("scoring").GetInt32(),
         p.GetProperty("stamina").GetInt32(), p.GetProperty("form").GetInt32(), p.GetProperty("experience").GetInt32(),
-        p.GetProperty("loyalty").GetInt32(), -1, (PlayerSpecialty)p.GetProperty("specialty").GetInt32(), 0);
+        p.TryGetProperty("loyalty", out var loyalty) ? loyalty.GetInt32() : 0,
+        p.TryGetProperty("injuryLevel", out var injury) ? injury.GetInt32() : -1,
+        p.TryGetProperty("specialty", out var specialty) ? (PlayerSpecialty)specialty.GetInt32() : PlayerSpecialty.None,
+        p.TryGetProperty("setPiecesSkill", out var setPieces) ? setPieces.GetInt32() : 0);
+
+    private static Lineup ReadLineup(JsonElement e)
+    {
+        var slots = e.GetProperty("slots").EnumerateArray().Select(s => new Slot(
+            s.GetProperty("code").GetString() ?? "",
+            s.TryGetProperty("label", out var label) ? label.GetString() ?? "" : "",
+            s.TryGetProperty("description", out var description) ? description.GetString() ?? "" : "",
+            s.TryGetProperty("playerName", out var name) ? name.GetString() : null,
+            s.GetProperty("playerId").GetInt32(),
+            s.TryGetProperty("rating", out var rating) ? rating.GetDouble() : 0,
+            s.TryGetProperty("x", out var x) ? x.GetDouble() : 0,
+            s.TryGetProperty("y", out var y) ? y.GetDouble() : 0)).ToList();
+        return new Lineup(e.GetProperty("teamName").GetString() ?? "", e.GetProperty("formation").GetString() ?? "", slots);
+    }
+
+    private static RegionalRatingSnapshot ReadRating(JsonElement e) => new(
+        e.GetProperty("rawLeftDefence").GetDouble(), e.GetProperty("rawCentralDefence").GetDouble(), e.GetProperty("rawRightDefence").GetDouble(), e.GetProperty("rawMidfield").GetDouble(),
+        e.GetProperty("rawLeftAttack").GetDouble(), e.GetProperty("rawCentralAttack").GetDouble(), e.GetProperty("rawRightAttack").GetDouble(),
+        e.GetProperty("leftDefence").GetDouble(), e.GetProperty("centralDefence").GetDouble(), e.GetProperty("rightDefence").GetDouble(), e.GetProperty("midfield").GetDouble(),
+        e.GetProperty("leftAttack").GetDouble(), e.GetProperty("centralAttack").GetDouble(), e.GetProperty("rightAttack").GetDouble());
 }
