@@ -14,7 +14,7 @@ public static class Stage3SkillNormalizationRegression
     {
         var engine = new RegionalRatingEngineFixed();
         const double form = 6;
-        const double expectedPerNormalizedDefending = 0.186 * (0.378 * Math.Sqrt(form - 1.0) / 0.756);
+        var expectedPerNormalizedDefending = 0.186 * (0.378 * Math.Sqrt(form - 1.0) / 0.756);
         var cases = new (int Skill, double Expected)[]
         {
             (0, 0),
