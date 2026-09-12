@@ -3,9 +3,6 @@ namespace HattrickAI.V5.Core;
 
 public sealed class FoxtrickEngine : IRatingEngine
 {
-    // Foxtrick statistics are layered on top of the same canonical V5 raw
-    // regional sectors used by the locked CAL-001 ground-truth regression.
-    // Keep this separate from the researched RegionalRatingEngine variant.
     private readonly RegionalRatingEngineFixed _sectorSource = new();
     public RatingEngineKind Kind => RatingEngineKind.Foxtrick;
     public string Name => "Foxtrick";
@@ -13,7 +10,12 @@ public sealed class FoxtrickEngine : IRatingEngine
     public RatingEngineResult Calculate(RatingEngineRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var snapshot = _sectorSource.CalculateLineup(request.Lineup, request.Players, request.Context);
+        // Foxtrick's open-source ratings.js consumes the sector ratings exposed
+        // by the Hattrick match page; it does not reconstruct the closed
+        // server-side sector generator. Prefer the canonical V5 snapshot when
+        // the caller already has one. Fall back to the independent V5 fixed
+        // regional source for pure offline/contract calls.
+        var snapshot = request.CanonicalRating ?? _sectorSource.CalculateLineup(request.Lineup, request.Players, request.Context);
         var stats = FoxtrickRatingStatistics.Calculate(snapshot, request.Context.Tactic);
         return new RatingEngineResult(Kind, snapshot, stats.HatStats, stats.LoddarStats);
     }
