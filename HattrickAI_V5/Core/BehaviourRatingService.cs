@@ -1,13 +1,13 @@
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// Connects Motor 3 to the existing regional rating engine.
+/// Connects Motor 3 to the Stage 2 regional rating engine.
 /// It evaluates a player in one fixed slot under each legal individual order.
 /// </summary>
 public sealed class BehaviourRatingService
 {
     private readonly BehaviourEngine _behaviourEngine = new();
-    private readonly RegionalRatingEngineFixed _ratingEngine = new();
+    private readonly Stage2RegionalRatingEngineFixed _ratingEngine = new();
 
     public IReadOnlyList<BehaviourRatingCandidate> Evaluate(Player player, Slot baseSlot, Lineup lineup, IReadOnlyList<Player> players, RatingContext? context = null)
     {
