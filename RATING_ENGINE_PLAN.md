@@ -168,13 +168,17 @@ olacak.
 
 ### Aşama 1 — Motor mimarisi
 
-**BAŞLADI**
+**DEVAM EDİYOR**
 
-- [x] Ortak motor sözleşmesinin tasarım sınırı belirlendi.
-- [x] V5 mevcut pipeline'ı korunacak şekilde ayrı motor katmanı planlandı.
-- [ ] Ortak `IRatingEngine` / input-output contract kodu eklenecek.
-- [ ] V5 adapter'ı davranış değiştirmeden bağlanacak.
+- [x] `RATING_ENGINE_PLAN.md` repository'ye eklendi.
+- [x] Ortak `RatingEngineKind` tanımlandı.
+- [x] Ortak `RatingEngineRequest` tanımlandı.
+- [x] Ortak `RatingEngineResult` tanımlandı.
+- [x] `IRatingEngine` sözleşmesi eklendi.
+- [x] V5 mevcut pipeline'a bağlanmadı; mevcut hesap akışı korunuyor.
+- [ ] V5 adapter'ı mevcut rating üretimini birebir koruyacak şekilde bağlanacak.
 - [ ] Contract regression testi eklenecek.
+- [ ] Engine registry/factory oluşturulacak.
 - [ ] Production pipeline'a selector bağlanmayacak; selector sonraki aşamada eklenecek.
 
-Aşama 1 yalnızca mimari sınırı kurar. **Bu aşamada V5 rating hesabının katsayıları veya mevcut hesap akışı değiştirilmeyecek.**
+Aşama 1 yalnızca mimari sınırı kurar. **Bu aşamada V5 rating katsayıları ve mevcut hesap akışı değiştirilmez.**
