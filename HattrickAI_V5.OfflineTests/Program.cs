@@ -13,6 +13,8 @@ if (args.Length > 0 && string.Equals(args[0], "write6", StringComparison.Ordinal
     return ChppWrite06LiveWriteRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "write7", StringComparison.OrdinalIgnoreCase))
     return ChppWrite07ReadBackRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "rating-contract", StringComparison.OrdinalIgnoreCase))
+    return RatingEngineContractsRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "stage2", StringComparison.OrdinalIgnoreCase))
     return Stage2RatingDisplayRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "ho-stage2", StringComparison.OrdinalIgnoreCase))
