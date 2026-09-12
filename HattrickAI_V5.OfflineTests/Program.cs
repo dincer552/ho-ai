@@ -17,6 +17,8 @@ if (args.Length > 0 && string.Equals(args[0], "stage2", StringComparison.Ordinal
     return Stage2RatingDisplayRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "stage3", StringComparison.OrdinalIgnoreCase))
     return Stage3SkillNormalizationRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "stage4", StringComparison.OrdinalIgnoreCase))
+    return Stage4FormRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "stage5", StringComparison.OrdinalIgnoreCase))
     return Stage5ExperienceLoyaltyRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "stage6", StringComparison.OrdinalIgnoreCase))
