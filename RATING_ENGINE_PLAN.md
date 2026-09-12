@@ -63,7 +63,7 @@ Açık kaynak **Hattrick Organizer** kodu incelenecek ve rating hesaplama mantı
 - [x] Gerçek CHPP fixture regression'ı eklendi: `HattrickAI_V5.OfflineTests/Fixtures/HO_Real_CHPP_Fixture_2026-09-01.json` + `HORealFixtureRegression.cs`.
 - [x] Gerçek fixture için 7 sektör + HatStats + LoddarStats expected-value değerleri sabitlendi.
 - [x] Fixture regression içinde minute/stamina, home ve PIC/MOTS context davranışları da kontrol ediliyor.
-- [x] CI üzerinde `HOEngineStage2Regression` ve gerçek CHPP HO fixture regression adımları tanımlandı.
+- [x] CI üzerinde `HOEngineStage2Regression` ve gerçek CHPP fixture regression adımları tanımlandı.
 - [x] `CAL-001`, model-variant matrix, Stage-2 HO regression ve gerçek CHPP fixture regression aynı CI koşusunda başarıyla doğrulandı.
 
 ### Aşama 2 kapanış kriteri
@@ -123,6 +123,26 @@ Foxtrick'in açık kaynak rating hesaplamaları incelenecek.
 - HTitaVal
 
 mümkün olduğu ölçüde ayrı modüller halinde uygulanacak.
+
+### Aşama 4 mevcut durum
+
+**DEVAM EDİYOR**
+
+- [x] Foxtrick açık kaynak `content/matches/ratings.js` incelendi.
+- [x] HatStats formülü izole edildi.
+- [x] LoddarStats formülü izole edildi.
+- [x] PeasoStats formülü izole edildi.
+- [x] VnukStats formülü izole edildi.
+- [x] HTitaVal formülü izole edildi.
+- [x] GardierStats formülü izole edildi.
+- [x] `FoxtrickEngine` → `IRatingEngine` sözleşmesine bağlandı.
+- [x] Deterministik `FoxtrickEngineStage4Regression` eklendi.
+- [x] Regression runner'a `foxtrick-stage4` komutu eklendi.
+- [x] CI pipeline'a Stage-4 Foxtrick regression adımı eklendi.
+- [ ] CI Stage-4 regression'ın yeşil sonuç vermesi doğrulanacak.
+- [ ] Foxtrick motorunun gerçek CHPP fixture üzerinde HO / Dash / V5 ile farkları kilitlenecek.
+
+**Not:** Foxtrick'in `ratings.js` kodu sektör ratinglerini Hattrick match sayfasından alıp istatistikleri türetiyor; Foxtrick'in kendisi kapalı Hattrick server-side sektör-rating üretimini yeniden hesaplamıyor. Bu nedenle Stage-4 motorunda yedi sektör için mevcut canonical regional calculator yalnızca ortak veri kaynağı olarak kullanılıyor; HatStats/LoddarStats/PeasoStats/VnukStats/HTitaVal/GardierStats hesaplarının tamamı Foxtrick kodundan ayrı olarak uygulanıyor.
 
 ---
 
