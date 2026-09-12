@@ -19,6 +19,8 @@ if (args.Length > 0 && string.Equals(args[0], "ho-stage2", StringComparison.Ordi
     return HOEngineStage2Regression.Run();
 if (args.Length > 0 && string.Equals(args[0], "ho-real-fixture", StringComparison.OrdinalIgnoreCase))
     return HORealFixtureRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "dash-stage3", StringComparison.OrdinalIgnoreCase))
+    return HattrickDashEngineStage3Regression.Run();
 if (args.Length > 0 && string.Equals(args[0], "stage3", StringComparison.OrdinalIgnoreCase))
     return Stage3SkillNormalizationRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "stage4", StringComparison.OrdinalIgnoreCase))
