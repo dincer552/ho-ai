@@ -176,8 +176,9 @@ olacak.
 - [x] Ortak `RatingEngineResult` tanımlandı.
 - [x] `IRatingEngine` sözleşmesi eklendi.
 - [x] V5 mevcut pipeline'a bağlanmadı; mevcut hesap akışı korunuyor.
+- [x] Contract regression testi eklendi: `HattrickAI_V5.OfflineTests/RatingEngineContractsRegression.cs`.
+- [ ] Contract regression'ın CI/build üzerinde çalıştığı doğrulanacak.
 - [ ] V5 adapter'ı mevcut rating üretimini birebir koruyacak şekilde bağlanacak.
-- [ ] Contract regression testi eklenecek.
 - [ ] Engine registry/factory oluşturulacak.
 - [ ] Production pipeline'a selector bağlanmayacak; selector sonraki aşamada eklenecek.
 
