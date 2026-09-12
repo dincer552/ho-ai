@@ -218,6 +218,59 @@ Amaç her motorun gerçek Hattrick sonucuna ne kadar yakın olduğunu ölçmek.
 
 **V5'i kilitle → HO → HattrickDash → Foxtrick → ortak sonuç modeli → web motor selector → karşılaştırma → validation**
 
+---
+
+## İş Bitiminde Temizlik ve Kapanış
+
+Motor geliştirme aşamaları tamamlandığında proje yarım kalmış testler, geçici dosyalar veya neyin neden yapıldığının belirsiz olduğu bir durumda bırakılmayacak.
+
+Kapanış sırası:
+
+1. **Tüm regression testleri yeşil olacak.**
+   - CAL-001
+   - model-variant matrix
+   - HO Stage-2
+   - gerçek CHPP fixture
+   - HattrickDash Stage-3
+   - Foxtrick Stage-4
+   - ortak contract testleri
+
+2. **Deploy workflow'u ayrıca yeşil olacak.**
+   - Uygulama build'i başarılı olacak.
+   - Docker image başarıyla oluşturulacak ve GHCR'a gönderilecek.
+   - Azure deployment ve health check başarılı olacak.
+
+3. **Açık kalan acceptance maddeleri kapatılacak.**
+   - Plan içinde `[ ]` kalan maddeler ya gerçekten tamamlanacak ya da neden ertelendiği açıkça yazılacak.
+   - Tamamlanmış gibi işaretleme yapılmayacak.
+
+4. **Geçici/debug dosyaları temizlenecek.**
+   - Sadece regression, fixture, kaynak kodu ve dokümantasyon için gerekli dosyalar repository'de bırakılacak.
+   - Geçici çıktılar, local test artıkları ve kullanılmayan deneme dosyaları repository'de tutulmayacak.
+
+5. **Dokümantasyon son durumla eşitlenecek.**
+   - `RATING_ENGINE_PLAN.md`, README ve ilgili teknik dokümanlar gerçek uygulama durumunu yansıtacak.
+   - Eski/yanlış “DEVAM EDİYOR” veya “TAMAMLANDI” işaretleri kontrol edilecek.
+
+6. **V5 davranışının değişmediği son kez doğrulanacak.**
+   - Yeni motorlar V5 pipeline'ını değiştirmeyecek.
+   - V5 varsayılan motor olarak kalacak.
+
+7. **Son repository kontrolü yapılacak.**
+   - Build temiz olacak.
+   - Regression temiz olacak.
+   - Deploy temiz olacak.
+   - Kullanılmayan dosya bırakılmayacak.
+   - Plan ile gerçek kod arasında açık bir uyumsuzluk kalmayacak.
+
+### Kapanış kriteri
+
+**Proje ancak testler + build + deploy + dokümantasyon + repository temizliği tamamlandığında ilgili rating-engine çalışması için “TAMAMLANDI” kabul edilir.**
+
+Amaç: geliştirme bittikten sonra repository'nin geçici dosyalar, yarım acceptance maddeleri ve belirsiz durumlarla dolu bir “çöplük” haline gelmesini önlemek.
+
+---
+
 ## Ana kural
 
 **V5 mevcut haliyle korunacak.**
