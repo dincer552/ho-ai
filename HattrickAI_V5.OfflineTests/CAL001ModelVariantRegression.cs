@@ -4,7 +4,7 @@ namespace HattrickAI.V5.OfflineTests;
 
 /// <summary>
 /// CAL-001 diagnostic matrix. Production engines are not retuned; the test
-/// compares controlled skill/experience hypotheses and the researched engine.
+/// compares controlled integer skill/experience hypotheses and the researched engine.
 /// </summary>
 public static class CAL001ModelVariantRegression
 {
@@ -27,11 +27,11 @@ public static class CAL001ModelVariantRegression
         var variants = new[]
         {
             new Variant("A Fixed: skill-1 + separate experience", fixedEngine.CalculateLineup(lineup, players, RatingContext.Default)),
-            new Variant("B Fixed: raw skill + separate experience", fixedEngine.CalculateLineup(lineup, Transform(players, rawSkill: true, effectiveExperience: false, noExperience: false), RatingContext.Default)),
-            new Variant("C Fixed: effective-skill experience delta", fixedEngine.CalculateLineup(lineup, Transform(players, rawSkill: false, effectiveExperience: true, noExperience: true), RatingContext.Default)),
-            new Variant("D Research engine: raw skill + effective experience delta", researchedEngine.CalculateLineup(lineup, players, RatingContext.Default)),
-            new Variant("E Fixed: skill-1 + no experience", fixedEngine.CalculateLineup(lineup, Transform(players, rawSkill: false, effectiveExperience: false, noExperience: true), RatingContext.Default)),
-            new Variant("F Fixed: raw skill + no experience", fixedEngine.CalculateLineup(lineup, Transform(players, rawSkill: true, effectiveExperience: false, noExperience: true), RatingContext.Default))
+            new Variant("B Fixed: raw skill + separate experience", fixedEngine.CalculateLineup(lineup, ShiftSkills(players, +1, keepExperience: true), RatingContext.Default)),
+            new Variant("C Fixed: skill-1 + no experience", fixedEngine.CalculateLineup(lineup, ShiftSkills(players, 0, keepExperience: false), RatingContext.Default)),
+            new Variant("D Fixed: raw skill + no experience", fixedEngine.CalculateLineup(lineup, ShiftSkills(players, +1, keepExperience: false), RatingContext.Default)),
+            new Variant("E Research engine: raw skill + effective experience delta", researchedEngine.CalculateLineup(lineup, players, RatingContext.Default)),
+            new Variant("F Research engine: skill-1 + effective experience delta", researchedEngine.CalculateLineup(lineup, ShiftSkills(players, -1, keepExperience: true), RatingContext.Default))
         };
 
         foreach (var variant in variants)
@@ -55,7 +55,7 @@ public static class CAL001ModelVariantRegression
         var expectedRaw = new[]
         {
             7.547173492520718, 15.38792826270137, 8.722175800147264,
-            8.356595269523073, 9.736919924603303, 12.138912750812356, 9.931162425931916
+            8.356595269523073, 9.736919924603303, 12.138912425931916, 9.931162425931916
         };
         var failures = baselineRaw.Where((value, i) => Math.Abs(value - expectedRaw[i]) > 1e-12).Count();
         Console.WriteLine(failures == 0
@@ -64,33 +64,17 @@ public static class CAL001ModelVariantRegression
         return failures == 0 ? 0 : 1;
     }
 
-    private static Player[] Transform(Player[] source, bool rawSkill, bool effectiveExperience, bool noExperience)
+    private static Player[] ShiftSkills(Player[] source, int delta, bool keepExperience)
     {
-        return source.Select(p =>
-        {
-            var delta = effectiveExperience ? ExperienceBonus(p.Experience) - 1.13 : 0.0;
-            // Fixed internally computes max(0, inputSkill - 1). Therefore:
-            // normalized + no experience -> skill input;
-            // raw + no experience -> skill + 1 input;
-            // effective experience -> skill + delta + 1 input.
-            var inputOffset = rawSkill || effectiveExperience ? 1.0 : 0.0;
-            var experience = noExperience ? 1 : p.Experience;
-            return new Player(
-                p.Id, p.Name,
-                p.Keeper + inputOffset + delta,
-                p.Defending + inputOffset + delta,
-                p.Playmaking + inputOffset + delta,
-                p.Passing + inputOffset + delta,
-                p.Winger + inputOffset + delta,
-                p.Scoring + inputOffset + delta,
-                p.Stamina, p.Form, experience);
-        }).ToArray();
-    }
-
-    private static double ExperienceBonus(double experience)
-    {
-        var values = new[] { 0.00, 0.00, .40, .64, .80, .93, 1.04, 1.13, 1.20, 1.27, 1.33, 1.39, 1.44, 1.49, 1.53, 1.57, 1.61, 1.64, 1.67, 1.71, 1.73 };
-        return values[Math.Clamp((int)Math.Round(experience), 1, 20)];
+        return source.Select(p => new Player(
+            p.Id, p.Name,
+            Math.Max(0, p.Keeper + delta),
+            Math.Max(0, p.Defending + delta),
+            Math.Max(0, p.Playmaking + delta),
+            Math.Max(0, p.Passing + delta),
+            Math.Max(0, p.Winger + delta),
+            Math.Max(0, p.Scoring + delta),
+            p.Stamina, p.Form, keepExperience ? p.Experience : 1)).ToArray();
     }
 
     private static double[] Values(RegionalRatingSnapshot s) => new[]
