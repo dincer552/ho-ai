@@ -63,7 +63,7 @@ public sealed class RegionalRatingEngineFixed
         var byId = players.ToDictionary(p => p.Id);
         var mapped = lineup.Slots
             .Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId))
-            .Select(s => ToRegionalPlayer(s, byId[s.PlayerId]))
+            .Select(s => ToRegionalPlayer(lineup.Formation, s, byId[s.PlayerId]))
             .ToList();
         return Calculate(mapped, context);
     }
@@ -366,18 +366,9 @@ public sealed class RegionalRatingEngineFixed
     private static void Add(Dictionary<RatingSector,double> s, RatingSector sector, double value, double multiplier = 1.0)
         => s[sector] += value * multiplier;
 
-    private static RegionalPlayer ToRegionalPlayer(Slot slot, Player p)
+    private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p)
     {
-        var position = slot.Code switch
-        {
-            "GK" => RegionalPosition.Goalkeeper,
-            "DEF-L" or "DEF-R" => RegionalPosition.WingBack,
-            "DEF-CL" or "DEF-C" or "DEF-CR" => RegionalPosition.CentralDefender,
-            "W-L" or "W-R" => RegionalPosition.Winger,
-            "IM-L" or "IM-C" or "IM-R" => RegionalPosition.InnerMidfielder,
-            "FW-L" or "FW-C" or "FW-R" => RegionalPosition.Forward,
-            _ => RegionalPosition.InnerMidfielder
-        };
+        var position = RatingPositionResolver.Resolve(formation, slot.Code);
         var side = slot.Code.EndsWith("-L", StringComparison.Ordinal)
             ? PlayerSide.Left
             : slot.Code.EndsWith("-R", StringComparison.Ordinal)
