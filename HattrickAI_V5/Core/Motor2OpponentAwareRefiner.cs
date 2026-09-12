@@ -6,7 +6,7 @@ namespace HattrickAI.V5.Core;
 
 /// <summary>
 /// Motor 2 refinement: keeps Motor 1 as the base and tests player swaps with
-/// the real regional-rating engine against the opponent's real ratings.
+/// the Stage 2 regional-rating engine against the opponent's real ratings.
 /// RP is not used for the decision.
 ///
 /// The matchup score follows the structure of the Hattrick match engine more
@@ -15,7 +15,7 @@ namespace HattrickAI.V5.Core;
 /// </summary>
 public sealed class Motor2OpponentAwareRefiner
 {
-    private readonly RegionalRatingEngineFixed _ratings = new();
+    private readonly Stage2RegionalRatingEngineFixed _ratings = new();
     private readonly PositionSuitabilityEngine _suitability = new();
 
     public Lineup Refine(Lineup initial, IReadOnlyList<Player> players, OpponentMatchProfile opponent)
@@ -27,8 +27,6 @@ public sealed class Motor2OpponentAwareRefiner
         var best = initial;
         var bestScore = Score(best, players, opponent);
 
-        // Motor 1 remains the base. Motor 2 only accepts a legal swap when the
-        // complete regional-rating matchup improves, so RP cannot hijack XI selection.
         for (var pass = 0; pass < 3; pass++)
         {
             var changed = false;
@@ -71,14 +69,12 @@ public sealed class Motor2OpponentAwareRefiner
     {
         var own = _ratings.CalculateLineup(lineup, players, RatingContext.Default);
 
-        // Midfield chance share: M^3 / (M^3 + OppM^3).
         var ownMid = CubePositive(own.Midfield);
         var oppMid = CubePositive(opponent.Midfield);
         var totalMid = ownMid + oppMid;
         var ownChanceShare = totalMid <= 0.0 ? 0.5 : ownMid / totalMid;
         var oppChanceShare = 1.0 - ownChanceShare;
 
-        // Hattrick regular chance distribution: 35% central, 25% each flank.
         var ownConversion =
             0.25 * GoalProbability(own.RightAttack, opponent.LeftDefence) +
             0.35 * GoalProbability(own.CentralAttack, opponent.CentralDefence) +
@@ -89,8 +85,6 @@ public sealed class Motor2OpponentAwareRefiner
             0.35 * GoalProbability(opponent.CentralAttack, own.CentralDefence) +
             0.25 * GoalProbability(opponent.LeftAttack, own.RightDefence);
 
-        // Expected matchup advantage. This is intentionally used only to
-        // compare legal swaps; the engine does not claim to predict final score.
         return ownChanceShare * ownConversion - oppChanceShare * opponentConversion;
     }
 
