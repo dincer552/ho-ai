@@ -1,0 +1,89 @@
+name: Append CAL-001 variant protocol
+
+on:
+  push:
+    branches: [v5]
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    if: ${{ !contains(github.event.head_commit.message, 'docs: append CAL-001 variant protocol') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V5
+        uses: actions/checkout@v4
+      - name: Append protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker='## 7. CAL-001 Model Variant Diagnostic Protocol'
+          if grep -Fq "$marker" Docs/RATING_MOTOR_RECONSTRUCTION_README.md; then exit 0; fi
+          cat >> Docs/RATING_MOTOR_RECONSTRUCTION_README.md <<'EOF'
+
+---
+
+## 7. CAL-001 Model Variant Diagnostic Protocol
+
+Bu bölüm, hipotez ile doğrulanmış kuralın birbirine karışmasını önlemek için eklenmiştir.
+
+### 7.1 Temel karar kuralı
+
+- CAL-001 Hattrick ekranı **ground truth** olarak kalır.
+- Contribution / HO / araştırma formülleri **hipotez ve referans** olarak kalır.
+- Hiçbir model varyantı yalnızca dokümanda bulunduğu için doğru kabul edilmez.
+- Varyantlar aynı CAL-001 oyuncu verisi ve aynı pozisyon/behaviour mapping üzerinde karşılaştırılır.
+- Önce MAE, Bias ve RMSE ölçülür; sonra yeni ground-truth örnekleriyle doğrulanır.
+- Katsayılar, model varyantı seçilmeden önce rastgele yeniden ayarlanmaz.
+
+### 7.2 Neden varyant testi yapılıyor?
+
+README içindeki `skill - 1` ve experience'ın ayrı contribution olarak kullanılması araştırılmış hipotezlerdir. Başka araştırma materyalinde raw skill ve experience delta'nın effective skill'e eklenmesi yaklaşımı bulunmaktadır.
+
+Bu nedenle iki yaklaşım arasında önceden seçim yapılmayacaktır. Önce CAL-001 üzerinde izole A/B/C/D/E/F varyantları çalıştırılacaktır.
+
+### 7.3 CAL-001 varyant matrisi
+
+```text
+A  skill-1 + separate experience
+B  raw skill + separate experience
+C  skill-1 + effective experience delta
+D  raw skill + effective experience delta
+E  skill-1 + no experience
+F  raw skill + no experience
+```
+
+`effective experience delta`:
+
+```text
+ExperienceBonus(experience) - 1.13
+```
+
+şeklindeki araştırılmış baseline-delta hipotezidir.
+
+`separate experience`, mevcut Fixed motorun ayrı experience contribution katmanıdır.
+
+`no experience`, diagnostic izolasyondur.
+
+### 7.4 Test yöntemi
+
+Model varyant testi mevcut `RegionalRatingEngineFixed` contribution katsayılarını veya production default davranışını değiştirmez. Diagnostic runner giriş skill değerlerini kontrollü şekilde dönüştürerek aynı Fixed motor üzerinden varyantları izole eder.
+
+Her varyant için `LD CD RD MID LA CA RA`, MAE, Bias ve RMSE çıktısı alınır. Production baseline ayrıca sabit raw değerlerle kontrol edilir.
+
+### 7.5 Yorumlama
+
+İlk hedef en düşük MAE'yi bulup hemen production'a almak değildir. Önce skill normalization etkisi, experience modelinin etkisi, side defence / side attack açığı ve central defence / midfield / central attack üzerindeki yan etkiler incelenecektir.
+
+Bir varyant CAL-001'de daha iyi sonuç verse bile production motoruna alınmadan önce başka ground-truth örneklerinde doğrulanacaktır.
+
+### 7.6 Mevcut bulgunun statüsü
+
+`skill - 1` veya experience-delta modellerinden herhangi biri kesin doğru ilan edilmeyecektir. Bu deneyin amacı bu belirsizliği ground-truth örnekleriyle çözmektir.
+EOF
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Docs/RATING_MOTOR_RECONSTRUCTION_README.md
+          git commit -m 'docs: append CAL-001 variant protocol'
+          git push
