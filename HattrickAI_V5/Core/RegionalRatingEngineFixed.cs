@@ -6,8 +6,8 @@ namespace HattrickAI.V5.Core;
 
 /// <summary>
 /// Corrected V5 regional-rating engine.
-/// Stage 6 applies researched Hattrick/HO overcrowding to the full
-/// position contribution instead of folding it into selected skills.
+/// Stage 7 adds researched stamina/match-minute effects after position
+/// contribution inputs, while keeping experience as a separate layer.
 /// </summary>
 public sealed class RegionalRatingEngineFixed
 {
@@ -27,6 +27,7 @@ public sealed class RegionalRatingEngineFixed
         foreach (var p in players)
         {
             var formMultiplier = FormFactor(p.Form) / BaselineFormFactor;
+            formMultiplier *= StaminaMatchMultiplier(p.Stamina, context.MatchMinute);
             var loyalty = LoyaltyEffect(p.Loyalty);
             var k = new EffectiveSkillsFixed(
                 SkillRating(p.Keeper) + loyalty,
@@ -38,7 +39,7 @@ public sealed class RegionalRatingEngineFixed
                 formMultiplier);
 
             var before = new Dictionary<RatingSector, double>(sectors);
-            AddPositionContribution(sectors, p, k, cds, ims);
+            AddPositionContribution(sectors, p, k);
             var crowding = PositionCrowding(p.Position, cds, ims, fws);
             if (crowding != 1.0)
             {
@@ -46,7 +47,6 @@ public sealed class RegionalRatingEngineFixed
                     sectors[sector] = before[sector] + (sectors[sector] - before[sector]) * crowding;
             }
 
-            // Experience remains a separate contribution layer and is not crowded.
             AddExperienceContribution(sectors, p);
         }
 
@@ -72,6 +72,41 @@ public sealed class RegionalRatingEngineFixed
 
     internal static double SkillRating(double skill) => Math.Max(0.0, skill - 1.0);
 
+    internal static double StaminaMatchMultiplier(double stamina, int minute)
+    {
+        if (minute <= 0) return 1.0;
+        var m = Math.Clamp(minute, 0, 120);
+        var factor45 = StaminaAtPoint(stamina, 45);
+        var factor90 = StaminaAtPoint(stamina, 90);
+        var factor120 = StaminaAtPoint(stamina, 120);
+        if (m <= 45) return Lerp(1.0, factor45, m / 45.0);
+        if (m <= 90) return Lerp(factor45, factor90, (m - 45) / 45.0);
+        return Lerp(factor90, factor120, (m - 90) / 30.0);
+    }
+
+    private static double StaminaAtPoint(double stamina, int minute)
+    {
+        // Schum stamina research table: remaining midfield performance at 45/90/120.
+        // The published table is research/community material, not an official source-code formula.
+        var levels = new[] { 1.7, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.4 };
+        var at45 = new[] { .5886, .608, .640, .671, .703, .735, .767, .799, .831, .863, .894, .926, .958, .990, 1.000, 1.000, 1.000 };
+        var at90 = new[] { .265, .294, .344, .393, .442, .491, .541, .590, .639, .688, .737, .787, .836, .885, .956, 1.000, 1.000 };
+        var at120 = new[] { .100, .100, .100, .100, .156, .218, .281, .344, .406, .469, .532, .595, .657, .720, .791, .863, .920 };
+        var table = minute <= 45 ? at45 : minute <= 90 ? at90 : at120;
+        var x = Math.Clamp(stamina, levels[0], levels[^1]);
+        for (var i = 1; i < levels.Length; i++)
+        {
+            if (x <= levels[i])
+            {
+                var t = (x - levels[i - 1]) / (levels[i] - levels[i - 1]);
+                return Lerp(table[i - 1], table[i], t);
+            }
+        }
+        return table[^1];
+    }
+
+    private static double Lerp(double a, double b, double t) => a + (b - a) * t;
+
     private static Dictionary<RatingSector, double> Empty() => Enum.GetValues<RatingSector>().ToDictionary(x => x, _ => 0d);
     private static RegionalRatingSnapshot ToSnapshot(Dictionary<RatingSector, double> s) => new(
         s[RatingSector.LeftDefence], s[RatingSector.CentralDefence], s[RatingSector.RightDefence], s[RatingSector.Midfield],
@@ -92,7 +127,7 @@ public sealed class RegionalRatingEngineFixed
         _ => 1.0
     };
 
-    private static void AddPositionContribution(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k, int cds, int ims)
+    private static void AddPositionContribution(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
     {
         switch (p.Position)
         {
