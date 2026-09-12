@@ -1,11 +1,8 @@
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// Applies the team's current confidence to attack ratings.
-/// CHPP exposes SelfConfidence as: 4 = decent, 5 = strong, 6 = wonderful,
-/// 7 = slightly exaggerated, etc. Hattrick documents that confidence is
-/// reflected in attack-sector ratings; the exact per-level coefficient is
-/// empirical, so V5 uses the conservative 5% per confidence level around 4.
+/// Applies the team's current confidence to attack ratings while preserving
+/// the Stage 2 raw-contribution/display-rating boundary.
 /// </summary>
 public static class ConfidenceRatingAdjuster
 {
@@ -35,11 +32,11 @@ public static class ConfidenceRatingAdjuster
         double la, double ca, double ra)
         => new(
             ld, cd, rd, mid, la, ca, ra,
-            RegionalRatingEngine.Display(ld),
-            RegionalRatingEngine.Display(cd),
-            RegionalRatingEngine.Display(rd),
-            RegionalRatingEngine.Display(mid),
-            RegionalRatingEngine.Display(la),
-            RegionalRatingEngine.Display(ca),
-            RegionalRatingEngine.Display(ra));
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftDefence, ld),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralDefence, cd),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightDefence, rd),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.Midfield, mid),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftAttack, la),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralAttack, ca),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightAttack, ra));
 }
