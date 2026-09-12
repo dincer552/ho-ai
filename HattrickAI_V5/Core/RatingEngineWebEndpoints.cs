@@ -33,6 +33,7 @@ public static class RatingEngineWebEndpoints
             var playersJson = http.Session.GetString("v5.rating.players");
             var lineupJson = http.Session.GetString("v5.rating.lineup");
             var contextJson = http.Session.GetString("v5.rating.context");
+            var canonicalJson = http.Session.GetString("v5.rating.canonical");
             if (string.IsNullOrWhiteSpace(playersJson) || string.IsNullOrWhiteSpace(lineupJson) || string.IsNullOrWhiteSpace(contextJson))
                 return Results.Conflict(new { message = "Önce güncel analiz çalıştırılmalı; rating engine karşılaştırma bağlamı hazır değil." });
             try
@@ -40,8 +41,9 @@ public static class RatingEngineWebEndpoints
                 var players = JsonSerializer.Deserialize<List<Player>>(playersJson) ?? new();
                 var lineup = JsonSerializer.Deserialize<Lineup>(lineupJson) ?? throw new InvalidOperationException("Lineup deserialize edilemedi.");
                 var context = JsonSerializer.Deserialize<RatingContext>(contextJson) ?? throw new InvalidOperationException("Rating context deserialize edilemedi.");
+                var canonical = string.IsNullOrWhiteSpace(canonicalJson) ? null : JsonSerializer.Deserialize<RegionalRatingSnapshot>(canonicalJson);
                 var selected = Enum.TryParse<RatingEngineKind>(http.Session.GetString("v5.rating.selected"), true, out var s) ? s : RatingEngineKind.V5;
-                return Results.Ok(new RatingEngineComparisonService().Compare(new RatingEngineRequest(lineup, players, context), selected));
+                return Results.Ok(new RatingEngineComparisonService().Compare(new RatingEngineRequest(lineup, players, context, canonical), selected));
             }
             catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 500); }
         });
@@ -51,6 +53,7 @@ public static class RatingEngineWebEndpoints
             var playersJson = http.Session.GetString("v5.rating.players");
             var lineupJson = http.Session.GetString("v5.rating.lineup");
             var contextJson = http.Session.GetString("v5.rating.context");
+            var canonicalJson = http.Session.GetString("v5.rating.canonical");
             if (string.IsNullOrWhiteSpace(playersJson) || string.IsNullOrWhiteSpace(lineupJson) || string.IsNullOrWhiteSpace(contextJson))
                 return Results.Conflict(new { message = "Önce analiz çalıştırılmalı." });
             try
@@ -58,8 +61,9 @@ public static class RatingEngineWebEndpoints
                 var players = JsonSerializer.Deserialize<List<Player>>(playersJson) ?? new();
                 var lineup = JsonSerializer.Deserialize<Lineup>(lineupJson) ?? throw new InvalidOperationException("Lineup deserialize edilemedi.");
                 var context = JsonSerializer.Deserialize<RatingContext>(contextJson) ?? throw new InvalidOperationException("Rating context deserialize edilemedi.");
+                var canonical = string.IsNullOrWhiteSpace(canonicalJson) ? null : JsonSerializer.Deserialize<RegionalRatingSnapshot>(canonicalJson);
                 var selected = Enum.TryParse<RatingEngineKind>(http.Session.GetString("v5.rating.selected"), true, out var s) ? s : RatingEngineKind.V5;
-                return Results.Ok(new RatingEngineRegistry().Calculate(selected, new RatingEngineRequest(lineup, players, context)));
+                return Results.Ok(new RatingEngineRegistry().Calculate(selected, new RatingEngineRequest(lineup, players, context, canonical)));
             }
             catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 500); }
         });
