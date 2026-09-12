@@ -110,6 +110,15 @@ app.MapGet("/api/v5/analysis", async (HttpContext http, AnalysisService service,
     }
 });
 
+// TEAM_PLAYER_CHPP_JSON_EXPORT_V1: lightweight DEV data collection endpoint.
+app.MapGet("/api/v5/team-player-export", async (ChppV5 chpp, CancellationToken ct) =>
+{
+    if (!chpp.Connected) return Results.Unauthorized();
+    try { return Results.Ok(await new TeamPlayerChppExportService(chpp).ExportAsync(build, ct)); }
+    catch (UnauthorizedAccessException) { return Results.Unauthorized(); }
+    catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 502); }
+});
+
 app.MapGet("/api/v5/offline-export", async (HttpContext http, AnalysisService service, ChppV5 chpp, CancellationToken ct) =>
 {
     if (!chpp.Connected) return Results.Unauthorized();
