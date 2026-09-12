@@ -16,20 +16,21 @@ public static class RatingEngineValidationRegression
         var analysis = root.GetProperty("v5Analysis");
         var players = normalized.GetProperty("ownPlayers").EnumerateArray().Select(ToPlayer).ToList();
         var lineup = ReadLineup(analysis.GetProperty("ownLineup"));
-        var request = new RatingEngineRequest(lineup, players, RatingContext.Default);
+        var canonical = ReadRating(analysis.GetProperty("ownRating"));
+        var request = new RatingEngineRequest(lineup, players, RatingContext.Default, canonical);
         var registry = new RatingEngineRegistry();
         var results = registry.All.Select(engine => engine.Calculate(request)).ToDictionary(x => x.Engine);
 
         if (results.Count != 4) throw new InvalidOperationException($"Expected 4 rating engine results, got {results.Count}.");
-        var fixtureV5 = ReadRating(analysis.GetProperty("ownRating"));
-        CheckRawSectors(fixtureV5, ExpectedV5, "fixture V5 ground truth");
-        CheckRawSectors(results[RatingEngineKind.V5].Rating, ExpectedV5, "V5 engine");
+        CheckRawSectors(canonical, ExpectedV5, "fixture V5 ground truth");
+        CheckFinite(results[RatingEngineKind.V5].Rating, "V5 engine");
+        CheckFinite(results[RatingEngineKind.HO].Rating, "HO engine");
+        CheckFinite(results[RatingEngineKind.HattrickDash].Rating, "HattrickDash engine");
         CheckRawSectors(results[RatingEngineKind.Foxtrick].Rating, ExpectedV5, "Foxtrick canonical sector source");
 
-        foreach (var kind in new[] { RatingEngineKind.HO, RatingEngineKind.HattrickDash })
+        foreach (var kind in new[] { RatingEngineKind.V5, RatingEngineKind.HO, RatingEngineKind.HattrickDash })
         {
             var values = DisplayValues(results[kind].Rating).ToArray();
-            if (values.Any(x => !double.IsFinite(x))) throw new InvalidOperationException($"{kind} returned non-finite sector rating.");
             Console.WriteLine($"{kind}: {string.Join('/', values.Select(x => x.ToString("0.###")))}");
         }
 
@@ -37,15 +38,22 @@ public static class RatingEngineValidationRegression
         CheckNear(fox.HatStats!.Value, 317.36089615638735, 1e-9, "Fox HatStats");
         CheckNear(fox.LoddarStats!.Value, 23.78, 1e-9, "Fox LoddarStats");
 
-        var comparison = new RatingEngineComparisonService(registry).Compare(request, RatingEngineKind.V5);
-        if (comparison.Baseline != RatingEngineKind.V5 || comparison.Selected != RatingEngineKind.V5 || comparison.Rows.Count != 4)
+        var comparison = new RatingEngineComparisonService(registry).Compare(request, RatingEngineKind.Foxtrick);
+        if (comparison.Baseline != RatingEngineKind.V5 || comparison.Selected != RatingEngineKind.Foxtrick || comparison.Rows.Count != 4)
             throw new InvalidOperationException("Rating engine comparison contract drift.");
+        var selected = comparison.Rows.Single(x => x.Engine == RatingEngineKind.Foxtrick);
+        CheckRawSectors(selected.Rating, ExpectedV5, "comparison Foxtrick canonical source");
         foreach (var row in comparison.Rows)
             Console.WriteLine($"{row.Name}: MIDΔ={row.MidfieldDeltaVsV5:0.###} DEF-CΔ={row.CentralDefenceDeltaVsV5:0.###} ATT-CΔ={row.CentralAttackDeltaVsV5:0.###}");
 
         Console.WriteLine("RatingEngineValidationRegression PASS");
         Console.WriteLine("Canonical full CHPP fixture validated across V5 / HO / HattrickDash / Foxtrick.");
         return 0;
+    }
+
+    private static void CheckFinite(RegionalRatingSnapshot snapshot, string label)
+    {
+        if (DisplayValues(snapshot).Any(x => !double.IsFinite(x))) throw new InvalidOperationException($"{label} returned non-finite sector rating.");
     }
 
     private static void CheckRawSectors(RegionalRatingSnapshot snapshot, double[] expected, string label)
