@@ -104,8 +104,9 @@
       await json(API.selection, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ engine: engine }) });
       await refreshComparison();
       const result = await json(API.selected);
-      if (window.lastAnalysis && result && result.rating && typeof window.makePitch === 'function') {
-        window.makePitch('ownPitch', window.lastAnalysis.own, result.rating);
+      const analysis = window.__v5LastAnalysis;
+      if (analysis && result && result.rating && typeof window.makePitch === 'function') {
+        window.makePitch('ownPitch', analysis.own, result.rating);
         const rt = document.getElementById('runtime');
         if (rt) rt.textContent = result.engine + ' • aynı XI yeniden rating edildi';
       }
@@ -115,7 +116,25 @@
     }
   }
 
+  function installAnalysisCapture() {
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async function (input, init) {
+      const response = await originalFetch(input, init);
+      try {
+        const url = typeof input === 'string' ? input : (input && input.url) || '';
+        if (url.indexOf('/api/v5/analysis') !== -1 && response.ok) {
+          response.clone().json().then(function (data) {
+            window.__v5LastAnalysis = data;
+            window.setTimeout(refreshComparison, 50);
+          }).catch(function () {});
+        }
+      } catch (_) {}
+      return response;
+    };
+  }
+
   function boot() {
+    installAnalysisCapture();
     panel();
     load().then(function () {
       const el = document.getElementById('ratingEnginePanel');
