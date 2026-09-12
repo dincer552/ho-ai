@@ -1,0 +1,49 @@
+{
+  "schema": "hattrickai-v5-rating-calibration-v1",
+  "sampleId": "CAL-001",
+  "exportedAt": "2026-09-12T04:49:44.574Z",
+  "matchId": 769648184,
+  "formation": "3-4-3",
+  "tactic": "Normal",
+  "attitude": "Normal",
+  "matchMinute": 0,
+  "source": "Hattrick match-order screenshot + CHPP player snapshot 2026-09-12",
+  "players": [
+    {"id": 479235895, "name": "Enzo Bultot", "slot": "GK", "order": "Normal", "keeper": 17, "defending": 4, "playmaking": 1, "passing": 2, "winger": 1, "scoring": 4, "stamina": 7, "form": 6, "experience": 6, "loyalty": 0},
+    {"id": 468363070, "name": "Abeiku Takyi", "slot": "DEF-L", "order": "Normal", "keeper": 1, "defending": 17, "playmaking": 3, "passing": 8, "winger": 4, "scoring": 7, "stamina": 6, "form": 5, "experience": 10, "loyalty": 0},
+    {"id": 458524225, "name": "Dawid Nocoń", "slot": "DEF-C", "order": "Normal", "keeper": 0, "defending": 17, "playmaking": 3, "passing": 5, "winger": 4, "scoring": 7, "stamina": 5, "form": 6, "experience": 12, "loyalty": 0},
+    {"id": 476114406, "name": "Cristian Pesalovo", "slot": "DEF-R", "order": "Normal", "keeper": 1, "defending": 16, "playmaking": 6, "passing": 9, "winger": 3, "scoring": 6, "stamina": 7, "form": 7, "experience": 6, "loyalty": 0},
+    {"id": 492052456, "name": "Felix Gustavsson", "slot": "W-L", "order": "Normal", "keeper": 1, "defending": 3, "playmaking": 3, "passing": 8, "winger": 17, "scoring": 5, "stamina": 7, "form": 7, "experience": 4, "loyalty": 0},
+    {"id": 465805392, "name": "Bertalan Doktor", "slot": "IM-L", "order": "Normal", "keeper": 1, "defending": 2, "playmaking": 16, "passing": 11, "winger": 6, "scoring": 6, "stamina": 6, "form": 6, "experience": 8, "loyalty": 0},
+    {"id": 465141092, "name": "Milen Bozev", "slot": "IM-R", "order": "Normal", "keeper": 1, "defending": 5, "playmaking": 12, "passing": 9, "winger": 14, "scoring": 6, "stamina": 6, "form": 7, "experience": 8, "loyalty": 0},
+    {"id": 474962854, "name": "Manuel Gobiet", "slot": "W-R", "order": "Normal", "keeper": 1, "defending": 9, "playmaking": 11, "passing": 9, "winger": 15, "scoring": 8, "stamina": 6, "form": 8, "experience": 7, "loyalty": 0},
+    {"id": 497641568, "name": "Ersin Akşın", "slot": "FW-L", "order": "Normal", "keeper": 1, "defending": 2, "playmaking": 5, "passing": 9, "winger": 4, "scoring": 13, "stamina": 6, "form": 7, "experience": 3, "loyalty": 0},
+    {"id": 491743384, "name": "Adrian Beţa", "slot": "FW-C", "order": "Normal", "keeper": 1, "defending": 4, "playmaking": 5, "passing": 8, "winger": 3, "scoring": 15, "stamina": 7, "form": 7, "experience": 3, "loyalty": 0},
+    {"id": 495041177, "name": "Andres Nahasepp", "slot": "FW-R", "order": "Normal", "keeper": 1, "defending": 3, "playmaking": 6, "passing": 7, "winger": 5, "scoring": 13, "stamina": 7, "form": 7, "experience": 3, "loyalty": 0}
+  ],
+  "groundTruth": {
+    "leftDefence": 13.0,
+    "centralDefence": 12.75,
+    "rightDefence": 13.25,
+    "midfield": 7.0,
+    "leftAttack": 15.75,
+    "centralAttack": 13.75,
+    "rightAttack": 13.5
+  },
+  "baselineExpectation": {
+    "rawLeftDefence": 7.547173492520718,
+    "rawCentralDefence": 15.38792826270137,
+    "rawRightDefence": 8.722175800147264,
+    "rawMidfield": 8.356595269523073,
+    "rawLeftAttack": 9.736919924603303,
+    "rawCentralAttack": 12.138912750812356,
+    "rawRightAttack": 9.931162425931916,
+    "displayedLeftDefence": 7.55,
+    "displayedCentralDefence": 15.39,
+    "displayedRightDefence": 8.72,
+    "displayedMidfield": 8.36,
+    "displayedLeftAttack": 9.74,
+    "displayedCentralAttack": 12.14,
+    "displayedRightAttack": 9.93
+  }
+}
