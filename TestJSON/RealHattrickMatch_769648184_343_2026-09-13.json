@@ -18,6 +18,12 @@
     "centralAttack": 13.75,
     "rightAttack": 13.5
   },
+  "engineBaseline": {
+    "V5": [3.27,3.9,3.7,1.79,3.14,3.24,3.19],
+    "HO": [8.68839942,14.2271002,9.69051866,5.44673275,9.1645407,12.05888469,9.09550333],
+    "HattrickDash": [13.46666667,13.46666667,13.46666667,12.525,11.63333333,11.63333333,11.63333333],
+    "Foxtrick": [7.55,15.39,8.72,8.36,9.74,12.14,9.93]
+  },
   "players": [
     {"id": 479235895,"name":"Enzo Bultot","keeper":17,"defending":4,"playmaking":1,"passing":2,"winger":1,"scoring":4,"stamina":7,"form":6,"experience":6,"loyalty":0,"injuryLevel":-1,"specialty":0,"setPiecesSkill":0},
     {"id": 468363070,"name":"Abeiku Takyi","keeper":1,"defending":17,"playmaking":3,"passing":8,"winger":4,"scoring":7,"stamina":6,"form":5,"experience":10,"loyalty":0,"injuryLevel":-1,"specialty":0,"setPiecesSkill":0},
