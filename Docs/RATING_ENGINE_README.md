@@ -2,7 +2,7 @@
 
 ## Durum
 
-**TAMAMLANDI.**
+**TAMAMLANDI — production display isolation fix uygulandı; acceptance yeniden koşuluyor.**
 
 Production motorları:
 
@@ -17,10 +17,10 @@ Aynı canonical `Lineup + Player + RatingContext` girdisini bağımsız rating m
 ## Motorlar
 
 ### V5
-Mevcut V5 rating katmanının adapter'ıdır. `Stage2RegionalRatingEngineFixed` üzerinden canonical V5 regional rating üretir. Contract regression, adapter parity'sini mevcut Fixed motoruna karşı kontrol eder.
+Mevcut V5 rating katmanının adapter'ıdır. `RegionalRatingEngineFixed` üzerinden canonical V5 regional rating üretir. Contract regression, adapter parity'sini mevcut Fixed motoruna karşı kontrol eder.
 
 ### HO
-Legacy HO rating hesapları bağımsız adapter altında çalışır. 7 bölgesel sektör ile HatStats/LoddarStats ortak `RatingEngineResult` modeline taşınır. Gerçek 2026-09-01 CHPP fixture regression ile sektör ve context davranışları kilitlidir.
+Legacy HO rating hesapları bağımsız adapter altında çalışır. 7 bölgesel sektör ile HatStats/LoddarStats ortak `RatingEngineResult` modeline taşınır. Gerçek CHPP fixture regression ile sektör ve context davranışları kilitlidir.
 
 ### HattrickDash
 Açık kaynak Dash local lineup/analytics mantığı uygulanır. Pozisyon tahmini `primary × 0.70 + form × 0.20 + stamina × 0.10` ile başlar; midfield/defence/attack aggregate'leri ve Dash HatStats/LoddarStats ayrıdır.
@@ -56,13 +56,44 @@ Foxtrick sektör üretiminin Hattrick server-side kısmı kapalı olduğu için 
 - optional HatStats
 - optional LoddarStats
 
-`RegionalRatingSnapshot` raw ve display ratingleri ayrı tutar. Validation'da V5/Foxtrick raw değerleri ile HO/Dash display değerleri birbirine karıştırılmaz.
+`RegionalRatingSnapshot` raw ve display ratingleri ayrı tutar.
+
+## Kritik display sözleşmesi — 13.09.2026
+
+Production'da **V5, HO, HattrickDash ve Foxtrick birbirlerinin display converter'ını kullanmaz.** Her motorun `Calculate()` sonucu kendi rating alanında doğrudan gösterilebilir.
+
+Özellikle `HattrickRatingDisplayConverter` yalnızca deneysel Stage-2 raw→display dönüşüm katmanıdır. Production final rating zincirinde tekrar uygulanamaz.
+
+### Tespit edilen bug
+
+Motor seçimi backend'de doğru çalışmasına rağmen final `Analysis` sonucu oluşturulurken `ConfidenceRatingAdjuster` her motorun raw sektörlerini tekrar `HattrickRatingDisplayConverter.ToDisplay(...)` üzerinden geçiriyordu. Bu, normal 7–16 bandındaki değerleri yaklaşık 1–6 bandına sıkıştırabiliyordu.
+
+Örnek production smoke gözlemi:
+
+- V5 seçili analizde saha ratingleri yaklaşık `5.75 / 3.55 / 5.57 / 2.14 / 3.52 / 3.84 / 3.61` görünüyordu.
+- HO seçili analizde yaklaşık `3.83 / 2.19 / 4.70 / 1.75 / 3.24 / 3.58 / 3.07` görünüyordu.
+
+Sorun motor seçiminin kendisi değil, seçilen motorun final rating'inin ikinci kez yanlış display dönüşümünden geçirilmesiydi.
+
+### Fix
+
+`ConfidenceRatingAdjuster` artık:
+
+1. seçilen motorun raw rating ledger'ını confidence ile gerektiği kadar değiştirir,
+2. sonucu aynı motorun display space'inde doğrudan yayınlar,
+3. `HattrickRatingDisplayConverter` çağırmaz.
+
+Böylece seçilen motor V5/HO/HattrickDash/Foxtrick olsa da saha üzerindeki 7 rating doğrudan o motorun hesapladığı değerlerdir.
+
+Bu değişiklik V5 katsayılarını veya Stage-2 converter'ı değiştirmez.
 
 ## Registry ve karşılaştırma
 
 `RatingEngineRegistry` dört motoru deterministik biçimde sunar. V5 registry'de zorunludur.
 
 `RatingEngineComparisonService` aynı XI ve aynı `RatingContext` ile dört motoru yan yana çalıştırır ve V5 baseline'a göre 7 sektör farklarını üretir.
+
+Karşılaştırma ekranında da her motorun `RegionalRatingSnapshot` display alanları doğrudan gösterilir; ikinci bir converter uygulanmaz.
 
 ## Web selector
 
@@ -75,6 +106,8 @@ Production endpoint'leri:
 - `GET /api/v5/rating-engines/compare`
 
 Web UI'da `rating-engines.js` selector ve comparison panelini sağlar. Analiz sonrası oyuncu havuzu, XI, rating context ve canonical V5 rating session'dan tekrar kullanılır.
+
+Motor seçimi analizi başlatmadan önce yapılabilir; seçilen motor analiz pipeline'ında kullanılır. Analiz tamamlandıktan sonra aynı final XI dört motorla ayrıca karşılaştırılabilir.
 
 ## CI / regression sırası
 
@@ -89,27 +122,9 @@ Web UI'da `rating-engines.js` selector ve comparison panelini sağlar. Analiz so
 7. Foxtrick Stage-4
 8. full real-fixture rating-engine validation
 
+`RatingEngineValidationRegression` artık dört motorun production display alanlarının raw sektörleri tekrar sıkıştırmadığını ve `ConfidenceRatingAdjuster` sonrası da display==raw sözleşmesini kontrol eder.
+
 `.github/workflows/v5-build.yml` ayrıca rating selector JavaScript syntax checkini production Docker buildinden önce çalıştırır.
-
-## Final acceptance
-
-### CAL-001 Rating Regression
-
-**Run #80 / `34714871533` — GREEN**
-
-Commit: `43f4be6e7ec53dd0af011ca0897767b39069a4f6`
-
-Contract, CAL-001, model variants, HO Stage-2, HO real fixture, Dash Stage-3, Foxtrick Stage-4 ve full rating-engine validation tamamı başarılı.
-
-### Production Build / Deploy
-
-**Run #1195 / `34714871466` — GREEN**
-
-Commit: `43f4be6e7ec53dd0af011ca0897767b39069a4f6`
-
-JavaScript syntax, CHPP regression seti, Docker build, GHCR push ve Azure VM deployment başarıyla tamamlandı.
-
-Build #1194'teki Docker hatasının kökü, `.csproj` tarafından `../YEDEK/YEDEK/V1/webapp/HOEngine/*.cs` üzerinden kullanılan legacy HO kaynaklarının Docker build context'ine alınmamış olmasıydı. Dockerfile'a `COPY YEDEK YEDEK` eklendi ve #1195 tamamen yeşil oldu.
 
 ## Gerçek fixture acceptance
 
@@ -134,9 +149,21 @@ HO ve HattrickDash real-fixture sonuçları bağımsız motorların kendi hesapl
 - Existing M3→M11 pipeline değişmez.
 - Selector yalnızca ayrı engine endpointlerini kullanır.
 - Default engine V5'tir.
-- V5 adapter parity regression green.
-- Production build/deploy green.
+- V5 adapter parity regression korunur.
+- Stage-2 nonlinear converter korunur; production final rating zincirine sokulmaz.
+
+## Acceptance kriteri
+
+Bir motorun production saha rating'i geçerli sayılması için:
+
+`Engine.Calculate() → RegionalRatingSnapshot → (gerekirse confidence adjustment) → UI`
+
+zincirinde başka bir engine'in veya Stage-2 converter'ın display dönüşümü uygulanmamalıdır.
+
+Aynı fixture için V5, HO, HattrickDash ve Foxtrick ayrı ayrı finite sonuç vermeli; her sonucun display alanları kendi raw sektörleriyle tutarlı olmalı; confidence adjustment neutral seviyede raw değerleri değiştirmeden display'i tekrar sıkıştırmamalıdır.
 
 ## Kapanış
 
-Regression + production build/deploy + documentation + V5 invariance dört kapanış kapısı yeşildir. Rating-engine çalışması **TAMAMLANDI**.
+Bu fix, motor seçiminin gerçekten seçilen motorla analiz yapması ile rating değerlerinin UI'a doğru taşınmasını aynı acceptance altında kilitler. V5 default davranışı korunur; diğer üç motorun sonuçları V5 converter'ından geçirilmez.
+
+**Kod + regression + production build/deploy doğrulaması tamamlanmadan bu madde TAMAMLANDI sayılmayacak.**
