@@ -2,28 +2,9 @@
   "schema": "hattrickai-v5-real-hattrick-lineup-v1",
   "capturedAt": "2026-09-13",
   "source": "Hattrick UI screenshot + CHPP team export",
-  "match": {
-    "matchId": 769648184,
-    "teamId": 1080139,
-    "teamName": "S4MSUNFC",
-    "formation": "3-4-3",
-    "tactic": "Normal"
-  },
-  "hattrickRating": {
-    "leftDefence": 13.0,
-    "centralDefence": 12.75,
-    "rightDefence": 14.75,
-    "midfield": 7.0,
-    "leftAttack": 13.25,
-    "centralAttack": 16.75,
-    "rightAttack": 13.25
-  },
-  "engineBaseline": {
-    "V5": [3.27,3.9,3.7,1.79,3.14,3.24,3.19],
-    "HO": [8.68839942,14.2271002,9.69051866,5.44673275,9.1645407,12.05888469,9.09550333],
-    "HattrickDash": [13.46666667,13.46666667,13.46666667,12.525,11.63333333,11.63333333],
-    "Foxtrick": [7.55,15.39,8.72,8.36,9.74,12.14,9.93]
-  },
+  "match": {"matchId": 769648184,"teamId": 1080139,"teamName": "S4MSUNFC","formation": "3-4-3","tactic": "Normal"},
+  "hattrickRating": {"leftDefence": 13.0,"centralDefence": 12.75,"rightDefence": 14.75,"midfield": 7.0,"leftAttack": 13.25,"centralAttack": 16.75,"rightAttack": 13.25},
+  "engineBaseline": {"V5": [7.55,15.39,8.72,8.36,9.74,12.14,9.93],"HO": [8.68839942,14.2271002,9.69051866,5.44673275,9.1645407,12.05888469,9.09550333],"HattrickDash": [13.46666667,13.46666667,13.46666667,12.525,11.63333333,11.63333333,11.63333333],"Foxtrick": [7.55,15.39,8.72,8.36,9.74,12.14,9.93]},
   "players": [
     {"id":479235895,"name":"Enzo Bultot","keeper":17,"defending":4,"playmaking":1,"passing":2,"winger":1,"scoring":4,"stamina":7,"form":6,"experience":6,"loyalty":0,"injuryLevel":-1,"specialty":0,"setPiecesSkill":0},
     {"id":468363070,"name":"Abeiku Takyi","keeper":1,"defending":17,"playmaking":3,"passing":8,"winger":4,"scoring":7,"stamina":6,"form":5,"experience":10,"loyalty":0,"injuryLevel":-1,"specialty":0,"setPiecesSkill":0},
@@ -37,20 +18,17 @@
     {"id":491743384,"name":"Adrian Beţa","keeper":1,"defending":4,"playmaking":5,"passing":8,"winger":3,"scoring":15,"stamina":7,"form":7,"experience":3,"loyalty":0,"injuryLevel":-1,"specialty":0,"setPiecesSkill":0},
     {"id":495041177,"name":"Andres Nahasepp","keeper":1,"defending":3,"playmaking":6,"passing":7,"winger":5,"scoring":13,"stamina":7,"form":7,"experience":3,"loyalty":0,"injuryLevel":-1,"specialty":0,"setPiecesSkill":0}
   ],
-  "lineup": {
-    "teamName":"S4MSUNFC","formation":"3-4-3",
-    "slots":[
-      {"code":"GK","label":"GK","description":"Real Hattrick screenshot lineup v2","playerName":"Enzo Bultot","playerId":479235895,"rating":0,"x":0,"y":0},
-      {"code":"DEF-L","label":"DEF-L","description":"Real Hattrick screenshot lineup v2","playerName":"Abeiku Takyi","playerId":468363070,"rating":0,"x":0,"y":0},
-      {"code":"DEF-C","label":"DEF-C","description":"Real Hattrick screenshot lineup v2","playerName":"Dawid Nocoń","playerId":458524225,"rating":0,"x":0,"y":0},
-      {"code":"DEF-R","label":"DEF-R","description":"Real Hattrick screenshot lineup v2","playerName":"Cristian Pesalovo","playerId":476114406,"rating":0,"x":0,"y":0},
-      {"code":"W-L","label":"W-L","description":"Real Hattrick screenshot lineup v2","playerName":"Felix Gustavsson","playerId":492052456,"rating":0,"x":0,"y":0},
-      {"code":"IM-L","label":"IM-L","description":"Real Hattrick screenshot lineup v2","playerName":"Bertalan Doktor","playerId":465805392,"rating":0,"x":0,"y":0},
-      {"code":"IM-R","label":"IM-R","description":"Real Hattrick screenshot lineup v2","playerName":"Milen Bozev","playerId":465141092,"rating":0,"x":0,"y":0},
-      {"code":"W-R","label":"W-R","description":"Real Hattrick screenshot lineup v2","playerName":"Manuel Gobiet","playerId":474962854,"rating":0,"x":0,"y":0},
-      {"code":"FW-L","label":"FW-L","description":"Real Hattrick screenshot lineup v2","playerName":"Ersin Akşın","playerId":497641568,"rating":0,"x":0,"y":0},
-      {"code":"FW-C","label":"FW-C","description":"Real Hattrick screenshot lineup v2","playerName":"Adrian Beţa","playerId":491743384,"rating":0,"x":0,"y":0},
-      {"code":"FW-R","label":"FW-R","description":"Real Hattrick screenshot lineup v2","playerName":"Andres Nahasepp","playerId":495041177,"rating":0,"x":0,"y":0}
-    ]
-  }
+  "lineup": {"teamName":"S4MSUNFC","formation":"3-4-3","slots":[
+    {"code":"GK","label":"GK","description":"Real Hattrick screenshot lineup v2","playerName":"Enzo Bultot","playerId":479235895,"rating":0,"x":0,"y":0},
+    {"code":"DEF-L","label":"DEF-L","description":"Real Hattrick screenshot lineup v2","playerName":"Abeiku Takyi","playerId":468363070,"rating":0,"x":0,"y":0},
+    {"code":"DEF-C","label":"DEF-C","description":"Real Hattrick screenshot lineup v2","playerName":"Dawid Nocoń","playerId":458524225,"rating":0,"x":0,"y":0},
+    {"code":"DEF-R","label":"DEF-R","description":"Real Hattrick screenshot lineup v2","playerName":"Cristian Pesalovo","playerId":476114406,"rating":0,"x":0,"y":0},
+    {"code":"W-L","label":"W-L","description":"Real Hattrick screenshot lineup v2","playerName":"Felix Gustavsson","playerId":492052456,"rating":0,"x":0,"y":0},
+    {"code":"IM-L","label":"IM-L","description":"Real Hattrick screenshot lineup v2","playerName":"Bertalan Doktor","playerId":465805392,"rating":0,"x":0,"y":0},
+    {"code":"IM-R","label":"IM-R","description":"Real Hattrick screenshot lineup v2","playerName":"Milen Bozev","playerId":465141092,"rating":0,"x":0,"y":0},
+    {"code":"W-R","label":"W-R","description":"Real Hattrick screenshot lineup v2","playerName":"Manuel Gobiet","playerId":474962854,"rating":0,"x":0,"y":0},
+    {"code":"FW-L","label":"FW-L","description":"Real Hattrick screenshot lineup v2","playerName":"Ersin Akşın","playerId":497641568,"rating":0,"x":0,"y":0},
+    {"code":"FW-C","label":"FW-C","description":"Real Hattrick screenshot lineup v2","playerName":"Adrian Beţa","playerId":491743384,"rating":0,"x":0,"y":0},
+    {"code":"FW-R","label":"FW-R","description":"Real Hattrick screenshot lineup v2","playerName":"Andres Nahasepp","playerId":495041177,"rating":0,"x":0,"y":0}
+  ]}
 }
