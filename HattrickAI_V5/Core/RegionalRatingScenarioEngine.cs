@@ -13,65 +13,62 @@ public sealed class RegionalRatingScenarioEngine
     private readonly Stage2RegionalRatingEngine _baseEngine = new();
     private readonly RatingEngineRegistry _ratingEngines = new();
 
-    public RatingScenarioResult Calculate(
-        IReadOnlyList<RegionalPlayer> players,
-        MatchState state)
+    public RatingScenarioResult Calculate(IReadOnlyList<RegionalPlayer> players, MatchState state)
     {
         ArgumentNullException.ThrowIfNull(players);
         ArgumentNullException.ThrowIfNull(state);
 
-        var context = new RatingContext(state.MatchLocation, state.TeamAttitude, state.TeamTactic)
-        {
-            MatchMinute = state.MatchMinute,
-            GoalDifference = state.GoalDifference,
-            IgnoreLeadRetreat = state.IgnoreLeadRetreat
-        };
-
+        var context = BuildRatingContext(state);
         var baseRating = _baseEngine.Calculate(players, context);
         var adjusted = ApplyQuestionnaireContext(baseRating, state);
 
-        return new RatingScenarioResult(
-            adjusted,
-            state,
-            RatingConfidence.High,
-            BuildModifiers(state));
+        return new RatingScenarioResult(adjusted, state, RatingConfidence.High, BuildModifiers(state));
     }
 
-    public RatingScenarioResult CalculateLineup(
-        Lineup lineup,
-        IReadOnlyList<Player> players,
-        MatchState state)
+    public RatingScenarioResult CalculateLineup(Lineup lineup, IReadOnlyList<Player> players, MatchState state)
     {
         ArgumentNullException.ThrowIfNull(lineup);
         ArgumentNullException.ThrowIfNull(players);
         ArgumentNullException.ThrowIfNull(state);
 
-        var context = new RatingContext(state.MatchLocation, state.TeamAttitude, state.TeamTactic)
+        var context = BuildRatingContext(state);
+        var selected = RatingEngineSelectionContext.Selected;
+        var request = new RatingEngineRequest(
+            lineup,
+            players,
+            context,
+            HOContext: BuildHOContext(state));
+
+        var baseRating = selected == RatingEngineKind.V5
+            ? _baseEngine.CalculateLineup(lineup, players, context)
+            : _ratingEngines.Calculate(selected, request).Rating;
+
+        // V5 owns the existing questionnaire/display conversion path. Independent
+        // engines already return their own display-space ratings; do not run them
+        // through the V5 nonlinear converter or V5-specific adjustments.
+        var adjusted = selected == RatingEngineKind.V5
+            ? ApplyQuestionnaireContext(baseRating, state)
+            : baseRating;
+
+        return new RatingScenarioResult(adjusted, state, RatingConfidence.High, BuildModifiers(state));
+    }
+
+    private static RatingContext BuildRatingContext(MatchState state)
+        => new(state.MatchLocation, state.TeamAttitude, state.TeamTactic)
         {
             MatchMinute = state.MatchMinute,
             GoalDifference = state.GoalDifference,
             IgnoreLeadRetreat = state.IgnoreLeadRetreat
         };
 
-        var selected = RatingEngineSelectionContext.Selected;
-        var baseRating = selected == RatingEngineKind.V5
-            ? _baseEngine.CalculateLineup(lineup, players, context)
-            : _ratingEngines.Calculate(selected, new RatingEngineRequest(lineup, players, context)).Rating;
-
-        // V5 owns the existing questionnaire/display conversion path. Independent
-        // engines already return their own display-space ratings; running them
-        // through the V5 nonlinear converter here corrupts their scale and applies
-        // V5-specific adjustments to non-V5 results. Keep those engines isolated.
-        var adjusted = selected == RatingEngineKind.V5
-            ? ApplyQuestionnaireContext(baseRating, state)
-            : baseRating;
-
-        return new RatingScenarioResult(
-            adjusted,
-            state,
-            RatingConfidence.High,
-            BuildModifiers(state));
-    }
+    private static HOEngineContext BuildHOContext(MatchState state)
+        => new(
+            state.TeamSpirit,
+            state.Confidence,
+            state.CoachStyle,
+            TacticLevel: 1,
+            CoachModifier: 0,
+            Weather: 0);
 
     public static double TeamSpiritMultiplier(double teamSpirit)
     {
@@ -87,9 +84,7 @@ public sealed class RegionalRatingScenarioEngine
             _ => (1.0, 1.0)
         };
 
-    private static RegionalRatingSnapshot ApplyQuestionnaireContext(
-        RegionalRatingSnapshot rating,
-        MatchState state)
+    private static RegionalRatingSnapshot ApplyQuestionnaireContext(RegionalRatingSnapshot rating, MatchState state)
     {
         var withSpirit = ApplyTeamSpirit(rating, state.TeamSpirit);
         var (attack, defence) = CoachStyleMultipliers(state.CoachStyle);
@@ -118,9 +113,7 @@ public sealed class RegionalRatingScenarioEngine
             defence);
     }
 
-    private static RegionalRatingSnapshot ApplyTeamSpirit(
-        RegionalRatingSnapshot rating,
-        double teamSpirit)
+    private static RegionalRatingSnapshot ApplyTeamSpirit(RegionalRatingSnapshot rating, double teamSpirit)
     {
         var factor = TeamSpiritMultiplier(teamSpirit);
         var rawMidfield = rating.RawMidfield * factor;
@@ -183,13 +176,7 @@ public sealed record MatchState(
     public double Confidence { get; init; } = 1.0;
 }
 
-public enum RatingConfidence
-{
-    Unknown,
-    Low,
-    Medium,
-    High
-}
+public enum RatingConfidence { Unknown, Low, Medium, High }
 
 public sealed record RatingModifiers(
     double TeamSpiritMultiplier,
