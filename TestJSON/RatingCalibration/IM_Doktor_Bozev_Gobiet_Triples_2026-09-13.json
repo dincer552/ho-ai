@@ -1,0 +1,58 @@
+{
+  "schema": "hattrickai-v5-rating-calibration-observation-v1",
+  "sampleId": "IM-DBG-TRIPLE-001",
+  "date": "2026-09-13",
+  "purpose": "Observed Hattrick match-order outputs for Bertalan Doktor + Milen Bozev + M. Gobiet in three-player 0-3-0 midfield configurations. Raw screenshot observations only; no coefficients are changed by this file alone.",
+  "formationShown": "0-3-0",
+  "tactic": "Normal",
+  "observations": [
+    {
+      "id": "TRIPLE-01",
+      "positions": {"IM-L":"Milen Bozev","IM-C":"M. Gobiet","IM-R":"Bertalan Doktor"},
+      "visibleRatings": {"topLeft":1.25,"topCentre":2.0,"topRight":1.25,"middle":5.5,"bottomLeft":1.75,"bottomCentre":3.5,"bottomRight":1.5},
+      "visibleDeltas": {},
+      "sourceImage":"1000048877.jpg"
+    },
+    {
+      "id": "TRIPLE-02",
+      "positions": {"IM-L":"M. Gobiet","IM-C":"Bertalan Doktor","IM-R":"Milen Bozev"},
+      "visibleRatings": {"topLeft":1.25,"topCentre":2.0,"topRight":1.25,"middle":5.5,"bottomLeft":1.75,"bottomCentre":3.5,"bottomRight":1.75},
+      "visibleDeltas": {"topLeft":-0.25,"bottomLeft":0.25,"bottomRight":0.25},
+      "sourceImage":"1000048878.jpg"
+    },
+    {
+      "id": "TRIPLE-03",
+      "positions": {"IM-L":"M. Gobiet","IM-C":"Milen Bozev","IM-R":"Bertalan Doktor"},
+      "visibleRatings": {"topLeft":1.5,"topCentre":2.0,"topRight":1.25,"middle":5.5,"bottomLeft":1.5,"bottomCentre":3.5,"bottomRight":1.75},
+      "visibleDeltas": {"topLeft":0.25,"topRight":-0.25,"bottomLeft":-0.25,"bottomRight":0.25},
+      "sourceImage":"1000048879.jpg"
+    },
+    {
+      "id": "TRIPLE-04",
+      "positions": {"IM-L":"Bertalan Doktor","IM-C":"Milen Bozev","IM-R":"M. Gobiet"},
+      "visibleRatings": {"topLeft":1.25,"topCentre":2.0,"topRight":1.5,"middle":5.5,"bottomLeft":1.75,"bottomCentre":3.5,"bottomRight":1.5},
+      "visibleDeltas": {"topRight":0.25},
+      "sourceImage":"1000048880.jpg"
+    },
+    {
+      "id": "TRIPLE-05",
+      "positions": {"IM-L":"Milen Bozev","IM-C":"M. Gobiet","IM-R":"Bertalan Doktor"},
+      "visibleRatings": {"topLeft":1.25,"topCentre":2.0,"topRight":1.25,"middle":5.5,"bottomLeft":1.5,"bottomCentre":3.5,"bottomRight":1.75},
+      "visibleDeltas": {"topLeft":0.25,"topCentre":0.5,"topRight":0.25,"middle":1.0,"bottomLeft":0.75,"bottomCentre":0.75,"bottomRight":0.25},
+      "sourceImage":"1000048881.jpg"
+    },
+    {
+      "id": "TRIPLE-06",
+      "positions": {"IM-L":"Milen Bozev","IM-C":"M. Gobiet","IM-R":"Bertalan Doktor"},
+      "visibleRatings": {"topLeft":1.25,"topCentre":2.0,"topRight":1.25,"middle":5.5,"bottomLeft":1.5,"bottomCentre":3.5,"bottomRight":1.5},
+      "visibleDeltas": {"topLeft":0.25,"topCentre":0.5,"topRight":0.25,"middle":1.0,"bottomLeft":0.75,"bottomCentre":0.75,"bottomRight":0.25},
+      "sourceImage":"1000048882.jpg"
+    }
+  ],
+  "notes": [
+    "Position mapping is based on the physical midfield columns shown in the screenshots: IM-L, IM-C, IM-R.",
+    "The seven displayed numbers are deliberately stored as topLeft/topCentre/topRight/middle/bottomLeft/bottomCentre/bottomRight. Their semantic sector mapping is not inferred from the screenshot alone.",
+    "The green/orange +/- annotations are stored only where they are visibly present.",
+    "These triple observations are interaction/calibration evidence and must be compared against isolated-player and pair observations before any global coefficient change."
+  ]
+}
