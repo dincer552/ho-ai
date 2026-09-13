@@ -11,6 +11,7 @@ namespace HattrickAI.V5.Core;
 public sealed class RegionalRatingScenarioEngine
 {
     private readonly Stage2RegionalRatingEngine _baseEngine = new();
+    private readonly RatingEngineRegistry _ratingEngines = new();
 
     public RatingScenarioResult Calculate(
         IReadOnlyList<RegionalPlayer> players,
@@ -52,7 +53,10 @@ public sealed class RegionalRatingScenarioEngine
             IgnoreLeadRetreat = state.IgnoreLeadRetreat
         };
 
-        var baseRating = _baseEngine.CalculateLineup(lineup, players, context);
+        var selected = RatingEngineSelectionContext.Selected;
+        var baseRating = selected == RatingEngineKind.V5
+            ? _baseEngine.CalculateLineup(lineup, players, context)
+            : _ratingEngines.Calculate(selected, new RatingEngineRequest(lineup, players, context)).Rating;
         var adjusted = ApplyQuestionnaireContext(baseRating, state);
 
         return new RatingScenarioResult(
