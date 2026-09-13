@@ -45,7 +45,7 @@
     const rows = el.querySelector('#ratingEngineRows');
     const selected = comparison.selected || 'V5';
     const selectedRow = comparison.rows.find(function (row) { return row.engine === selected; });
-    if (summary) summary.textContent = (selectedRow ? selectedRow.name : selected) + ' ile analiz edildi • aşağıda aynı önerilen XI'nin diğer motor sonuçları gösteriliyor.';
+    if (summary) summary.textContent = (selectedRow ? selectedRow.name : selected) + " ile analiz edildi • aşağıda aynı önerilen XI'nin diğer motor sonuçları gösteriliyor.";
     rows.innerHTML = comparison.rows.map(function (row) {
       const active = row.engine === selected;
       return '<tr style="border-top:1px solid #edf1ee;background:' + (active ? '#eef7f0' : '#fff') + '">' +
