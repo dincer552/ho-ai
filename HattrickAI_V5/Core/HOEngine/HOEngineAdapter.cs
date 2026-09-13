@@ -192,47 +192,42 @@ public sealed class HOEngineAdapter : IRatingEngine
             return true;
         }
 
-        // Canonical V5 can describe formation-equivalent side slots while the
-        // legacy HO role table uses central roles for the same formation.
-        if (bucket == "DEF-C")
+        // Canonical V5 may represent formation-equivalent roles with side-specific
+        // slots while legacy HO uses a different role table. Fall back within the
+        // same tactical line instead of aborting the complete analysis.
+        if (bucket is "DEF-L" or "DEF-C" or "DEF-R")
         {
-            if (buckets.TryGetValue("DEF-L", out var leftDefender) && leftDefender.Count > 0)
+            foreach (var equivalent in new[] { "DEF-C", "DEF-L", "DEF-R" })
             {
-                slot = leftDefender.Dequeue();
-                return true;
-            }
-            if (buckets.TryGetValue("DEF-R", out var rightDefender) && rightDefender.Count > 0)
-            {
-                slot = rightDefender.Dequeue();
-                return true;
+                if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0)
+                {
+                    slot = queue.Dequeue();
+                    return true;
+                }
             }
         }
 
-        if (bucket == "IM-C")
+        if (bucket is "IM-L" or "IM-C" or "IM-R")
         {
-            if (buckets.TryGetValue("IM-L", out var left) && left.Count > 0)
+            foreach (var equivalent in new[] { "IM-C", "IM-L", "IM-R" })
             {
-                slot = left.Dequeue();
-                return true;
-            }
-            if (buckets.TryGetValue("IM-R", out var right) && right.Count > 0)
-            {
-                slot = right.Dequeue();
-                return true;
+                if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0)
+                {
+                    slot = queue.Dequeue();
+                    return true;
+                }
             }
         }
 
-        if (bucket == "FW-C")
+        if (bucket is "FW-L" or "FW-C" or "FW-R")
         {
-            if (buckets.TryGetValue("FW-R", out var right) && right.Count > 0)
+            foreach (var equivalent in new[] { "FW-C", "FW-L", "FW-R" })
             {
-                slot = right.Dequeue();
-                return true;
-            }
-            if (buckets.TryGetValue("FW-L", out var left) && left.Count > 0)
-            {
-                slot = left.Dequeue();
-                return true;
+                if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0)
+                {
+                    slot = queue.Dequeue();
+                    return true;
+                }
             }
         }
 
