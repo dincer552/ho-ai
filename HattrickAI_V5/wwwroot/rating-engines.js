@@ -86,6 +86,8 @@
       }).join('');
       const state = await json(API.selection);
       select.value = state.selected || engines.default || 'V5';
+      const summary = host.querySelector('#ratingEngineSummary');
+      if (summary) summary.textContent = (state.selected || engines.default || 'V5') + ' seçili • Analizi başlatınca bu motor kullanılacak.';
     } catch (_) {}
   }
 
@@ -102,9 +104,17 @@
   async function choose(engine) {
     try {
       await json(API.selection, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ engine: engine }) });
+
+      const analysis = window.__v5LastAnalysis;
+      const el = panel();
+      if (!analysis) {
+        const summary = el && el.querySelector('#ratingEngineSummary');
+        if (summary) summary.textContent = engine + ' seçildi • sonraki ANALİZ bu motorla çalışacak.';
+        return;
+      }
+
       await refreshComparison();
       const result = await json(API.selected);
-      const analysis = window.__v5LastAnalysis;
       if (analysis && result && result.rating && typeof window.makePitch === 'function') {
         window.makePitch('ownPitch', analysis.own, result.rating);
         const rt = document.getElementById('runtime');
