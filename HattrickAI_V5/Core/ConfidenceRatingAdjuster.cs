@@ -4,10 +4,10 @@ namespace HattrickAI.V5.Core;
 /// Applies the team's current confidence to attack ratings without crossing
 /// the independent rating-engine display boundary.
 ///
-/// Production engine results already contain their own display-space values.
-/// This layer changes the raw attack ledger and then exposes the adjusted raw
-/// sector values directly. The experimental HattrickRatingDisplayConverter is
-/// intentionally not used here; it remains isolated to Stage-2 display tests.
+/// Production engine results already use the native production display scale.
+/// This layer changes the raw attack ledger and then applies only the common
+/// native two-decimal presentation. The experimental
+/// HattrickRatingDisplayConverter is intentionally not used here.
 /// </summary>
 public static class ConfidenceRatingAdjuster
 {
@@ -39,5 +39,11 @@ public static class ConfidenceRatingAdjuster
         double la, double ca, double ra)
         => new(
             ld, cd, rd, mid, la, ca, ra,
-            ld, cd, rd, mid, la, ca, ra);
+            RegionalRatingEngine.Display(ld),
+            RegionalRatingEngine.Display(cd),
+            RegionalRatingEngine.Display(rd),
+            RegionalRatingEngine.Display(mid),
+            RegionalRatingEngine.Display(la),
+            RegionalRatingEngine.Display(ca),
+            RegionalRatingEngine.Display(ra));
 }
