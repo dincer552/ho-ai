@@ -1,0 +1,72 @@
+{
+  "schema": "hattrickai-v5-rating-calibration-observation-v1",
+  "sampleId": "IM-DB-001",
+  "date": "2026-09-13",
+  "purpose": "Observed Hattrick match-order rating outputs for Bertalan Doktor and Milen Bozev in isolated IM positions. These are ground-truth observations for later V5 regression; no coefficients are changed by this file alone.",
+  "players": [
+    { "name": "Bertalan Doktor", "shortName": "B. Doktor" },
+    { "name": "Milen Bozev", "shortName": "M. Bozev" }
+  ],
+  "observations": [
+    {
+      "id": "IM-DB-001-D-L",
+      "player": "Bertalan Doktor",
+      "position": "IM-L",
+      "formationShown": "0-1-0",
+      "visibleRatings": { "left": 1.0, "centre": 2.75, "right": 1.0, "leftLower": 0.0, "centreLower": 1.75, "rightLower": 1.5 },
+      "visibleDeltas": { "left": 0.25, "centre": 2.0, "right": null, "leftLower": 0.75, "centreLower": 1.0, "rightLower": null },
+      "sourceImage": "1000048868.jpg"
+    },
+    {
+      "id": "IM-DB-001-D-C",
+      "player": "Bertalan Doktor",
+      "position": "IM-C",
+      "formationShown": "0-1-0",
+      "visibleRatings": { "left": 1.0, "centre": 1.0, "right": 1.0, "leftLower": 1.25, "centreLower": 1.75, "rightLower": 1.25 },
+      "visibleDeltas": { "left": 0.25, "centre": 0.25, "right": 0.25, "leftLower": -0.25, "centreLower": 0.5, "rightLower": 0.5 },
+      "sourceImage": "1000048869.jpg"
+    },
+    {
+      "id": "IM-DB-001-D-R",
+      "player": "Bertalan Doktor",
+      "position": "IM-R",
+      "formationShown": "0-1-0",
+      "visibleRatings": { "left": 0.0, "centre": 1.0, "right": 1.0, "leftLower": 0.0, "centreLower": 1.75, "rightLower": 1.5 },
+      "visibleDeltas": { "left": -0.25, "centre": null, "right": null, "leftLower": -0.5, "centreLower": null, "rightLower": 0.25 },
+      "sourceImage": "1000048870.jpg"
+    },
+    {
+      "id": "IM-DB-001-B-L",
+      "player": "Milen Bozev",
+      "position": "IM-L",
+      "formationShown": "0-1-0",
+      "visibleRatings": { "left": 1.25, "centre": 1.25, "right": 0.0, "leftLower": 0.0, "centreLower": 1.75, "rightLower": 1.5 },
+      "visibleDeltas": { "left": 0.25, "centre": 0.25, "right": -0.25, "leftLower": -0.5, "centreLower": null, "rightLower": 0.25 },
+      "sourceImage": "1000048867.jpg"
+    },
+    {
+      "id": "IM-DB-001-B-C",
+      "player": "Milen Bozev",
+      "position": "IM-C",
+      "formationShown": "0-1-0",
+      "visibleRatings": { "left": 1.0, "centre": 1.0, "right": 1.0, "leftLower": 1.25, "centreLower": 1.75, "rightLower": 1.25 },
+      "visibleDeltas": { "left": 0.25, "centre": 0.25, "right": 0.25, "leftLower": -0.25, "centreLower": 0.5, "rightLower": 0.5 },
+      "sourceImage": "1000048866.jpg"
+    },
+    {
+      "id": "IM-DB-001-B-R",
+      "player": "Milen Bozev",
+      "position": "IM-R",
+      "formationShown": "0-1-0",
+      "visibleRatings": { "left": 1.0, "centre": 1.25, "right": 1.25, "leftLower": 0.0, "centreLower": 1.75, "rightLower": 0.0 },
+      "visibleDeltas": { "left": 0.25, "centre": 0.5, "right": 0.25, "leftLower": -0.25, "centreLower": 1.25, "rightLower": -0.5 },
+      "sourceImage": "1000048865.jpg"
+    }
+  ],
+  "notes": [
+    "The screenshot top-right block is stored as observed display values only; sector mapping must not be inferred from the block layout without the corresponding baseline/fixture definition.",
+    "These six observations cover isolated IM-L, IM-C and IM-R placements for both players.",
+    "Previously supplied two-player/pair observations should be added as separate records when their exact screenshot values are available; they must not be reconstructed from memory or guessed.",
+    "No V5 coefficient/formula revision is implied by this dataset alone."
+  ]
+}
