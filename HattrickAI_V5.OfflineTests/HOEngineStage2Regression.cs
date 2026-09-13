@@ -7,8 +7,8 @@ namespace HattrickAI.V5.OfflineTests;
 
 /// <summary>
 /// Stage-2 regression guard for the independent HO engine adapter.
-/// It checks determinism and verifies that core HO-sensitive skill changes
-/// move the expected sectors without invoking the V5 calculation pipeline.
+/// It checks determinism, formation coverage, and verifies that core HO-sensitive
+/// skill changes move the expected sectors without invoking the V5 calculation pipeline.
 /// </summary>
 public static class HOEngineStage2Regression
 {
@@ -38,6 +38,8 @@ public static class HOEngineStage2Regression
         if (first.LoddarStats is null || first.LoddarStats <= 0)
             throw new InvalidOperationException("HO LoddarStats output is missing or non-positive.");
 
+        AssertProductionFormationCoverage(engine, players);
+
         var strongerMidfield = players
             .Select(p => p.Id == 6 ? p with { Playmaking = p.Playmaking + 3 } : p)
             .ToList();
@@ -55,6 +57,41 @@ public static class HOEngineStage2Regression
             throw new InvalidOperationException("HO attack response regression: higher scoring did not raise central attack rating.");
 
         return 0;
+    }
+
+    private static void AssertProductionFormationCoverage(HOEngineAdapter engine, IReadOnlyList<Player> players)
+    {
+        foreach (var candidate in FormationCandidateEngine.LegalFormations)
+        {
+            var slots = candidate.SlotCodes
+                .Select((code, index) => new Slot(
+                    code,
+                    code,
+                    "HO production formation coverage",
+                    players[index].Name,
+                    players[index].Id,
+                    0,
+                    index,
+                    0,
+                    PlayerOrder.Normal))
+                .ToList();
+
+            var request = new RatingEngineRequest(
+                new Lineup("HO Formation Coverage", candidate.Formation, slots),
+                players,
+                RatingContext.Default);
+
+            try
+            {
+                var result = engine.Calculate(request);
+                if (!double.IsFinite(result.Rating.Midfield) || !double.IsFinite(result.Rating.CentralDefence))
+                    throw new InvalidOperationException($"HO returned non-finite rating for production formation {candidate.Formation}.");
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"HO formation coverage failed for {candidate.Formation}: {ex.Message}", ex);
+            }
+        }
     }
 
     private static IReadOnlyList<Player> FixturePlayers()
