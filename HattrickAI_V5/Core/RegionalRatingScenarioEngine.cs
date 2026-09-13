@@ -57,7 +57,14 @@ public sealed class RegionalRatingScenarioEngine
         var baseRating = selected == RatingEngineKind.V5
             ? _baseEngine.CalculateLineup(lineup, players, context)
             : _ratingEngines.Calculate(selected, new RatingEngineRequest(lineup, players, context)).Rating;
-        var adjusted = ApplyQuestionnaireContext(baseRating, state);
+
+        // V5 owns the existing questionnaire/display conversion path. Independent
+        // engines already return their own display-space ratings; running them
+        // through the V5 nonlinear converter here corrupts their scale and applies
+        // V5-specific adjustments to non-V5 results. Keep those engines isolated.
+        var adjusted = selected == RatingEngineKind.V5
+            ? ApplyQuestionnaireContext(baseRating, state)
+            : baseRating;
 
         return new RatingScenarioResult(
             adjusted,
