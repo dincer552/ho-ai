@@ -39,7 +39,7 @@ public static class RatingEngineWebEndpoints
             try
             {
                 var players = JsonSerializer.Deserialize<List<Player>>(playersJson) ?? new();
-                var lineup = JsonSerializer.Deserialize<Lineup>(lineupJson) ?? throw new InvalidOperationException("Lineup deserialize edilemedi.");
+                var lineup = DeserializeStoredLineup(lineupJson);
                 var context = JsonSerializer.Deserialize<RatingContext>(contextJson) ?? throw new InvalidOperationException("Rating context deserialize edilemedi.");
                 var canonical = string.IsNullOrWhiteSpace(canonicalJson) ? null : JsonSerializer.Deserialize<RegionalRatingSnapshot>(canonicalJson);
                 var selected = Enum.TryParse<RatingEngineKind>(http.Session.GetString("v5.rating.selected"), true, out var s) ? s : RatingEngineKind.V5;
@@ -59,7 +59,7 @@ public static class RatingEngineWebEndpoints
             try
             {
                 var players = JsonSerializer.Deserialize<List<Player>>(playersJson) ?? new();
-                var lineup = JsonSerializer.Deserialize<Lineup>(lineupJson) ?? throw new InvalidOperationException("Lineup deserialize edilemedi.");
+                var lineup = DeserializeStoredLineup(lineupJson);
                 var context = JsonSerializer.Deserialize<RatingContext>(contextJson) ?? throw new InvalidOperationException("Rating context deserialize edilemedi.");
                 var canonical = string.IsNullOrWhiteSpace(canonicalJson) ? null : JsonSerializer.Deserialize<RegionalRatingSnapshot>(canonicalJson);
                 var selected = Enum.TryParse<RatingEngineKind>(http.Session.GetString("v5.rating.selected"), true, out var s) ? s : RatingEngineKind.V5;
@@ -67,6 +67,18 @@ public static class RatingEngineWebEndpoints
             }
             catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 500); }
         });
+    }
+
+    private static Lineup DeserializeStoredLineup(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        var teamName = root.TryGetProperty("teamName", out var team) ? team.GetString() ?? string.Empty : string.Empty;
+        var formation = root.TryGetProperty("formation", out var form) ? form.GetString() ?? string.Empty : string.Empty;
+        if (!root.TryGetProperty("slots", out var slotsElement))
+            throw new InvalidOperationException("Stored lineup slots bulunamadı.");
+        var slots = JsonSerializer.Deserialize<List<Slot>>(slotsElement.GetRawText()) ?? new();
+        return new Lineup(teamName, formation, slots);
     }
 }
 
