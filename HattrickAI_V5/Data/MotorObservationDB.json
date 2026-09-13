@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "1.0",
+  "description": "Manually captured Hattrick live rating-board observations. These are empirical observations, not inferred engine coefficients.",
+  "source": "User-provided Hattrick lineup screenshots",
+  "observations": [
+    {
+      "id": "DEF-SINGLE-001",
+      "formation": "1-0-0",
+      "activePlayers": 1,
+      "player": "D. Nocon",
+      "slot": "DEF-R",
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {
+        "DEF-L": 0.0,
+        "DEF-C": 1.75,
+        "DEF-R": 5.75,
+        "MID": 1.0,
+        "ATT-L": 0.0,
+        "ATT-C": 0.0,
+        "ATT-R": 1.25
+      },
+      "sourceImage": "1000048884.jpg",
+      "note": "Single defender placed in the far-right defensive slot."
+    },
+    {
+      "id": "DEF-SINGLE-002",
+      "formation": "1-0-0",
+      "activePlayers": 1,
+      "player": "D. Nocon",
+      "slot": "DEF-CR",
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {
+        "DEF-L": 0.0,
+        "DEF-C": 3.75,
+        "DEF-R": 3.5,
+        "MID": 1.0,
+        "ATT-L": 0.0,
+        "ATT-C": 0.0,
+        "ATT-R": 0.0
+      },
+      "sourceImage": "1000048885.jpg",
+      "note": "Single defender placed in the right-central defender slot."
+    },
+    {
+      "id": "DEF-SINGLE-003",
+      "formation": "1-0-0",
+      "activePlayers": 1,
+      "player": "D. Nocon",
+      "slot": "DEF-CL",
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {
+        "DEF-L": 3.5,
+        "DEF-C": 3.75,
+        "DEF-R": 0.0,
+        "MID": 1.0,
+        "ATT-L": 0.0,
+        "ATT-C": 0.0,
+        "ATT-R": 0.0
+      },
+      "sourceImage": "1000048886.jpg",
+      "note": "Single defender placed in the left-central defender slot."
+    },
+    {
+      "id": "DEF-SINGLE-004",
+      "formation": "1-0-0",
+      "activePlayers": 1,
+      "player": "D. Nocon",
+      "slot": "DEF-L",
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {
+        "DEF-L": 5.75,
+        "DEF-C": 1.75,
+        "DEF-R": 0.0,
+        "MID": 1.0,
+        "ATT-L": 1.25,
+        "ATT-C": 0.0,
+        "ATT-R": 0.0
+      },
+      "sourceImage": "1000048887.jpg",
+      "note": "Single defender placed in the far-left defensive slot."
+    },
+    {
+      "id": "DEF-SINGLE-005",
+      "formation": "1-0-0",
+      "activePlayers": 1,
+      "player": "D. Nocon",
+      "slot": "DEF-C",
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {
+        "DEF-L": 2.0,
+        "DEF-C": 3.75,
+        "DEF-R": 2.0,
+        "MID": 1.0,
+        "ATT-L": 0.0,
+        "ATT-C": 0.0,
+        "ATT-R": 0.0
+      },
+      "sourceImage": "1000048888.jpg",
+      "note": "Single defender placed in the central defender slot."
+    }
+  ]
+}
