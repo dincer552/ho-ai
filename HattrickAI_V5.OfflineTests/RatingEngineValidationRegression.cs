@@ -32,9 +32,9 @@ public static class RatingEngineValidationRegression
         // scale. The old Stage-2 converter must never be applied to these values.
         foreach (var kind in Enum.GetValues<RatingEngineKind>())
         {
-            CheckDisplayMatchesNativeScale(results[kind].Rating, $"{kind} engine display");
+            CheckDisplayMatchesNativeScale(results[kind].Rating, kind, $"{kind} engine display");
             var adjusted = ConfidenceRatingAdjuster.Apply(results[kind].Rating, 4);
-            CheckDisplayMatchesNativeScale(adjusted, $"{kind} confidence-adjusted display");
+            CheckDisplayMatchesNativeScale(adjusted, kind, $"{kind} confidence-adjusted display");
         }
 
         foreach (var kind in new[] { RatingEngineKind.V5, RatingEngineKind.HO, RatingEngineKind.HattrickDash })
@@ -54,7 +54,7 @@ public static class RatingEngineValidationRegression
         CheckRawSectors(selected.Rating, ExpectedV5, "comparison Foxtrick canonical source");
         foreach (var row in comparison.Rows)
         {
-            CheckDisplayMatchesNativeScale(row.Rating, $"comparison {row.Engine} display");
+            CheckDisplayMatchesNativeScale(row.Rating, row.Engine, $"comparison {row.Engine} display");
             Console.WriteLine($"{row.Name}: MIDΔ={row.MidfieldDeltaVsV5:0.###} DEF-CΔ={row.CentralDefenceDeltaVsV5:0.###} ATT-CΔ={row.CentralAttackDeltaVsV5:0.###}");
         }
 
@@ -75,13 +75,17 @@ public static class RatingEngineValidationRegression
         for (var i = 0; i < expected.Length; i++) CheckNear(actual[i], expected[i], 1e-9, $"{label} sector {i}");
     }
 
-    private static void CheckDisplayMatchesNativeScale(RegionalRatingSnapshot snapshot, string label)
+    private static void CheckDisplayMatchesNativeScale(RegionalRatingSnapshot snapshot, RatingEngineKind kind, string label)
     {
         var raw = RawValues(snapshot).ToArray();
         var display = DisplayValues(snapshot).ToArray();
         for (var i = 0; i < raw.Length; i++)
         {
-            var expected = RegionalRatingEngine.Display(raw[i]);
+            // HO and HattrickDash already expose their native ratings directly.
+            // V5/Foxtrick use the V5 RegionalRatingEngine display transform.
+            var expected = kind is RatingEngineKind.HO or RatingEngineKind.HattrickDash
+                ? raw[i]
+                : RegionalRatingEngine.Display(raw[i]);
             CheckNear(display[i], expected, 1e-9, $"{label} sector {i}");
         }
     }
