@@ -11,12 +11,14 @@
   let matchOptions=[];
   let engineOptions=[];
   let q=0;
+  let selected='';
+  let answers={};
 
-  function esc(s){return String(s??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[m]));}
+  function esc(s){return String(s??'').replace(/[&<>\\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\"':'&quot;',"'":'&#039;'}[m]));}
   function fmtDate(v){const d=new Date(v);if(Number.isNaN(d.getTime()))return String(v||'');return d.toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
   function matchLabel(m){
     return '<span style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;color:#68716c;margin-bottom:6px">'+esc(fmtDate(m.date))+'</span>'+
-      '<span style="display:block;font-family:Georgia,\'Times New Roman\',serif;font-size:15px;font-weight:700;line-height:1.25;color:#27322d">'+esc(m.homeTeam)+' – '+esc(m.awayTeam)+'</span>';
+      '<span style="display:block;font-family:Georgia,\\'Times New Roman\\',serif;font-size:15px;font-weight:700;line-height:1.25;color:#27322d">'+esc(m.homeTeam)+' – '+esc(m.awayTeam)+'</span>';
   }
   function setMatchCookie(id){document.cookie='v5.matchId='+encodeURIComponent(String(id))+'; Path=/; Max-Age=28800; SameSite=Lax; Secure';}
   async function setEngine(engine){
@@ -40,7 +42,6 @@
     if(steps){steps.innerHTML='';for(let i=0;i<FOUR_QUESTIONS.length;i++){const s=document.createElement('i');s.className='step';steps.appendChild(s);}}
   }
   function render(){
-    const card=document.getElementById('questionCard');
     const text=document.getElementById('questionText');
     const number=document.getElementById('questionNumber');
     const wrap=document.getElementById('options');
@@ -60,23 +61,12 @@
       if(item.key===MATCH_Q_KEY) b.innerHTML=label; else b.textContent=label;
       b.onclick=async()=>{
         try{
-          if(item.key===ENGINE_Q_KEY){
-            b.disabled=true;
-            await setEngine(value);
-          }
-          selected=value;
-          answers[item.key]=value;
-          if(item.key===MATCH_Q_KEY){
-            const m=matchOptions.find(x=>String(x.matchId)===value);
-            if(m){setMatchCookie(m.matchId);window.__selectedMatch=m;}
-          }
-          document.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));
-          b.classList.add('selected');
-          next.disabled=false;
-        }catch(e){
-          const error=document.getElementById('error');
-          error.textContent=e.message;error.style.display='block';
-        }finally{b.disabled=false;}
+          if(item.key===ENGINE_Q_KEY){b.disabled=true;await setEngine(value);}
+          selected=value;answers[item.key]=value;
+          if(item.key===MATCH_Q_KEY){const m=matchOptions.find(x=>String(x.matchId)===value);if(m){setMatchCookie(m.matchId);window.__selectedMatch=m;}}
+          document.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');next.disabled=false;
+        }catch(e){const error=document.getElementById('error');error.textContent=e.message;error.style.display='block';}
+        finally{b.disabled=false;}
       };
       wrap.appendChild(b);
     }
@@ -87,33 +77,22 @@
     const error=document.getElementById('error');
     const busy=document.getElementById('busy');
     const button=document.getElementById('analyze');
-    error.style.display='none';
-    button.disabled=true;
-    busy.textContent='Rating motorları ve CHPP yaklaşan lig maçları okunuyor…';
-    busy.style.display='block';
+    error.style.display='none';button.disabled=true;busy.textContent='Rating motorları ve CHPP yaklaşan lig maçları okunuyor…';busy.style.display='block';
     try{
       const er=await fetch('/api/v5/rating-engines?ts='+Date.now(),{cache:'no-store'});
       const ed=await er.json().catch(()=>({}));
       if(!er.ok)throw new Error(ed.message||ed.title||('Rating motorları alınamadı (HTTP '+er.status+').'));
       engineOptions=Array.isArray(ed.engines)?ed.engines:[];
       if(!engineOptions.length)throw new Error('Kullanılabilir rating motoru bulunamadı.');
-      const sr=await fetch('/api/v5/rating-engine/selection?ts='+Date.now(),{cache:'no-store'});
-      const sd=await sr.json().catch(()=>({}));
-      const currentEngine=sd.selected||ed.default||engineOptions[0].id;
-      FOUR_QUESTIONS[0].options=engineOptions.map(x=>[String(x.id),x.name]);
       const r=await fetch('/api/v5/reference-match?ts='+Date.now(),{cache:'no-store'});
       const data=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(data.detail||data.message||('CHPP maçları alınamadı (HTTP '+r.status+').'));
       matchOptions=Array.isArray(data.upcomingMatches)?data.upcomingMatches:[];
       if(!matchOptions.length)throw new Error('CHPP üzerinde yaklaşan lig maçı bulunamadı.');
-      answers={};q=0;selected='';answers[ENGINE_Q_KEY]=currentEngine;selected=currentEngine;window.__v5SelectedEngine=currentEngine;window.__upcomingMatches=matchOptions;
-      setupCard();
-      document.getElementById('questionCard').style.display='block';
-      render();
-      document.getElementById('questionCard').scrollIntoView({behavior:'smooth',block:'nearest'});
-    }catch(e){
-      error.textContent=e.message;error.style.display='block';
-    }finally{busy.style.display='none';button.disabled=false;}
+      answers={};q=0;selected='';window.__v5SelectedEngine=null;window.__upcomingMatches=matchOptions;
+      setupCard();document.getElementById('questionCard').style.display='block';render();document.getElementById('questionCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+    }catch(e){error.textContent=e.message;error.style.display='block';}
+    finally{busy.style.display='none';button.disabled=false;}
   }
   function install(){
     setupCard();
@@ -121,11 +100,7 @@
     const next=document.getElementById('next');
     if(!analyze||!next)return;
     analyze.onclick=loadMatches;
-    next.onclick=()=>{
-      if(!selected)return;
-      if(q<FOUR_QUESTIONS.length-1){q++;render();return;}
-      startAnalysis();
-    };
+    next.onclick=()=>{if(!selected)return;if(q<FOUR_QUESTIONS.length-1){q++;render();return;}startAnalysis();};
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })();
