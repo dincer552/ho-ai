@@ -14,10 +14,10 @@ public static class RealHattrickLineupRatingRegression
         var root = document.RootElement;
         var players = root.GetProperty("players").EnumerateArray().Select(ToPlayer).ToList();
         var lineup = ReadLineup(root.GetProperty("lineup"));
-        var expected = root.GetProperty("hattrickRating");
-        var expectedValues = new[] { expected.GetProperty("leftDefence").GetDouble(), expected.GetProperty("centralDefence").GetDouble(), expected.GetProperty("rightDefence").GetDouble(), expected.GetProperty("midfield").GetDouble(), expected.GetProperty("leftAttack").GetDouble(), expected.GetProperty("centralAttack").GetDouble(), expected.GetProperty("rightAttack").GetDouble() };
+        var expectedHattrick = Values(root.GetProperty("hattrickRating")).ToArray();
         var request = new RatingEngineRequest(lineup, players, RatingContext.Default);
         var registry = new RatingEngineRegistry();
+        var baseline = root.GetProperty("engineBaseline");
 
         foreach (var engine in registry.All)
         {
@@ -27,14 +27,26 @@ public static class RealHattrickLineupRatingRegression
             Check(values.All(double.IsFinite), $"{engine.Name}: finite sectors", failures);
             Check(result.Engine == engine.Kind, $"{engine.Name}: identity", failures);
 
-            var mae = values.Zip(expectedValues, (actual, target) => Math.Abs(actual - target)).Average();
+            var key = engine.Kind.ToString();
+            if (!baseline.TryGetProperty(key, out var expectedEngine))
+            {
+                failures.Add($"Missing locked baseline for {key}");
+            }
+            else
+            {
+                var locked = expectedEngine.EnumerateArray().Select(x => x.GetDouble()).ToArray();
+                Check(locked.Length == 7, $"{engine.Name}: locked baseline length", failures);
+                for (var i = 0; i < Math.Min(7, locked.Length); i++)
+                    CheckNear(values[i], locked[i], 1e-7, $"{engine.Name} locked sector {i}", failures);
+            }
+
+            var mae = values.Zip(expectedHattrick, (actual, target) => Math.Abs(actual - target)).Average();
             Console.WriteLine($"Real Hattrick 3-4-3 | {engine.Name}: {string.Join(" / ", values.Select(v => v.ToString("0.########")))} | MAE vs Hattrick={mae:0.####}");
 
-            // The screenshot values are an external Hattrick UI observation, not an
-            // engine-generated expected value. They are reported as calibration truth;
-            // each implementation is compared to them without forcing cross-engine parity.
+            // Hattrick UI values are the external calibration observation. They are
+            // deliberately not forced onto any implementation as a fake formula.
             for (var i = 0; i < 7; i++)
-                Check(double.IsFinite(values[i] - expectedValues[i]), $"{engine.Name} baseline delta {i} finite", failures);
+                Check(double.IsFinite(values[i] - expectedHattrick[i]), $"{engine.Name} Hattrick delta {i} finite", failures);
 
             var rerun = engine.Calculate(request);
             var rerunValues = Values(rerun.Rating).ToArray();
@@ -82,6 +94,12 @@ public static class RealHattrickLineupRatingRegression
     {
         yield return s.LeftDefence; yield return s.CentralDefence; yield return s.RightDefence; yield return s.Midfield;
         yield return s.LeftAttack; yield return s.CentralAttack; yield return s.RightAttack;
+    }
+
+    private static IEnumerable<double> Values(JsonElement e)
+    {
+        yield return e.GetProperty("leftDefence").GetDouble(); yield return e.GetProperty("centralDefence").GetDouble(); yield return e.GetProperty("rightDefence").GetDouble(); yield return e.GetProperty("midfield").GetDouble();
+        yield return e.GetProperty("leftAttack").GetDouble(); yield return e.GetProperty("centralAttack").GetDouble(); yield return e.GetProperty("rightAttack").GetDouble();
     }
 
     private static void Check(bool condition, string label, ICollection<string> failures)
