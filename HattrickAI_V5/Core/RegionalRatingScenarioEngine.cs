@@ -39,18 +39,14 @@ public sealed class RegionalRatingScenarioEngine
             context,
             HOContext: BuildHOContext(state));
 
-        var baseRating = selected == RatingEngineKind.V5
-            ? _baseEngine.CalculateLineup(lineup, players, context)
-            : _ratingEngines.Calculate(selected, request).Rating;
+        // IMPORTANT: V5 must use the production V5 adapter here. The previous
+        // path used Stage2RegionalRatingEngine and then fed its already-displayed
+        // values through the experimental HattrickRatingDisplayConverter, which
+        // compressed normal V5 values into ~1-6 ratings during live M6/M7.
+        // Independent engines stay isolated and keep their own display space.
+        var baseRating = _ratingEngines.Calculate(selected, request).Rating;
 
-        // V5 owns the existing questionnaire/display conversion path. Independent
-        // engines already return their own display-space ratings; do not run them
-        // through the V5 nonlinear converter or V5-specific adjustments.
-        var adjusted = selected == RatingEngineKind.V5
-            ? ApplyQuestionnaireContext(baseRating, state)
-            : baseRating;
-
-        return new RatingScenarioResult(adjusted, state, RatingConfidence.High, BuildModifiers(state));
+        return new RatingScenarioResult(baseRating, state, RatingConfidence.High, BuildModifiers(state));
     }
 
     private static RatingContext BuildRatingContext(MatchState state)
