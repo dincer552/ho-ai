@@ -29,7 +29,8 @@ public static class RatingEngineValidationRegression
         CheckRawSectors(results[RatingEngineKind.Foxtrick].Rating, ExpectedV5, "Foxtrick canonical sector source");
 
         // Production display values must stay in each engine's native rating
-        // scale. The old Stage-2 converter must never be applied to these values.
+        // scale. HO and HattrickDash expose their native values at two-decimal
+        // display precision; V5/Foxtrick use the V5 display transform.
         foreach (var kind in Enum.GetValues<RatingEngineKind>())
         {
             CheckDisplayMatchesNativeScale(results[kind].Rating, kind, $"{kind} engine display");
@@ -81,9 +82,6 @@ public static class RatingEngineValidationRegression
         var display = DisplayValues(snapshot).ToArray();
         for (var i = 0; i < raw.Length; i++)
         {
-            // HO and HattrickDash expose their native ratings rounded to the
-            // native two-decimal display precision. V5/Foxtrick use the V5
-            // RegionalRatingEngine display transform.
             var expected = kind is RatingEngineKind.HO or RatingEngineKind.HattrickDash
                 ? Math.Round(raw[i], 2, MidpointRounding.AwayFromZero)
                 : RegionalRatingEngine.Display(raw[i]);
