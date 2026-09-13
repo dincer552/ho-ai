@@ -4,7 +4,7 @@ namespace HattrickAI.V5.Core;
 /// Common contract for independently implemented rating engines.
 /// This layer is intentionally passive: it does not replace or modify the
 /// existing V5 pipeline. Each future engine may consume canonical lineup/player
-/// data and, when available, the already-calculated V5 raw/display snapshot.
+/// data and, when available, engine-specific match context.
 /// </summary>
 public enum RatingEngineKind
 {
@@ -14,11 +14,20 @@ public enum RatingEngineKind
     Foxtrick
 }
 
+public sealed record HOEngineContext(
+    double TeamSpirit,
+    double Confidence,
+    CoachStyle CoachStyle,
+    int TacticLevel = 1,
+    int CoachModifier = 0,
+    int Weather = 0);
+
 public sealed record RatingEngineRequest(
     Lineup Lineup,
     IReadOnlyList<Player> Players,
     RatingContext Context,
-    RegionalRatingSnapshot? CanonicalRating = null);
+    RegionalRatingSnapshot? CanonicalRating = null,
+    HOEngineContext? HOContext = null);
 
 public sealed record RatingEngineResult(
     RatingEngineKind Engine,
