@@ -193,7 +193,21 @@ public sealed class HOEngineAdapter : IRatingEngine
         }
 
         // Canonical V5 can describe formation-equivalent side slots while the
-        // legacy HO role table uses a central role for the same formation.
+        // legacy HO role table uses central roles for the same formation.
+        if (bucket == "DEF-C")
+        {
+            if (buckets.TryGetValue("DEF-L", out var leftDefender) && leftDefender.Count > 0)
+            {
+                slot = leftDefender.Dequeue();
+                return true;
+            }
+            if (buckets.TryGetValue("DEF-R", out var rightDefender) && rightDefender.Count > 0)
+            {
+                slot = rightDefender.Dequeue();
+                return true;
+            }
+        }
+
         if (bucket == "IM-C")
         {
             if (buckets.TryGetValue("IM-L", out var left) && left.Count > 0)
