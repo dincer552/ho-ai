@@ -36,7 +36,7 @@ public sealed class HOEngineAdapter : IRatingEngine
             })
             .ToList();
 
-        var context = ToLegacyContext(request.Context, orderedSlots);
+        var context = ToLegacyContext(request.Context, request.HOContext, orderedSlots);
         var ratings = _engine.Calculate(lineup, request.Lineup.Formation, context);
 
         var snapshot = new RegionalRatingSnapshot(
@@ -74,16 +74,18 @@ public sealed class HOEngineAdapter : IRatingEngine
 
     private static LegacyHO.TeamMatchContext ToLegacyContext(
         RatingContext context,
+        HOEngineContext? hoContext,
         IReadOnlyList<Slot> slots)
     {
         var behaviour = new Dictionary<int, LegacyHO.PlayerBehaviour>();
         for (var i = 0; i < slots.Count; i++)
             behaviour[i] = ToLegacyBehaviour(slots[i].Order);
 
+        var extra = hoContext ?? new HOEngineContext(0, 0, CoachStyle.Neutral);
         return new LegacyHO.TeamMatchContext
         {
             TacticType = ToLegacyTactic(context.Tactic),
-            TacticLevel = 1,
+            TacticLevel = Math.Clamp(extra.TacticLevel, 1, 20),
             Attitude = context.Attitude switch
             {
                 TeamAttitude.PlayItCool => LegacyHO.TeamAttitude.PIC,
@@ -93,12 +95,19 @@ public sealed class HOEngineAdapter : IRatingEngine
             IsHome = context.MatchLocation == MatchLocation.Home,
             Minute = Math.Clamp(context.MatchMinute, 0, 120),
             SlotBehaviours = behaviour,
-            CoachModifier = 0,
-            TeamSpirit = 0,
-            Confidence = 0,
-            Weather = LegacyHO.MatchWeather.Normal
+            CoachModifier = Math.Clamp(extra.CoachModifier, -10, 10),
+            TeamSpirit = Math.Clamp(extra.TeamSpirit, 0, 10),
+            Confidence = Math.Clamp(extra.Confidence, 0, 10),
+            Weather = ToLegacyWeather(extra.Weather)
         };
     }
+
+    private static LegacyHO.MatchWeather ToLegacyWeather(int weather) => weather switch
+    {
+        1 => LegacyHO.MatchWeather.Sunny,
+        2 => LegacyHO.MatchWeather.Rain,
+        _ => LegacyHO.MatchWeather.Normal
+    };
 
     private static LegacyHO.PlayerBehaviour ToLegacyBehaviour(PlayerOrder order) => order switch
     {
@@ -123,10 +132,7 @@ public sealed class HOEngineAdapter : IRatingEngine
             + ratings.LeftDefence + ratings.CentralDefence + ratings.RightDefence
             + ratings.LeftAttack + ratings.CentralAttack + ratings.RightAttack);
 
-    private static double CalculateLoddarStats(
-        LegacyHO.TeamRatings r,
-        TeamTactic tactic,
-        RatingContext context)
+    private static double CalculateLoddarStats(LegacyHO.TeamRatings r, TeamTactic tactic, RatingContext context)
     {
         const double defenceWeight = 0.47;
         const double attackWeight = 0.53;
@@ -181,10 +187,7 @@ public sealed class HOEngineAdapter : IRatingEngine
         return result;
     }
 
-    private static bool TryDequeue(
-        Dictionary<string, Queue<Slot>> buckets,
-        string bucket,
-        out Slot slot)
+    private static bool TryDequeue(Dictionary<string, Queue<Slot>> buckets, string bucket, out Slot slot)
     {
         if (buckets.TryGetValue(bucket, out var direct) && direct.Count > 0)
         {
@@ -192,43 +195,34 @@ public sealed class HOEngineAdapter : IRatingEngine
             return true;
         }
 
-        // Canonical V5 may represent formation-equivalent roles with side-specific
-        // slots while legacy HO uses a different role table. Fall back within the
-        // same tactical line instead of aborting the complete analysis.
         if (bucket is "DEF-L" or "DEF-C" or "DEF-R")
         {
             foreach (var equivalent in new[] { "DEF-C", "DEF-L", "DEF-R" })
-            {
                 if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0)
                 {
                     slot = queue.Dequeue();
                     return true;
                 }
-            }
         }
 
         if (bucket is "IM-L" or "IM-C" or "IM-R")
         {
             foreach (var equivalent in new[] { "IM-C", "IM-L", "IM-R" })
-            {
                 if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0)
                 {
                     slot = queue.Dequeue();
                     return true;
                 }
-            }
         }
 
         if (bucket is "FW-L" or "FW-C" or "FW-R")
         {
             foreach (var equivalent in new[] { "FW-C", "FW-L", "FW-R" })
-            {
                 if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0)
                 {
                     slot = queue.Dequeue();
                     return true;
                 }
-            }
         }
 
         slot = default!;
