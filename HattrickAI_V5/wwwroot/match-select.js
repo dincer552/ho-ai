@@ -1,12 +1,15 @@
 (function(){
   const MATCH_Q_KEY='__selectedMatch';
+  const ENGINE_Q_KEY='__selectedEngine';
   const FOUR_QUESTIONS=[
+    {key:ENGINE_Q_KEY,title:'Hangi rating motoru ile analiz yapalım?',options:[]},
     {key:MATCH_Q_KEY,title:'Hangi lig maçını analiz etmek istiyorsun?',options:[]},
     {key:'coachStyle',title:'Teknik direktör tarzın nasıl?',options:[['Neutral','Dengeli'],['Offensive','Hücum'],['Defensive','Defans']]},
     {key:'teamSpirit',title:'Takım ruhu hangi seviyede?',options:[['Murderous','Öldürücü'],['Furious','Köpürmüş'],['Irritated','Rahatsız'],['Composed','Kaynaşık'],['Calm','Huzurlu'],['Content','Hoşnut'],['Satisfied','Memnun'],['Delirious','Coşkulu'],['WalkingOnClouds','Bulutların Üzerinde'],['ParadiseOnEarth','Yeryüzünde Cennet']]},
     {key:'matchImportance',title:'Bu maçta hangi yaklaşımı kullanıyorsun?',options:[['Normal','Normal'],['PlayItCool','PIC • Rahat'],['MatchOfTheSeason','MOTS • Çok önemli'],['Auto','OTOMATİK • V5 seçsin']]}
   ];
   let matchOptions=[];
+  let engineOptions=[];
   let q=0;
 
   function esc(s){return String(s??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#039;'}[m]));}
@@ -16,6 +19,13 @@
       '<span style="display:block;font-family:Georgia,\'Times New Roman\',serif;font-size:15px;font-weight:700;line-height:1.25;color:#27322d">'+esc(m.homeTeam)+' – '+esc(m.awayTeam)+'</span>';
   }
   function setMatchCookie(id){document.cookie='v5.matchId='+encodeURIComponent(String(id))+'; Path=/; Max-Age=28800; SameSite=Lax; Secure';}
+  async function setEngine(engine){
+    const r=await fetch('/api/v5/rating-engine/selection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({engine})});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(data.message||data.title||('Rating motoru seçilemedi (HTTP '+r.status+').'));
+    window.__v5SelectedEngine=engine;
+    return data;
+  }
   function setupCard(){
     const card=document.getElementById('questionCard');
     const kicker=card?.querySelector('.question-kicker');
@@ -27,7 +37,7 @@
     const note=card?.querySelector('.skip-note');
     if(note) note.remove();
     const steps=card?.querySelector('.steps');
-    if(steps){steps.innerHTML='';for(let i=0;i<4;i++){const s=document.createElement('i');s.className='step';steps.appendChild(s);}}
+    if(steps){steps.innerHTML='';for(let i=0;i<FOUR_QUESTIONS.length;i++){const s=document.createElement('i');s.className='step';steps.appendChild(s);}}
   }
   function render(){
     const card=document.getElementById('questionCard');
@@ -37,29 +47,40 @@
     const next=document.getElementById('next');
     const item=FOUR_QUESTIONS[q];
     selected=answers[item.key]||'';
-    number.textContent='SORU '+(q+1)+' / 4';
+    number.textContent='SEÇİM '+(q+1)+' / '+FOUR_QUESTIONS.length;
     text.textContent=item.title;
     document.querySelectorAll('.step').forEach((el,i)=>el.classList.toggle('active',i<=q));
     wrap.innerHTML='';
-    const opts=item.key===MATCH_Q_KEY?matchOptions.map(m=>[String(m.matchId),matchLabel(m)]):item.options;
+    let opts=item.options;
+    if(item.key===ENGINE_Q_KEY) opts=engineOptions.map(x=>[String(x.id),x.name]);
+    if(item.key===MATCH_Q_KEY) opts=matchOptions.map(m=>[String(m.matchId),matchLabel(m)]);
     for(const [value,label] of opts){
       const b=document.createElement('button');
       b.className='option'+(value===selected?' selected':'');
       if(item.key===MATCH_Q_KEY) b.innerHTML=label; else b.textContent=label;
-      b.onclick=()=>{
-        selected=value;
-        answers[item.key]=value;
-        if(item.key===MATCH_Q_KEY){
-          const m=matchOptions.find(x=>String(x.matchId)===value);
-          if(m){setMatchCookie(m.matchId);window.__selectedMatch=m;}
-        }
-        document.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));
-        b.classList.add('selected');
-        next.disabled=false;
+      b.onclick=async()=>{
+        try{
+          if(item.key===ENGINE_Q_KEY){
+            b.disabled=true;
+            await setEngine(value);
+          }
+          selected=value;
+          answers[item.key]=value;
+          if(item.key===MATCH_Q_KEY){
+            const m=matchOptions.find(x=>String(x.matchId)===value);
+            if(m){setMatchCookie(m.matchId);window.__selectedMatch=m;}
+          }
+          document.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));
+          b.classList.add('selected');
+          next.disabled=false;
+        }catch(e){
+          const error=document.getElementById('error');
+          error.textContent=e.message;error.style.display='block';
+        }finally{b.disabled=false;}
       };
       wrap.appendChild(b);
     }
-    next.textContent=q===3?'ANALİZİ BAŞLAT':'DEVAM ET';
+    next.textContent=q===FOUR_QUESTIONS.length-1?'ANALİZİ BAŞLAT':'DEVAM ET';
     next.disabled=!selected;
   }
   async function loadMatches(){
@@ -68,15 +89,24 @@
     const button=document.getElementById('analyze');
     error.style.display='none';
     button.disabled=true;
-    busy.textContent='CHPP yaklaşan lig maçları okunuyor…';
+    busy.textContent='Rating motorları ve CHPP yaklaşan lig maçları okunuyor…';
     busy.style.display='block';
     try{
+      const er=await fetch('/api/v5/rating-engines?ts='+Date.now(),{cache:'no-store'});
+      const ed=await er.json().catch(()=>({}));
+      if(!er.ok)throw new Error(ed.message||ed.title||('Rating motorları alınamadı (HTTP '+er.status+').'));
+      engineOptions=Array.isArray(ed.engines)?ed.engines:[];
+      if(!engineOptions.length)throw new Error('Kullanılabilir rating motoru bulunamadı.');
+      const sr=await fetch('/api/v5/rating-engine/selection?ts='+Date.now(),{cache:'no-store'});
+      const sd=await sr.json().catch(()=>({}));
+      const currentEngine=sd.selected||ed.default||engineOptions[0].id;
+      FOUR_QUESTIONS[0].options=engineOptions.map(x=>[String(x.id),x.name]);
       const r=await fetch('/api/v5/reference-match?ts='+Date.now(),{cache:'no-store'});
       const data=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(data.detail||data.message||('CHPP maçları alınamadı (HTTP '+r.status+').'));
       matchOptions=Array.isArray(data.upcomingMatches)?data.upcomingMatches:[];
       if(!matchOptions.length)throw new Error('CHPP üzerinde yaklaşan lig maçı bulunamadı.');
-      answers={};q=0;selected='';window.__upcomingMatches=matchOptions;
+      answers={};q=0;selected='';answers[ENGINE_Q_KEY]=currentEngine;selected=currentEngine;window.__v5SelectedEngine=currentEngine;window.__upcomingMatches=matchOptions;
       setupCard();
       document.getElementById('questionCard').style.display='block';
       render();
@@ -93,7 +123,7 @@
     analyze.onclick=loadMatches;
     next.onclick=()=>{
       if(!selected)return;
-      if(q<3){q++;render();return;}
+      if(q<FOUR_QUESTIONS.length-1){q++;render();return;}
       startAnalysis();
     };
   }
