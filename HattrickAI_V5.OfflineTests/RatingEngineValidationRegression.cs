@@ -81,10 +81,11 @@ public static class RatingEngineValidationRegression
         var display = DisplayValues(snapshot).ToArray();
         for (var i = 0; i < raw.Length; i++)
         {
-            // HO and HattrickDash already expose their native ratings directly.
-            // V5/Foxtrick use the V5 RegionalRatingEngine display transform.
+            // HO and HattrickDash expose their native ratings rounded to the
+            // native two-decimal display precision. V5/Foxtrick use the V5
+            // RegionalRatingEngine display transform.
             var expected = kind is RatingEngineKind.HO or RatingEngineKind.HattrickDash
-                ? raw[i]
+                ? Math.Round(raw[i], 2, MidpointRounding.AwayFromZero)
                 : RegionalRatingEngine.Display(raw[i]);
             CheckNear(display[i], expected, 1e-9, $"{label} sector {i}");
         }
