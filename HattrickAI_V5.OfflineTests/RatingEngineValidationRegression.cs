@@ -28,6 +28,16 @@ public static class RatingEngineValidationRegression
         CheckFinite(results[RatingEngineKind.HattrickDash].Rating, "HattrickDash engine");
         CheckRawSectors(results[RatingEngineKind.Foxtrick].Rating, ExpectedV5, "Foxtrick canonical sector source");
 
+        // Production engine snapshots use their own display space. Confidence
+        // adjustment must not feed those values through the experimental Stage-2
+        // nonlinear converter. Neutral confidence is an exact no-op for raw data.
+        foreach (var kind in Enum.GetValues<RatingEngineKind>())
+        {
+            var adjusted = ConfidenceRatingAdjuster.Apply(results[kind].Rating, 4);
+            CheckDisplayMatchesRaw(adjusted, $"{kind} confidence-adjusted display");
+            CheckDisplayMatchesRaw(results[kind].Rating, $"{kind} engine display");
+        }
+
         foreach (var kind in new[] { RatingEngineKind.V5, RatingEngineKind.HO, RatingEngineKind.HattrickDash })
         {
             var values = DisplayValues(results[kind].Rating).ToArray();
@@ -44,10 +54,14 @@ public static class RatingEngineValidationRegression
         var selected = comparison.Rows.Single(x => x.Engine == RatingEngineKind.Foxtrick);
         CheckRawSectors(selected.Rating, ExpectedV5, "comparison Foxtrick canonical source");
         foreach (var row in comparison.Rows)
+        {
+            CheckDisplayMatchesRaw(row.Rating, $"comparison {row.Engine} display");
             Console.WriteLine($"{row.Name}: MIDΔ={row.MidfieldDeltaVsV5:0.###} DEF-CΔ={row.CentralDefenceDeltaVsV5:0.###} ATT-CΔ={row.CentralAttackDeltaVsV5:0.###}");
+        }
 
         Console.WriteLine("RatingEngineValidationRegression PASS");
         Console.WriteLine("Canonical full CHPP fixture validated across V5 / HO / HattrickDash / Foxtrick.");
+        Console.WriteLine("Production display isolation validated: engine display == engine raw sectors.");
         return 0;
     }
 
@@ -60,6 +74,13 @@ public static class RatingEngineValidationRegression
     {
         var actual = RawValues(snapshot).ToArray();
         for (var i = 0; i < expected.Length; i++) CheckNear(actual[i], expected[i], 1e-9, $"{label} sector {i}");
+    }
+
+    private static void CheckDisplayMatchesRaw(RegionalRatingSnapshot snapshot, string label)
+    {
+        var raw = RawValues(snapshot).ToArray();
+        var display = DisplayValues(snapshot).ToArray();
+        for (var i = 0; i < raw.Length; i++) CheckNear(display[i], raw[i], 1e-9, $"{label} sector {i}");
     }
 
     private static void CheckNear(double actual, double expected, double tolerance, string label)
