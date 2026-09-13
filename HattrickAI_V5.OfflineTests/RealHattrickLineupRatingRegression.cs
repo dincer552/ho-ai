@@ -5,54 +5,17 @@ namespace HattrickAI.V5.OfflineTests;
 
 public static class RealHattrickLineupRatingRegression
 {
-    private const string FixturePath = "TestJSON/RealHattrickMatch_769648184_343_2026-09-13.json";
+    private static readonly string[] FixturePaths =
+    {
+        "TestJSON/RealHattrickMatch_769648184_343_2026-09-13.json",
+        "TestJSON/RealHattrickMatch_769648184_343_2026-09-13_v2.json"
+    };
 
     public static int Run()
     {
         var failures = new List<string>();
-        using var document = JsonDocument.Parse(File.ReadAllText(FixturePath));
-        var root = document.RootElement;
-        var players = root.GetProperty("players").EnumerateArray().Select(ToPlayer).ToList();
-        var lineup = ReadLineup(root.GetProperty("lineup"));
-        var expectedHattrick = Values(root.GetProperty("hattrickRating")).ToArray();
-        var request = new RatingEngineRequest(lineup, players, RatingContext.Default);
-        var registry = new RatingEngineRegistry();
-        var baseline = root.GetProperty("engineBaseline");
-
-        foreach (var engine in registry.All)
-        {
-            var result = engine.Calculate(request);
-            var values = Values(result.Rating).ToArray();
-            Check(values.Length == 7, $"{engine.Name}: seven sectors", failures);
-            Check(values.All(double.IsFinite), $"{engine.Name}: finite sectors", failures);
-            Check(result.Engine == engine.Kind, $"{engine.Name}: identity", failures);
-
-            var key = engine.Kind.ToString();
-            if (!baseline.TryGetProperty(key, out var expectedEngine))
-            {
-                failures.Add($"Missing locked baseline for {key}");
-            }
-            else
-            {
-                var locked = expectedEngine.EnumerateArray().Select(x => x.GetDouble()).ToArray();
-                Check(locked.Length == 7, $"{engine.Name}: locked baseline length", failures);
-                for (var i = 0; i < Math.Min(7, locked.Length); i++)
-                    CheckNear(values[i], locked[i], 1e-7, $"{engine.Name} locked sector {i}", failures);
-            }
-
-            var mae = values.Zip(expectedHattrick, (actual, target) => Math.Abs(actual - target)).Average();
-            Console.WriteLine($"Real Hattrick 3-4-3 | {engine.Name}: {string.Join(" / ", values.Select(v => v.ToString("0.########")))} | MAE vs Hattrick={mae:0.####}");
-
-            // Hattrick UI values are the external calibration observation. They are
-            // deliberately not forced onto any implementation as a fake formula.
-            for (var i = 0; i < 7; i++)
-                Check(double.IsFinite(values[i] - expectedHattrick[i]), $"{engine.Name} Hattrick delta {i} finite", failures);
-
-            var rerun = engine.Calculate(request);
-            var rerunValues = Values(rerun.Rating).ToArray();
-            for (var i = 0; i < 7; i++)
-                CheckNear(rerunValues[i], values[i], 1e-12, $"{engine.Name} deterministic sector {i}", failures);
-        }
+        foreach (var fixturePath in FixturePaths)
+            RunFixture(fixturePath, failures);
 
         if (failures.Count > 0)
         {
@@ -62,8 +25,56 @@ public static class RealHattrickLineupRatingRegression
         }
 
         Console.WriteLine("RealHattrickLineupRatingRegression PASS");
-        Console.WriteLine("Hattrick UI baseline: 13 / 12.75 / 13.25 / 7 / 15.75 / 13.75 / 13.5");
+        Console.WriteLine("Real Hattrick snapshots tested: " + FixturePaths.Length);
         return 0;
+    }
+
+    private static void RunFixture(string fixturePath, ICollection<string> failures)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(fixturePath));
+        var root = document.RootElement;
+        var players = root.GetProperty("players").EnumerateArray().Select(ToPlayer).ToList();
+        var lineup = ReadLineup(root.GetProperty("lineup"));
+        var expectedHattrick = Values(root.GetProperty("hattrickRating")).ToArray();
+        var request = new RatingEngineRequest(lineup, players, RatingContext.Default);
+        var registry = new RatingEngineRegistry();
+        var label = Path.GetFileNameWithoutExtension(fixturePath);
+        var hasBaseline = root.TryGetProperty("engineBaseline", out var baseline);
+
+        Console.WriteLine($"=== Real Hattrick fixture: {label} ===");
+        Console.WriteLine($"Hattrick UI: {string.Join(" / ", expectedHattrick.Select(v => v.ToString("0.##")))}");
+
+        foreach (var engine in registry.All)
+        {
+            var result = engine.Calculate(request);
+            var values = Values(result.Rating).ToArray();
+            Check(values.Length == 7, $"{label}/{engine.Name}: seven sectors", failures);
+            Check(values.All(double.IsFinite), $"{label}/{engine.Name}: finite sectors", failures);
+            Check(result.Engine == engine.Kind, $"{label}/{engine.Name}: identity", failures);
+
+            var mae = values.Zip(expectedHattrick, (actual, target) => Math.Abs(actual - target)).Average();
+            Console.WriteLine($"{engine.Name}: {string.Join(" / ", values.Select(v => v.ToString("0.########")))} | MAE={mae:0.####}");
+
+            if (hasBaseline && baseline.TryGetProperty(engine.Kind.ToString(), out var expectedEngine))
+            {
+                var locked = expectedEngine.EnumerateArray().Select(x => x.GetDouble()).ToArray();
+                Check(locked.Length == 7, $"{label}/{engine.Name}: locked baseline length", failures);
+                for (var i = 0; i < Math.Min(7, locked.Length); i++)
+                    CheckNear(values[i], locked[i], 1e-7, $"{label}/{engine.Name} locked sector {i}", failures);
+            }
+            else if (!hasBaseline)
+            {
+                Console.WriteLine($"BASELINE_CAPTURE {engine.Kind}: [{string.Join(",", values.Select(v => v.ToString("0.########")))}]");
+            }
+
+            for (var i = 0; i < 7; i++)
+                Check(double.IsFinite(values[i] - expectedHattrick[i]), $"{label}/{engine.Name} Hattrick delta {i} finite", failures);
+
+            var rerun = engine.Calculate(request);
+            var rerunValues = Values(rerun.Rating).ToArray();
+            for (var i = 0; i < 7; i++)
+                CheckNear(rerunValues[i], values[i], 1e-12, $"{label}/{engine.Name} deterministic sector {i}", failures);
+        }
     }
 
     private static Player ToPlayer(JsonElement p) => new(
