@@ -1,0 +1,58 @@
+{
+  "schema": "hattrickai-v5-rating-calibration-observation-v1",
+  "sampleId": "IM-DB-PAIR-001",
+  "date": "2026-09-13",
+  "purpose": "Observed Hattrick match-order outputs for Bertalan Doktor + Milen Bozev in two-player 0-2-0 midfield configurations. Raw screenshot observations only; no coefficients are changed by this file alone.",
+  "formationShown": "0-2-0",
+  "tactic": "Normal",
+  "observations": [
+    {
+      "id": "PAIR-01",
+      "positions": {"IM-L":"Milen Bozev","IM-C":"Bertalan Doktor"},
+      "visibleRatings": {"topLeft":1.25,"topCentre":1.5,"topRight":1.0,"middle":4.5,"bottomLeft":1.75,"bottomCentre":2.75,"bottomRight":1.25},
+      "visibleDeltas": {"topLeft":0.25,"topCentre":null,"topRight":null,"middle":null,"bottomLeft":0.25,"bottomCentre":null,"bottomRight":-0.25},
+      "sourceImage":"1000048876.jpg"
+    },
+    {
+      "id": "PAIR-02",
+      "positions": {"IM-C":"Milen Bozev","IM-R":"Bertalan Doktor"},
+      "visibleRatings": {"topLeft":1.0,"topCentre":1.5,"topRight":1.25,"middle":4.5,"bottomLeft":1.25,"bottomCentre":2.75,"bottomRight":1.75},
+      "visibleDeltas": {"topLeft":null,"topCentre":null,"topRight":null,"middle":null,"bottomLeft":null,"bottomCentre":null,"bottomRight":null},
+      "sourceImage":"1000048875.jpg"
+    },
+    {
+      "id": "PAIR-03",
+      "positions": {"IM-C":"Bertalan Doktor","IM-R":"Milen Bozev"},
+      "visibleRatings": {"topLeft":1.25,"topCentre":1.5,"topRight":1.0,"middle":4.5,"bottomLeft":1.75,"bottomCentre":2.75,"bottomRight":1.25},
+      "visibleDeltas": {"topLeft":0.25,"topCentre":null,"topRight":null,"middle":null,"bottomLeft":0.25,"bottomCentre":null,"bottomRight":-0.25},
+      "sourceImage":"1000048874.jpg"
+    },
+    {
+      "id": "PAIR-04",
+      "positions": {"IM-L":"Bertalan Doktor","IM-C":"Milen Bozev"},
+      "visibleRatings": {"topLeft":1.0,"topCentre":1.5,"topRight":1.25,"middle":4.5,"bottomLeft":1.25,"bottomCentre":2.75,"bottomRight":1.75},
+      "visibleDeltas": {"topLeft":0.25,"topCentre":null,"topRight":null,"middle":null,"bottomLeft":-0.25,"bottomCentre":0.5,"bottomRight":0.5},
+      "sourceImage":"1000048873.jpg"
+    },
+    {
+      "id": "PAIR-05",
+      "positions": {"IM-L":"Bertalan Doktor","IM-R":"Milen Bozev"},
+      "visibleRatings": {"topLeft":1.0,"topCentre":1.5,"topRight":1.0,"middle":4.5,"bottomLeft":1.5,"bottomCentre":2.75,"bottomRight":1.5},
+      "visibleDeltas": {"topLeft":null,"topCentre":null,"topRight":null,"middle":null,"bottomLeft":null,"bottomCentre":null,"bottomRight":null},
+      "sourceImage":"1000048872.jpg"
+    },
+    {
+      "id": "PAIR-06",
+      "positions": {"IM-L":"Milen Bozev","IM-R":"Bertalan Doktor"},
+      "visibleRatings": {"topLeft":1.0,"topCentre":1.5,"topRight":1.0,"middle":4.5,"bottomLeft":1.5,"bottomCentre":2.75,"bottomRight":1.5},
+      "visibleDeltas": {"topLeft":0.25,"topCentre":0.5,"topRight":null,"middle":1.75,"bottomLeft":0.75,"bottomCentre":1.0,"bottomRight":null},
+      "sourceImage":"1000048871.jpg"
+    }
+  ],
+  "notes": [
+    "Position mapping is based on the physical midfield columns shown in the screenshots: IM-L, IM-C, IM-R.",
+    "The seven displayed numbers are deliberately stored as topLeft/topCentre/topRight/middle/bottomLeft/bottomCentre/bottomRight. Their semantic sector mapping is not inferred from the screenshot alone.",
+    "The green +/- annotations are stored only where they are visibly present.",
+    "These pair observations are interaction/calibration evidence and must be compared against isolated-player observations before any global coefficient change."
+  ]
+}
