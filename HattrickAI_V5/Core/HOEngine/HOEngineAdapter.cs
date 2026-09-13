@@ -20,62 +20,54 @@ public sealed class HOEngineAdapter : IRatingEngine
     public RatingEngineResult Calculate(RatingEngineRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-
         if (request.Lineup.Slots.Count != 11)
             throw new ArgumentException("HO engine requires exactly eleven lineup slots.", nameof(request));
 
         var playersById = request.Players.ToDictionary(x => x.Id);
         var orderedSlots = OrderSlots(request.Lineup);
-        var lineup = orderedSlots
-            .Select(slot =>
-            {
-                if (slot.PlayerId <= 0 || !playersById.TryGetValue(slot.PlayerId, out var player))
-                    throw new ArgumentException($"HO engine cannot resolve player {slot.PlayerId} for slot {slot.Code}.", nameof(request));
-
-                return ToLegacyPlayer(player);
-            })
-            .ToList();
+        var lineup = orderedSlots.Select(slot =>
+        {
+            if (slot.PlayerId <= 0 || !playersById.TryGetValue(slot.PlayerId, out var player))
+                throw new ArgumentException($"HO engine cannot resolve player {slot.PlayerId} for slot {slot.Code}.", nameof(request));
+            return ToLegacyPlayer(player);
+        }).ToList();
 
         var context = ToLegacyContext(request.Context, request.HOContext, orderedSlots);
         var ratings = _engine.Calculate(lineup, request.Lineup.Formation, context);
-
         var snapshot = new RegionalRatingSnapshot(
             ratings.LeftDefence, ratings.CentralDefence, ratings.RightDefence,
             ratings.Midfield, ratings.LeftAttack, ratings.CentralAttack, ratings.RightAttack,
             ratings.LeftDefence, ratings.CentralDefence, ratings.RightDefence,
             ratings.Midfield, ratings.LeftAttack, ratings.CentralAttack, ratings.RightAttack);
 
-        var hatStats = CalculateHatStats(ratings);
-        var loddarStats = CalculateLoddarStats(ratings, request.Context.Tactic, request.Context);
-
-        return new RatingEngineResult(Kind, snapshot, hatStats, loddarStats);
+        return new RatingEngineResult(
+            Kind,
+            snapshot,
+            CalculateHatStats(ratings),
+            CalculateLoddarStats(ratings, request.Context.Tactic, request.Context));
     }
 
-    private static LegacyHO.PlayerData ToLegacyPlayer(Player player)
-        => new()
-        {
-            PlayerId = player.Id,
-            Name = player.Name,
-            Form = player.Form,
-            Stamina = player.Stamina,
-            Experience = player.Experience,
-            Loyalty = player.Loyalty,
-            Keeper = player.Keeper,
-            Defending = player.Defending,
-            Playmaking = player.Playmaking,
-            Passing = player.Passing,
-            Winger = player.Winger,
-            Scoring = player.Scoring,
-            SetPieces = player.SetPiecesSkill,
-            Specialty = player.Specialty.ToString(),
-            Injured = player.InjuryLevel >= 0,
-            Suspended = false
-        };
+    private static LegacyHO.PlayerData ToLegacyPlayer(Player player) => new()
+    {
+        PlayerId = player.Id,
+        Name = player.Name,
+        Form = player.Form,
+        Stamina = player.Stamina,
+        Experience = player.Experience,
+        Loyalty = player.Loyalty,
+        Keeper = player.Keeper,
+        Defending = player.Defending,
+        Playmaking = player.Playmaking,
+        Passing = player.Passing,
+        Winger = player.Winger,
+        Scoring = player.Scoring,
+        SetPieces = player.SetPiecesSkill,
+        Specialty = player.Specialty.ToString(),
+        Injured = player.InjuryLevel >= 0,
+        Suspended = false
+    };
 
-    private static LegacyHO.TeamMatchContext ToLegacyContext(
-        RatingContext context,
-        HOEngineContext? hoContext,
-        IReadOnlyList<Slot> slots)
+    private static LegacyHO.TeamMatchContext ToLegacyContext(RatingContext context, HOEngineContext? hoContext, IReadOnlyList<Slot> slots)
     {
         var behaviour = new Dictionary<int, LegacyHO.PlayerBehaviour>();
         for (var i = 0; i < slots.Count; i++)
@@ -98,16 +90,9 @@ public sealed class HOEngineAdapter : IRatingEngine
             CoachModifier = Math.Clamp(extra.CoachModifier, -10, 10),
             TeamSpirit = Math.Clamp(extra.TeamSpirit, 0, 10),
             Confidence = Math.Clamp(extra.Confidence, 0, 10),
-            Weather = ToLegacyWeather(extra.Weather)
+            Weather = LegacyHO.MatchWeather.Normal
         };
     }
-
-    private static LegacyHO.MatchWeather ToLegacyWeather(int weather) => weather switch
-    {
-        1 => LegacyHO.MatchWeather.Sunny,
-        2 => LegacyHO.MatchWeather.Rain,
-        _ => LegacyHO.MatchWeather.Normal
-    };
 
     private static LegacyHO.PlayerBehaviour ToLegacyBehaviour(PlayerOrder order) => order switch
     {
@@ -128,39 +113,22 @@ public sealed class HOEngineAdapter : IRatingEngine
     };
 
     private static double CalculateHatStats(LegacyHO.TeamRatings ratings)
-        => 4.0 * (3.0 * ratings.Midfield
-            + ratings.LeftDefence + ratings.CentralDefence + ratings.RightDefence
+        => 4.0 * (3.0 * ratings.Midfield + ratings.LeftDefence + ratings.CentralDefence + ratings.RightDefence
             + ratings.LeftAttack + ratings.CentralAttack + ratings.RightAttack);
 
     private static double CalculateLoddarStats(LegacyHO.TeamRatings r, TeamTactic tactic, RatingContext context)
     {
-        const double defenceWeight = 0.47;
-        const double attackWeight = 0.53;
-        const double centralWeight = 0.37;
-        const double counterAttackWeight = 0.25;
-
+        const double defenceWeight = 0.47, attackWeight = 0.53, centralWeight = 0.37, counterAttackWeight = 0.25;
         var tacticLevel = 1.0;
         var correctedCentralWeight = centralWeight;
         var counterCorrection = 0.0;
-
-        if (tactic == TeamTactic.AttackMiddle)
-            correctedCentralWeight += ((0.2 * (tacticLevel - 1.0) / 19.0) + 0.2);
-        else if (tactic == TeamTactic.AttackWings)
-            correctedCentralWeight -= ((0.2 * (tacticLevel - 1.0) / 19.0) + 0.2);
-
-        if (tactic == TeamTactic.CounterAttack)
-            counterCorrection = (counterAttackWeight * 2.0 * tacticLevel) / (tacticLevel + 20.0);
-
+        if (tactic == TeamTactic.AttackMiddle) correctedCentralWeight += 0.2;
+        else if (tactic == TeamTactic.AttackWings) correctedCentralWeight -= 0.2;
+        if (tactic == TeamTactic.CounterAttack) counterCorrection = (counterAttackWeight * 2.0 * tacticLevel) / (tacticLevel + 20.0);
         var wingerWeight = (1.0 - correctedCentralWeight) / 2.0;
-        var attackStrength = (attackWeight + counterCorrection)
-            * (correctedCentralWeight * Hq(r.CentralAttack)
-                + wingerWeight * (Hq(r.LeftAttack) + Hq(r.RightAttack)));
-        var defenseStrength = defenceWeight
-            * (centralWeight * Hq(r.CentralDefence)
-                + ((1.0 - centralWeight) / 2.0) * (Hq(r.LeftDefence) + Hq(r.RightDefence)));
-        var midfieldFactor = Hq(r.Midfield);
-
-        return 80.0 * midfieldFactor * (defenseStrength + attackStrength);
+        var attackStrength = (attackWeight + counterCorrection) * (correctedCentralWeight * Hq(r.CentralAttack) + wingerWeight * (Hq(r.LeftAttack) + Hq(r.RightAttack)));
+        var defenseStrength = defenceWeight * (centralWeight * Hq(r.CentralDefence) + ((1.0 - centralWeight) / 2.0) * (Hq(r.LeftDefence) + Hq(r.RightDefence)));
+        return 80.0 * Hq(r.Midfield) * (defenseStrength + attackStrength);
     }
 
     private static double Hq(double value)
@@ -171,10 +139,7 @@ public sealed class HOEngineAdapter : IRatingEngine
 
     private static IReadOnlyList<Slot> OrderSlots(Lineup lineup)
     {
-        var buckets = lineup.Slots
-            .GroupBy(GetRoleBucket)
-            .ToDictionary(x => x.Key, x => new Queue<Slot>(x));
-
+        var buckets = lineup.Slots.GroupBy(GetRoleBucket).ToDictionary(x => x.Key, x => new Queue<Slot>(x));
         var roles = LegacyHO.LineupRatingEngine.GetRoles(lineup.Formation);
         var result = new List<Slot>(11);
         foreach (var role in roles)
@@ -194,37 +159,15 @@ public sealed class HOEngineAdapter : IRatingEngine
             slot = direct.Dequeue();
             return true;
         }
-
         if (bucket is "DEF-L" or "DEF-C" or "DEF-R")
-        {
             foreach (var equivalent in new[] { "DEF-C", "DEF-L", "DEF-R" })
-                if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0)
-                {
-                    slot = queue.Dequeue();
-                    return true;
-                }
-        }
-
+                if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0) { slot = queue.Dequeue(); return true; }
         if (bucket is "IM-L" or "IM-C" or "IM-R")
-        {
             foreach (var equivalent in new[] { "IM-C", "IM-L", "IM-R" })
-                if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0)
-                {
-                    slot = queue.Dequeue();
-                    return true;
-                }
-        }
-
+                if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0) { slot = queue.Dequeue(); return true; }
         if (bucket is "FW-L" or "FW-C" or "FW-R")
-        {
             foreach (var equivalent in new[] { "FW-C", "FW-L", "FW-R" })
-                if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0)
-                {
-                    slot = queue.Dequeue();
-                    return true;
-                }
-        }
-
+                if (buckets.TryGetValue(equivalent, out var queue) && queue.Count > 0) { slot = queue.Dequeue(); return true; }
         slot = default!;
         return false;
     }
@@ -232,34 +175,20 @@ public sealed class HOEngineAdapter : IRatingEngine
     private static string GetRoleBucket(Slot slot) => slot.Code switch
     {
         "GK" or "GK-C" => "GK",
-        "DEF-L" => "DEF-L",
-        "DEF-R" => "DEF-R",
-        "DEF-C" or "DEF-CL" or "DEF-CR" => "DEF-C",
-        "IM-L" => "IM-L",
-        "IM-R" => "IM-R",
-        "IM-C" => "IM-C",
-        "W-L" => "W-L",
-        "W-R" => "W-R",
-        "FW-L" => "FW-L",
-        "FW-R" => "FW-R",
-        "FW-C" => "FW-C",
+        "DEF-L" => "DEF-L", "DEF-R" => "DEF-R", "DEF-C" or "DEF-CL" or "DEF-CR" => "DEF-C",
+        "IM-L" => "IM-L", "IM-R" => "IM-R", "IM-C" => "IM-C",
+        "W-L" => "W-L", "W-R" => "W-R",
+        "FW-L" => "FW-L", "FW-R" => "FW-R", "FW-C" => "FW-C",
         _ => throw new ArgumentException($"Unsupported HO lineup slot code: {slot.Code}.", nameof(slot))
     };
 
     private static string BucketFor(LegacyHO.PlayerRole role) => role switch
     {
         LegacyHO.PlayerRole.Goalkeeper => "GK",
-        LegacyHO.PlayerRole.LeftDefender => "DEF-L",
-        LegacyHO.PlayerRole.RightDefender => "DEF-R",
-        LegacyHO.PlayerRole.CentralDefender => "DEF-C",
-        LegacyHO.PlayerRole.LeftMidfielder => "IM-L",
-        LegacyHO.PlayerRole.RightMidfielder => "IM-R",
-        LegacyHO.PlayerRole.CentralMidfielder => "IM-C",
-        LegacyHO.PlayerRole.LeftWinger => "W-L",
-        LegacyHO.PlayerRole.RightWinger => "W-R",
-        LegacyHO.PlayerRole.LeftForward => "FW-L",
-        LegacyHO.PlayerRole.RightForward => "FW-R",
-        LegacyHO.PlayerRole.CentralForward => "FW-C",
+        LegacyHO.PlayerRole.LeftDefender => "DEF-L", LegacyHO.PlayerRole.RightDefender => "DEF-R", LegacyHO.PlayerRole.CentralDefender => "DEF-C",
+        LegacyHO.PlayerRole.LeftMidfielder => "IM-L", LegacyHO.PlayerRole.RightMidfielder => "IM-R", LegacyHO.PlayerRole.CentralMidfielder => "IM-C",
+        LegacyHO.PlayerRole.LeftWinger => "W-L", LegacyHO.PlayerRole.RightWinger => "W-R",
+        LegacyHO.PlayerRole.LeftForward => "FW-L", LegacyHO.PlayerRole.RightForward => "FW-R", LegacyHO.PlayerRole.CentralForward => "FW-C",
         _ => throw new ArgumentOutOfRangeException(nameof(role))
     };
 }
