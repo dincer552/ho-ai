@@ -12,15 +12,7 @@
       "tactic": "Normal",
       "teamBehavior": "Normal",
       "trainingMode": false,
-      "ratings": {
-        "DEF-L": 0.0,
-        "DEF-C": 1.75,
-        "DEF-R": 5.75,
-        "MID": 1.0,
-        "ATT-L": 0.0,
-        "ATT-C": 0.0,
-        "ATT-R": 1.25
-      },
+      "ratings": {"DEF-L": 0.0, "DEF-C": 1.75, "DEF-R": 5.75, "MID": 1.0, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 1.25},
       "sourceImage": "1000048884.jpg",
       "note": "Single defender placed in the far-right defensive slot."
     },
@@ -33,15 +25,7 @@
       "tactic": "Normal",
       "teamBehavior": "Normal",
       "trainingMode": false,
-      "ratings": {
-        "DEF-L": 0.0,
-        "DEF-C": 3.75,
-        "DEF-R": 3.5,
-        "MID": 1.0,
-        "ATT-L": 0.0,
-        "ATT-C": 0.0,
-        "ATT-R": 0.0
-      },
+      "ratings": {"DEF-L": 0.0, "DEF-C": 3.75, "DEF-R": 3.5, "MID": 1.0, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
       "sourceImage": "1000048885.jpg",
       "note": "Single defender placed in the right-central defender slot."
     },
@@ -54,15 +38,7 @@
       "tactic": "Normal",
       "teamBehavior": "Normal",
       "trainingMode": false,
-      "ratings": {
-        "DEF-L": 3.5,
-        "DEF-C": 3.75,
-        "DEF-R": 0.0,
-        "MID": 1.0,
-        "ATT-L": 0.0,
-        "ATT-C": 0.0,
-        "ATT-R": 0.0
-      },
+      "ratings": {"DEF-L": 3.5, "DEF-C": 3.75, "DEF-R": 0.0, "MID": 1.0, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
       "sourceImage": "1000048886.jpg",
       "note": "Single defender placed in the left-central defender slot."
     },
@@ -75,15 +51,7 @@
       "tactic": "Normal",
       "teamBehavior": "Normal",
       "trainingMode": false,
-      "ratings": {
-        "DEF-L": 5.75,
-        "DEF-C": 1.75,
-        "DEF-R": 0.0,
-        "MID": 1.0,
-        "ATT-L": 1.25,
-        "ATT-C": 0.0,
-        "ATT-R": 0.0
-      },
+      "ratings": {"DEF-L": 5.75, "DEF-C": 1.75, "DEF-R": 0.0, "MID": 1.0, "ATT-L": 1.25, "ATT-C": 0.0, "ATT-R": 0.0},
       "sourceImage": "1000048887.jpg",
       "note": "Single defender placed in the far-left defensive slot."
     },
@@ -96,17 +64,113 @@
       "tactic": "Normal",
       "teamBehavior": "Normal",
       "trainingMode": false,
-      "ratings": {
-        "DEF-L": 2.0,
-        "DEF-C": 3.75,
-        "DEF-R": 2.0,
-        "MID": 1.0,
-        "ATT-L": 0.0,
-        "ATT-C": 0.0,
-        "ATT-R": 0.0
-      },
+      "ratings": {"DEF-L": 2.0, "DEF-C": 3.75, "DEF-R": 2.0, "MID": 1.0, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
       "sourceImage": "1000048888.jpg",
       "note": "Single defender placed in the central defender slot."
+    },
+    {
+      "id": "DEF-PAIR-001",
+      "formation": "2-0-0",
+      "activePlayers": 2,
+      "players": ["C. Pesalovo", "D. Nocon"],
+      "slots": {"C. Pesalovo": "DEF-L", "D. Nocon": "DEF-R"},
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {"DEF-L": 6.0, "DEF-C": 3.25, "DEF-R": 5.75, "MID": 1.0, "ATT-L": 1.25, "ATT-C": 0.0, "ATT-R": 1.25},
+      "sourceImage": "1000048889.jpg",
+      "note": "Two defenders at the far-left and far-right slots."
+    },
+    {
+      "id": "DEF-PAIR-002",
+      "formation": "2-0-0",
+      "activePlayers": 2,
+      "players": ["C. Pesalovo", "D. Nocon"],
+      "slots": {"C. Pesalovo": "DEF-L", "D. Nocon": "DEF-CL"},
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {"DEF-L": 9.5, "DEF-C": 5.5, "DEF-R": 0.0, "MID": 1.25, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
+      "sourceImage": "1000048890.jpg",
+      "note": "Left pair: far-left plus left-central defender."
+    },
+    {
+      "id": "DEF-PAIR-003",
+      "formation": "2-0-0",
+      "activePlayers": 2,
+      "players": ["C. Pesalovo", "D. Nocon"],
+      "slots": {"C. Pesalovo": "DEF-L", "D. Nocon": "DEF-C"},
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {"DEF-L": 7.75, "DEF-C": 5.5, "DEF-R": 2.0, "MID": 1.25, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
+      "sourceImage": "1000048891.jpg",
+      "note": "Far-left plus central defender."
+    },
+    {
+      "id": "DEF-PAIR-004",
+      "formation": "2-0-0",
+      "activePlayers": 2,
+      "players": ["C. Pesalovo", "D. Nocon"],
+      "slots": {"C. Pesalovo": "DEF-L", "D. Nocon": "DEF-CR"},
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {"DEF-L": 6.0, "DEF-C": 5.5, "DEF-R": 3.5, "MID": 1.25, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
+      "sourceImage": "1000048892.jpg",
+      "note": "Far-left plus right-central defender."
+    },
+    {
+      "id": "DEF-PAIR-005",
+      "formation": "2-0-0",
+      "activePlayers": 2,
+      "players": ["D. Nocon", "C. Pesalovo"],
+      "slots": {"D. Nocon": "DEF-L", "C. Pesalovo": "DEF-CL"},
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {"DEF-L": 9.5, "DEF-C": 5.5, "DEF-R": 0.0, "MID": 1.25, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
+      "sourceImage": "1000048894.jpg",
+      "note": "Same occupied slots as DEF-PAIR-002 with players reversed."
+    },
+    {
+      "id": "DEF-PAIR-006",
+      "formation": "2-0-0",
+      "activePlayers": 2,
+      "players": ["D. Nocon", "C. Pesalovo"],
+      "slots": {"D. Nocon": "DEF-L", "C. Pesalovo": "DEF-C"},
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {"DEF-L": 7.5, "DEF-C": 5.5, "DEF-R": 2.0, "MID": 1.25, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
+      "sourceImage": "1000048895.jpg",
+      "note": "Far-left plus central defender with players reversed."
+    },
+    {
+      "id": "DEF-PAIR-007",
+      "formation": "2-0-0",
+      "activePlayers": 2,
+      "players": ["D. Nocon", "C. Pesalovo"],
+      "slots": {"D. Nocon": "DEF-L", "C. Pesalovo": "DEF-CR"},
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {"DEF-L": 5.75, "DEF-C": 5.5, "DEF-R": 3.5, "MID": 1.25, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
+      "sourceImage": "1000048896.jpg",
+      "note": "Far-left plus right-central defender with players reversed."
+    },
+    {
+      "id": "DEF-PAIR-008",
+      "formation": "2-0-0",
+      "activePlayers": 2,
+      "players": ["D. Nocon", "C. Pesalovo"],
+      "slots": {"D. Nocon": "DEF-L", "C. Pesalovo": "DEF-R"},
+      "tactic": "Normal",
+      "teamBehavior": "Normal",
+      "trainingMode": false,
+      "ratings": {"DEF-L": 5.75, "DEF-C": 3.25, "DEF-R": 6.0, "MID": 1.25, "ATT-L": 0.0, "ATT-C": 0.0, "ATT-R": 0.0},
+      "sourceImage": "1000048897.jpg",
+      "note": "Far-left and far-right slots with players reversed."
     }
   ]
 }
