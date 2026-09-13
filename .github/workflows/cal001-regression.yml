@@ -29,5 +29,7 @@ jobs:
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- dash-stage3
       - name: Run Stage-4 Foxtrick regression
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- foxtrick-stage4
+      - name: Run Real Hattrick 3-4-3 lineup across all engines
+        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- real-hattrick-rating
       - name: Run Rating engine real fixture validation
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- rating-validation
