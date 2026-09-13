@@ -1,8 +1,13 @@
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// Applies the team's current confidence to attack ratings while preserving
-/// the Stage 2 raw-contribution/display-rating boundary.
+/// Applies the team's current confidence to attack ratings without crossing
+/// the independent rating-engine display boundary.
+///
+/// Production engine results already contain their own display-space values.
+/// This layer changes the raw attack ledger and then exposes the adjusted raw
+/// sector values directly. The experimental HattrickRatingDisplayConverter is
+/// intentionally not used here; it remains isolated to Stage-2 display tests.
 /// </summary>
 public static class ConfidenceRatingAdjuster
 {
@@ -11,6 +16,8 @@ public static class ConfidenceRatingAdjuster
 
     public static RegionalRatingSnapshot Apply(RegionalRatingSnapshot rating, int confidenceLevel)
     {
+        ArgumentNullException.ThrowIfNull(rating);
+
         var level = Math.Clamp(confidenceLevel, 0, 9);
         var multiplier = 1.0 + (level - NeutralConfidence) * AttackPerLevel;
         multiplier = Math.Clamp(multiplier, 0.80, 1.25);
@@ -32,11 +39,5 @@ public static class ConfidenceRatingAdjuster
         double la, double ca, double ra)
         => new(
             ld, cd, rd, mid, la, ca, ra,
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftDefence, ld),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralDefence, cd),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightDefence, rd),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.Midfield, mid),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftAttack, la),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralAttack, ca),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightAttack, ra));
+            ld, cd, rd, mid, la, ca, ra);
 }
