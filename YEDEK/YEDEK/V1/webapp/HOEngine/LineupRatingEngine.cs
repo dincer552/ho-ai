@@ -123,6 +123,13 @@ public sealed class LineupRatingEngine
             PlayerRole.LeftWinger, PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder, PlayerRole.RightWinger,
             PlayerRole.CentralForward
         },
+        "4-4-2" => new[]
+        {
+            PlayerRole.Goalkeeper,
+            PlayerRole.LeftDefender, PlayerRole.CentralDefender, PlayerRole.CentralDefender, PlayerRole.RightDefender,
+            PlayerRole.LeftWinger, PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder, PlayerRole.RightWinger,
+            PlayerRole.LeftForward, PlayerRole.RightForward
+        },
         "5-4-1" => new[]
         {
             PlayerRole.Goalkeeper,
@@ -135,7 +142,7 @@ public sealed class LineupRatingEngine
             PlayerRole.Goalkeeper,
             PlayerRole.LeftDefender, PlayerRole.CentralDefender, PlayerRole.CentralDefender, PlayerRole.CentralDefender, PlayerRole.RightDefender,
             PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder,
-            PlayerRole.LeftForward, PlayerRole.CentralForward
+            PlayerRole.LeftForward, PlayerRole.RightForward
         },
         "3-4-3" => new[]
         {
@@ -143,6 +150,19 @@ public sealed class LineupRatingEngine
             PlayerRole.CentralDefender, PlayerRole.CentralDefender, PlayerRole.CentralDefender,
             PlayerRole.LeftWinger, PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder, PlayerRole.RightWinger,
             PlayerRole.LeftForward, PlayerRole.CentralForward, PlayerRole.RightForward
+        },
+        "2-5-3" => new[]
+        {
+            PlayerRole.Goalkeeper,
+            PlayerRole.LeftDefender, PlayerRole.RightDefender,
+            PlayerRole.LeftWinger, PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder, PlayerRole.RightWinger,
+            PlayerRole.LeftForward, PlayerRole.CentralForward, PlayerRole.RightForward
+        },
+        "5-5-0" => new[]
+        {
+            PlayerRole.Goalkeeper,
+            PlayerRole.LeftDefender, PlayerRole.CentralDefender, PlayerRole.CentralDefender, PlayerRole.CentralDefender, PlayerRole.RightDefender,
+            PlayerRole.LeftWinger, PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder, PlayerRole.CentralMidfielder, PlayerRole.RightWinger
         },
         _ => new[]
         {
