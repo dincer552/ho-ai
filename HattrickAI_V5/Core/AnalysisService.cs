@@ -84,6 +84,10 @@ public sealed class AnalysisService
 
         var locationEnum = next.HomeId == teamId ? MatchLocation.Home : MatchLocation.Away;
         var ratingContext = new RatingContext(locationEnum, questionnaire.MatchImportance, TeamTactic.Normal);
+        var selectedRatingEngine = Enum.TryParse<RatingEngineKind>(_http.HttpContext?.Session.GetString("v5.rating.selected"), true, out var selectedEngine)
+            ? selectedEngine
+            : RatingEngineKind.V5;
+        using var ratingEngineScope = RatingEngineSelectionContext.Push(selectedRatingEngine);
         var context = new MatchDataContext(ownPlayers, teamId, teamName, opponentProfile, ratingContext, questionnaire, opponentLineup, opponentPlayers);
 
         var pipeline = await _motors.RunAsync(context, ownPlayers, ct);
@@ -104,7 +108,7 @@ public sealed class AnalysisService
             http.Session.SetString("v5.rating.lineup", JsonSerializer.Serialize(finalLineup));
             http.Session.SetString("v5.rating.context", JsonSerializer.Serialize(ratingContext));
             http.Session.SetString("v5.rating.canonical", JsonSerializer.Serialize(finalRating));
-            http.Session.SetString("v5.rating.selected", RatingEngineKind.V5.ToString());
+            http.Session.SetString("v5.rating.selected", selectedRatingEngine.ToString());
         }
 
         return new Analysis(build, teamName, opponentName, title, finalLineup, opponentLineup, finalRating, opponentHistoricalRating, appliedQuestionnaire)
