@@ -7,8 +7,9 @@ namespace HattrickAI.V5.OfflineTests;
 
 /// <summary>
 /// Stage-2 regression guard for the independent HO engine adapter.
-/// It checks determinism, formation coverage, and verifies that core HO-sensitive
-/// skill changes move the expected sectors without invoking the V5 calculation pipeline.
+/// It checks determinism, formation coverage, player-skill response, and that
+/// M7 match context reaches the legacy HO calculation instead of being replaced
+/// by adapter defaults.
 /// </summary>
 public static class HOEngineStage2Regression
 {
@@ -39,6 +40,7 @@ public static class HOEngineStage2Regression
             throw new InvalidOperationException("HO LoddarStats output is missing or non-positive.");
 
         AssertProductionFormationCoverage(engine, players);
+        AssertMatchContextForwarding(engine, request);
 
         var strongerMidfield = players
             .Select(p => p.Id == 6 ? p with { Playmaking = p.Playmaking + 3 } : p)
@@ -57,6 +59,27 @@ public static class HOEngineStage2Regression
             throw new InvalidOperationException("HO attack response regression: higher scoring did not raise central attack rating.");
 
         return 0;
+    }
+
+    private static void AssertMatchContextForwarding(HOEngineAdapter engine, RatingEngineRequest request)
+    {
+        var baseline = engine.Calculate(request);
+        var context = request with
+        {
+            HOContext = new HOEngineContext(
+                TeamSpirit: 8.0,
+                Confidence: 10.0,
+                CoachStyle: CoachStyle.Neutral,
+                TacticLevel: 5,
+                CoachModifier: 0,
+                Weather: 0)
+        };
+
+        var contextual = engine.Calculate(context);
+        if (Math.Abs(contextual.Rating.Midfield - baseline.Rating.Midfield) < 1e-9)
+            throw new InvalidOperationException("HO context regression: TeamSpirit was not forwarded to the legacy engine.");
+        if (contextual.Rating.CentralAttack <= baseline.Rating.CentralAttack)
+            throw new InvalidOperationException("HO context regression: Confidence was not forwarded to the legacy engine.");
     }
 
     private static void AssertProductionFormationCoverage(HOEngineAdapter engine, IReadOnlyList<Player> players)
