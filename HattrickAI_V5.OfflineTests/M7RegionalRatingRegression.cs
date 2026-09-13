@@ -29,6 +29,7 @@ public static class M7RegionalRatingRegression
             var context = new MatchDataContext(players, 0, teamName, opponent, RatingContext.Default, MatchQuestionnaire.Default);
 
             Console.WriteLine("=== C5 M7 REGIONAL RATING REGRESSION ===");
+            using var ratingEngineScope = RatingEngineSelectionContext.Push(RatingEngineKind.V5);
             var result = await new MotorPipelineService().RunAsync(context, players, cancellationToken, "offline-c5-m7");
             var m7 = result.M7;
 
@@ -61,6 +62,24 @@ public static class M7RegionalRatingRegression
             Check(Equal(direct.Rating.RightAttack, rating.RightAttack), "M7 right attack matches direct production recalculation");
             Check(Equal(direct.Rating.RawMidfield, rating.RawMidfield), "M7 raw midfield matches direct production recalculation");
 
+            // Regression guard: when V5 is selected, M7 must be exactly the
+            // production V5 engine result. This prevents the experimental Stage2
+            // display converter from being reintroduced into the live V5 path.
+            var v5Context = new RatingContext(m7.State.MatchLocation, m7.State.TeamAttitude, m7.State.TeamTactic)
+            {
+                MatchMinute = m7.State.MatchMinute,
+                GoalDifference = m7.State.GoalDifference,
+                IgnoreLeadRetreat = m7.State.IgnoreLeadRetreat
+            };
+            var directV5 = new V5RatingEngine().Calculate(new RatingEngineRequest(result.FinalPlan.Lineup, players, v5Context)).Rating;
+            Check(Equal(directV5.LeftDefence, rating.LeftDefence), "selected V5 M7 uses production V5 left defence");
+            Check(Equal(directV5.CentralDefence, rating.CentralDefence), "selected V5 M7 uses production V5 central defence");
+            Check(Equal(directV5.RightDefence, rating.RightDefence), "selected V5 M7 uses production V5 right defence");
+            Check(Equal(directV5.Midfield, rating.Midfield), "selected V5 M7 uses production V5 midfield");
+            Check(Equal(directV5.LeftAttack, rating.LeftAttack), "selected V5 M7 uses production V5 left attack");
+            Check(Equal(directV5.CentralAttack, rating.CentralAttack), "selected V5 M7 uses production V5 central attack");
+            Check(Equal(directV5.RightAttack, rating.RightAttack), "selected V5 M7 uses production V5 right attack");
+
             Check(Equal(m7.Modifiers.TeamSpiritMultiplier, RegionalRatingScenarioEngine.TeamSpiritMultiplier(m7.State.TeamSpirit)), "M7 Team Spirit modifier matches production curve");
             var coach = RegionalRatingScenarioEngine.CoachStyleMultipliers(m7.State.CoachStyle);
             Check(Equal(m7.Modifiers.CoachAttackMultiplier, coach.AttackMultiplier), "M7 coach attack modifier matches production mapping");
@@ -68,7 +87,7 @@ public static class M7RegionalRatingRegression
             Check(m7.State.Confidence > 0 && double.IsFinite(m7.State.Confidence), "M7 state confidence is finite and positive");
 
             Console.WriteLine($"M7 formation={m7.State.FormationId} | confidence={m7.Confidence} | TS multiplier={m7.Modifiers.TeamSpiritMultiplier:0.###} | coach={m7.State.CoachStyle}");
-            Console.WriteLine("PASS: C5 M7 regional rating continuity");
+            Console.WriteLine("PASS: C5 M7 regional rating continuity + selected V5 production route");
             Console.WriteLine("NEXT: C6 M7.2 tactical scenario");
             return 0;
         }
