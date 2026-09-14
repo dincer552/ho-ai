@@ -4,12 +4,21 @@
 
 Kısa kural: Her yeni hesap/yorum buraya kısa ve sayısal olarak eklenecek. Üretim katsayıları, kanıt güçlenmeden değiştirilmeyecek.
 
-### 2026-09-14 — State-layer ayrıştırma
-- Pesalovo/Nocoń/Takyi normal C stoper gözlemleri: **4.00 / 3.75 / 3.75 DEF-C**; Def 16/17/17, Form 7/6/5, XP 6/12/10.
-- **Defending tek başına yeterli değil**; oyuncu-state katmanı var.
-- Yan DEF üç oyuncuda da **2.00**. State etkisi + çeyrek-step quantization birlikte ele alınmalı.
-- C→CL / C→CR testlerinde merkez DEF yaklaşık sabit kalırken katkı sol/sağ arasında yeniden dağılıyor; bu pozisyon katsayıları için güçlü invariant.
-- Mevcut `max(skill-1)` + ayrı XP modeli bu gözlemleri tutarlı açıklamıyor; production değişikliği yok.
+### 2026-09-14 — Yeni kırılma: rating display ile contribution raw aynı ölçek değil
+- Schum/HO araştırmasındaki display koordinatına göre **0.75 = gerçek 0**, sonra her 0.25 display adımı 0.25'lük raw aralığa karşılık geliyor: 4.00 display yaklaşık **[3.00, 3.25)**, 3.75 display yaklaşık **[2.75, 3.00)**. citeturn3view0
+- Bu, önceki testte `raw ≈ displayed` varsayımının yanlış olabileceğini gösteriyor. Pesalovo 4.00, Nocoń/Takyi 3.75 gözlemlerini doğrudan raw olarak fit etmeyeceğiz.
+- Published normal-C DEF coefficient `.186`: skill-only raw Pesalovo = **16×.186=2.976**, Nocoń/Takyi = **17×.186=3.162**. Bu değerler gözlenen display binlerine çok daha yakın.
+- Normal-C side DEF `.077`: Pesalovo **1.232**, Nocoń/Takyi **1.309**. Bunların display dönüşümü ayrıca çözülmeli.
+- Schum araştırması state sırasını netleştiriyor: **(skill + loyalty) × form × position coefficient × overcrowding; XP daha sonra eklenir.** XP rating-line'a göre farklı ağırlıklara sahip: DEF side .345, DEF center .480, ATT side .375, ATT center .450, MID .730. citeturn3view0
+- Bu yapı fixed engine mimarisini büyük ölçüde doğruluyor; fakat `skill-1` normalizasyonu ve full XP eklemesi, published coefficient tablosunun zaten yaklaşık %18.65 standard-state uplift içerdiği notuyla birlikte yeniden kontrol edilmeli. fileciteturn477file0
+- **Karar:** production katsayılarına henüz dokunma. Önce `skill-only raw → state adjustment → overcrowding → display quarter-step` zincirini aynı ölçeğe getir.
+
+### 2026-09-14 — Veri ihtiyacı
+- Mevcut defender screenshot seti skill/position katsayısını test etmek için yeterli.
+- Exact live formula için eksik kritik veri: **midfield ve attack singleton** ölçümleri.
+- En değerli minimum set: tek oyuncu sahada olacak şekilde aynı koşullarda **GK, CD, WB, IM, W, FW**; özellikle IM/W/F için Normal + en az bir bireysel emir.
+- Sonra aynı oyuncunun aynı slotta farklı state ile controlled karşılaştırması yapılmalı.
+- Yeni screenshot gelmeden de published coefficient matrix üzerinden tüm 31 oyuncunun skill-only sektör katkıları hesaplanabilir; bunlar **raw research values**, canlı rating değildir.
 
 ## 1. Scope
 
@@ -73,18 +82,20 @@ Side DEF:
 | Nocoń | ~1.751 | 2.00 | -0.249 |
 | Takyi | ~1.574 | 2.00 | -0.426 |
 
+**Not:** Bu bölümdeki "Observed" değerleri doğrudan raw kabul edilmemeli; yeni display-coordinate bulgusuyla yeniden yorumlanacak.
+
 ## 7. Display conversion finding
 
-Repo'da `pow(x,1.2)/4+1` araştırma converter'ı bulunuyor; production fixed engine ise 2-decimal round/clamp kullanıyor. Screenshot değerleri quarter-step. Bu nonlinear converter **şimdilik M7'ye bağlanmayacak**; kontrollü screenshot ile doğrulanacak.
+Repo'da `pow(x,1.2)/4+1` araştırma converter'ı bulunuyor; production fixed engine ise 2-decimal round/clamp kullanıyor. Schum/HO araştırması ise canlı Hattrick rating display'inin 0.75 tabanlı quarter-step koordinat kullandığını gösteriyor. Bu iki dönüşüm aynı şey olmayabilir. Bu nedenle nonlinear converter **şimdilik M7'ye bağlanmayacak**; controlled screenshot ile doğrulanacak.
 
 ## 8. Deep-calculation conclusions
 
 **Yüksek güven:** katkı yaklaşık additive; pozisyon/yan davranışı birinci derecede belirleyici; sektör değerleri quarter-step quantized.
 
-**Orta güven:** mevcut Contribution katsayıları yön olarak doğru; form ve XP etkili.
+**Yeni yüksek/orta güven:** published coefficient × skill önce raw contribution üretir; form/loyalty/crowding state katmanı bunu değiştirir; XP ayrı bir son katkı olabilir. Displayed quarter-step değer raw contribution ile birebir aynı ölçek değildir.
 
-**Çözülmedi:** skill normalization, form eğrisi, XP'nin ayrı/skill-vector etkisi, quantization noktası ve nonlinear display converter'ın canlı ekrandaki rolü.
+**Çözülmedi:** skill normalization, form eğrisi/baseline, XP'nin exact scale'i, raw→display dönüşümü, tactic/context ve coefficient tablosunun standard-state uplift'inin nasıl ayrıştırılacağı.
 
 ## 9. Next calibration target
 
-Öncelik: **skill normalization → form → experience → quantization → coefficient refinement**. Önce singleton set fit edilecek, sonra tüm 3-defender kombinasyonları tekrar test edilecek. Aynı oyuncu/slot ve farklı state içeren kontrollü screenshot en değerli yeni kanıt; fakat mevcut veriyle hesaplama devam edebilir.
+Öncelik: **raw contribution scale → form/loyalty → XP → overcrowding → display quantization → coefficient refinement**. Önce singleton set fit edilecek, sonra tüm 3-defender kombinasyonları tekrar test edilecek. Aynı oyuncu/slot ve farklı state içeren kontrollü screenshot en değerli yeni kanıt; özellikle IM/W/F singletonları artık bir sonraki büyük veri adımı.
