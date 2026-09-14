@@ -6,7 +6,8 @@
     "Values are transcribed from the visible seven sector ratings in the screenshots.",
     "These observations are evidence data only; they do not change production coefficients automatically.",
     "Two earlier captures show the same visible player arrangement but a 0.25 DEF-L discrepancy; both are retained rather than silently averaged or discarded.",
-    "For the earlier singleton/pair captures, the empty-sector display floor was 0.75. New Doktor IM/FW screenshots are retained as displayed ratings and deltas; zero-valued sectors are not converted to a raw floor assumption."
+    "For the earlier singleton/pair captures, the empty-sector display floor was 0.75. New Doktor IM/FW screenshots are retained as displayed ratings and deltas; zero-valued sectors are not converted to a raw floor assumption.",
+    "WB singleton/pair observations from 2026-09-14 are retained as direct screenshot evidence for position/side mapping and additivity analysis."
   ],
   "observations": [
     {"id":"2026-09-13-2236-01","formation":"3-0-0","positions":{"left":"Nocon","center":"Pesalovo","right":"Takyi"},"sectorRatings":{"DEF-L":7.75,"DEF-C":7.0,"DEF-R":7.5,"MID":1.25,"ATT-L":1.25,"ATT-C":0.0,"ATT-R":1.25},"sourceImage":"1000048917.jpg","captureType":"screenshot"},
@@ -23,6 +24,12 @@
     {"id":"2026-09-14-0641-doktor-im-l","formation":"0-1-0","positions":{"left":"Doktor"},"sectorRatings":{"DEF-L":1.0,"DEF-C":1.0,"DEF-R":0.0,"MID":2.75,"ATT-L":1.5,"ATT-C":1.75,"ATT-R":0.0},"sourceImage":"1000048944.jpg","captureType":"singleton","role":"IM-L"},
     {"id":"2026-09-14-0642-doktor-fw-r","formation":"0-0-1","positions":{"right":"Doktor"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.25,"ATT-L":2.0,"ATT-C":3.0,"ATT-R":2.0},"sourceImage":"1000048949.jpg","captureType":"singleton","role":"FW-R"},
     {"id":"2026-09-14-0642-doktor-fw-c","formation":"0-0-1","positions":{"center":"Doktor"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.25,"ATT-L":2.0,"ATT-C":3.0,"ATT-R":2.0},"sourceImage":"1000048948.jpg","captureType":"singleton","role":"FW-C"},
-    {"id":"2026-09-14-0642-doktor-fw-l","formation":"0-0-1","positions":{"left":"Doktor"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.25,"ATT-L":2.0,"ATT-C":3.0,"ATT-R":2.0},"sourceImage":"1000048947.jpg","captureType":"singleton","role":"FW-L"}
+    {"id":"2026-09-14-0642-doktor-fw-l","formation":"0-0-1","positions":{"left":"Doktor"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.25,"ATT-L":2.0,"ATT-C":3.0,"ATT-R":2.0},"sourceImage":"1000048947.jpg","captureType":"singleton","role":"FW-L"},
+    {"id":"2026-09-14-wb-pesalovo-r","formation":"1-0-0","positions":{"right":"Pesalovo"},"sectorRatings":{"DEF-L":0.0,"DEF-C":2.0,"DEF-R":6.0,"MID":1.0,"ATT-L":0.0,"ATT-C":0.0,"ATT-R":1.25},"sourceImage":"1000048902.jpg","captureType":"singleton","role":"WB-R"},
+    {"id":"2026-09-14-wb-pesalovo-l","formation":"1-0-0","positions":{"left":"Pesalovo"},"sectorRatings":{"DEF-L":6.0,"DEF-C":2.0,"DEF-R":0.0,"MID":1.0,"ATT-L":1.25,"ATT-C":0.0,"ATT-R":0.0},"sourceImage":"1000048898.jpg","captureType":"singleton","role":"WB-L"},
+    {"id":"2026-09-14-wb-nocon-r","formation":"1-0-0","positions":{"right":"Nocon"},"sectorRatings":{"DEF-L":0.0,"DEF-C":1.75,"DEF-R":5.75,"MID":1.0,"ATT-L":0.0,"ATT-C":0.0,"ATT-R":1.25},"sourceImage":"1000048897.jpg","captureType":"singleton","role":"WB-R"},
+    {"id":"2026-09-14-wb-nocon-l","formation":"1-0-0","positions":{"left":"Nocon"},"sectorRatings":{"DEF-L":5.75,"DEF-C":1.75,"DEF-R":0.0,"MID":1.0,"ATT-L":1.25,"ATT-C":0.0,"ATT-R":0.0},"sourceImage":"1000048893.jpg","captureType":"singleton","role":"WB-L"},
+    {"id":"2026-09-14-wb-pesalovo-l-nocon-r","formation":"2-0-0","positions":{"left":"Pesalovo","right":"Nocon"},"sectorRatings":{"DEF-L":5.75,"DEF-C":3.25,"DEF-R":5.75,"MID":1.75,"ATT-L":1.25,"ATT-C":1.25,"ATT-R":1.25},"sourceImage":"1000048888.jpg","captureType":"pair","role":"WB-L + WB-R"},
+    {"id":"2026-09-14-wb-nocon-l-pesalovo-r","formation":"2-0-0","positions":{"left":"Nocon","right":"Pesalovo"},"sectorRatings":{"DEF-L":5.75,"DEF-C":3.25,"DEF-R":5.75,"MID":1.75,"ATT-L":1.25,"ATT-C":1.25,"ATT-R":1.25},"sourceImage":"1000048885.jpg","captureType":"pair","role":"WB-L + WB-R"}
   ]
 }
