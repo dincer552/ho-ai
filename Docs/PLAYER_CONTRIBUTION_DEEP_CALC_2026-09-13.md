@@ -4,21 +4,16 @@
 
 Kısa kural: Her yeni hesap/yorum buraya kısa ve sayısal olarak eklenecek. Üretim katsayıları, kanıt güçlenmeden değiştirilmeyecek.
 
-### 2026-09-14 — Yeni kırılma: rating display ile contribution raw aynı ölçek değil
-- Schum/HO araştırmasındaki display koordinatına göre **0.75 = gerçek 0**, sonra her 0.25 display adımı 0.25'lük raw aralığa karşılık geliyor: 4.00 display yaklaşık **[3.00, 3.25)**, 3.75 display yaklaşık **[2.75, 3.00)**. citeturn3view0
-- Bu, önceki testte `raw ≈ displayed` varsayımının yanlış olabileceğini gösteriyor. Pesalovo 4.00, Nocoń/Takyi 3.75 gözlemlerini doğrudan raw olarak fit etmeyeceğiz.
-- Published normal-C DEF coefficient `.186`: skill-only raw Pesalovo = **16×.186=2.976**, Nocoń/Takyi = **17×.186=3.162**. Bu değerler gözlenen display binlerine çok daha yakın.
-- Normal-C side DEF `.077`: Pesalovo **1.232**, Nocoń/Takyi **1.309**. Bunların display dönüşümü ayrıca çözülmeli.
-- Schum araştırması state sırasını netleştiriyor: **(skill + loyalty) × form × position coefficient × overcrowding; XP daha sonra eklenir.** XP rating-line'a göre farklı ağırlıklara sahip: DEF side .345, DEF center .480, ATT side .375, ATT center .450, MID .730. citeturn3view0
-- Bu yapı fixed engine mimarisini büyük ölçüde doğruluyor; fakat `skill-1` normalizasyonu ve full XP eklemesi, published coefficient tablosunun zaten yaklaşık %18.65 standard-state uplift içerdiği notuyla birlikte yeniden kontrol edilmeli. fileciteturn477file0
-- **Karar:** production katsayılarına henüz dokunma. Önce `skill-only raw → state adjustment → overcrowding → display quarter-step` zincirini aynı ölçeğe getir.
-
-### 2026-09-14 — Veri ihtiyacı
-- Mevcut defender screenshot seti skill/position katsayısını test etmek için yeterli.
-- Exact live formula için eksik kritik veri: **midfield ve attack singleton** ölçümleri.
-- En değerli minimum set: tek oyuncu sahada olacak şekilde aynı koşullarda **GK, CD, WB, IM, W, FW**; özellikle IM/W/F için Normal + en az bir bireysel emir.
-- Sonra aynı oyuncunun aynı slotta farklı state ile controlled karşılaştırması yapılmalı.
-- Yeni screenshot gelmeden de published coefficient matrix üzerinden tüm 31 oyuncunun skill-only sektör katkıları hesaplanabilir; bunlar **raw research values**, canlı rating değildir.
+### 2026-09-14 — Yeni screenshot seti: GK + W singleton ve W çiftleri
+- **GK singleton — Bultot:** DEF-L/C/R = **4.25 / 3.75 / 4.25**, MID/ATT = 0. Empty-sector floor 0.75 kabul edilirse raw katkı = **3.50 / 3.00 / 3.50**. Bultot GK17, DEF4 için published GK skill-only hesap: side `17×.183 + 4×.082 = 3.430`, center `17×.165 + 4×.079 = 3.123`. Gözlem farkı side **+0.070**, center **-0.123**.
+- **W singleton — Gobiet:** W-L/W-R simetrik. Raw katkı: side DEF **1.00**, center DEF **0.50**, MID **0.75**, side ATT **4.50**, center ATT **0.25**.
+- Gobiet normal-W skill-only: D9 → side DEF `.936`, center DEF `.333`; PM11 → MID `.715`; side ATT `9×.219 + 15×.054 = 2.781`; center ATT `.162`. DEF/MID/central ATT gözlemleri katsayı tablosuyla aynı mertebede; side ATT state/XP/ölçek katmanı için ayrıca kalibre edilmeli.
+- **W singleton — Dobóvári:** W-L/W-R simetrik. Raw katkı: side DEF **0.50**, center DEF **0.25**, MID **0.25**, side ATT **4.50**, center ATT **0.25**.
+- Dobóvári normal-W skill-only: D3 → side DEF `.312`, center DEF `.111`; PM5 → MID `.325`; side ATT `7×.219 + 17×.054 = 2.451`; center ATT `.126`.
+- **W çiftleri:** Gobiet-L + Dobóvári-R => **1.75 / 1.25 / 1.25 DEF, MID 1.75, ATT 5.25 / 1.25 / 5.25**. Ters yerleşim Dobóvári-L + Gobiet-R => **1.25 / 1.25 / 1.75 DEF, MID 1.75, ATT 5.25 / 1.25 / 5.25**.
+- Singleton raw katkılar toplandığında iki çift ekranı da tam olarak yeniden üretiyor. Örn. MID `.75 + .25 + .75 floor = 1.75`; ATT side `4.5 + .75 floor = 5.25`. Bu, kontrollü W örneğinde **additive player contribution ledger** için çok güçlü kanıt.
+- **Sonuç:** 0.75 display floor + oyuncu katkılarının sektör bazında toplanması şu anki en güçlü model. GK savunma ve W savunma/orta saha/merkez hücum değerleri published katsayılarla aynı mertebede. Side-attack için state/XP ölçeği henüz çözülmedi.
+- Production katsayılarına dokunulmadı. Bir sonraki kritik veri **IM singleton**, ardından **FW singleton**; W için aynı oyuncunun farklı emirleri de değerli.
 
 ## 1. Scope
 
@@ -35,7 +30,7 @@ M7 regional rating için derin hesaplama notu. Kaynaklar: production V5 fixed en
 ### Pesalovo
 - R: DEF-L 0 / DEF-C 2 / DEF-R 6, MID 1, ATT-R 1.25
 - CR: 0 / 4 / 3.5, MID 1
-- C: 2 / 4 / 2, MID 1
+- C: 2 / 4 / 2, MID 1, attacks 0
 - CL: 3.5 / 4 / 0, MID 1
 - L: 6 / 2 / 0, MID 1, ATT-L 1.25
 
