@@ -4,32 +4,18 @@
 
 Kısa kural: Her yeni hesap/yorum buraya kısa ve sayısal olarak eklenecek. Üretim katsayıları, kanıt güçlenmeden değiştirilmeyecek.
 
-### 2026-09-14 — Yeni kırılma: rating display ile contribution raw aynı ölçek değil
-- Schum/HO araştırmasındaki display koordinatına göre **0.75 = gerçek 0**, sonra her 0.25 display adımı 0.25'lük raw aralığa karşılık geliyor: 4.00 display yaklaşık **[3.00, 3.25)**, 3.75 display yaklaşık **[2.75, 3.00)**.
-- Bu, önceki testte `raw ≈ displayed` varsayımının yanlış olabileceğini gösteriyor. Pesalovo 4.00, Nocoń/Takyi 3.75 gözlemlerini doğrudan raw olarak fit etmeyeceğiz.
-- Published normal-C DEF coefficient `.186`: skill-only raw Pesalovo = **16×.186=2.976**, Nocoń/Takyi = **17×.186=3.162**. Bu değerler gözlenen display binlerine çok daha yakın.
-- Normal-C side DEF `.077`: Pesalovo **1.232**, Nocoń/Takyi **1.309**. Bunların display dönüşümü ayrıca çözülmeli.
-- Schum araştırması state sırasını netleştiriyor: **(skill + loyalty) × form × position coefficient × overcrowding; XP daha sonra eklenir.** XP rating-line'a göre farklı ağırlıklara sahip: DEF side .345, DEF center .480, ATT side .375, ATT center .450, MID .730.
-- Bu yapı fixed engine mimarisini büyük ölçüde doğruluyor; fakat `skill-1` normalizasyonu ve full XP eklemesi, published coefficient tablosunun zaten yaklaşık %18.65 standard-state uplift içerdiği notuyla birlikte yeniden kontrol edilmeli.
-- **Karar:** production katsayılarına henüz dokunma. Önce `skill-only raw → state adjustment → overcrowding → display quarter-step` zincirini aynı ölçeğe getir.
-
-### 2026-09-14 — Veri ihtiyacı
-- Mevcut defender screenshot seti skill/position katsayısını test etmek için yeterli.
-- Exact live formula için eksik kritik veri: **midfield ve attack singleton** ölçümleri.
-- En değerli minimum set: tek oyuncu sahada olacak şekilde aynı koşullarda **GK, CD, WB, IM, W, FW**; özellikle IM/W/F için Normal + en az bir bireysel emir.
-- Sonra aynı oyuncunun aynı slotta farklı state ile controlled karşılaştırması yapılmalı.
-- Yeni screenshot gelmeden de published coefficient matrix üzerinden tüm 31 oyuncunun skill-only sektör katkıları hesaplanabilir; bunlar **raw research values**, canlı rating değildir.
-
-### 2026-09-14 — Yeni screenshot seti: GK + W singleton ve W çiftleri
-- **GK singleton — Bultot:** DEF-L/C/R = **4.25 / 3.75 / 4.25**, MID/ATT = 0. Empty-sector floor 0.75 kabul edilirse raw katkı = **3.50 / 3.00 / 3.50**. Bultot GK17, DEF4 için published GK skill-only hesap: side `17×.183 + 4×.082 = 3.430`, center `17×.165 + 4×.079 = 3.123`. Gözlem farkı side **+0.070**, center **-0.123**. Bu, GK savunma katsayılarının canlı gözlemle güçlü biçimde uyumlu olduğunu gösteriyor; state/XP ve quarter quantization kalan farkı açıklayabilir.
-- **W singleton — Gobiet:** W-L ve W-R simetrik. Raw ledger: side DEF **1.00**, center DEF **0.50**, MID **0.75**, side ATT **4.50**, center ATT **0.25**.
-- Gobiet normal-W skill-only: D9 → side DEF `9×.104=.936`, center DEF `9×.037=.333`; PM11 → MID `11×.065=.715`; side ATT `9×.219 + 15×.054 = 2.781`; center ATT `9×.018=.162`. DEF/MID/central ATT gözlemleri katsayı tablosuyla aynı mertebede; side ATT ise form/XP/ölçek katmanını izole etmek için ayrıca test edilmeli.
-- **W singleton — Dobóvári:** W-L ve W-R simetrik. Raw ledger: side DEF **0.50**, center DEF **0.25**, MID **0.25**, side ATT **4.50**, center ATT **0.25**.
-- Dobóvári normal-W skill-only: D3 → side DEF `.312`, center DEF `.111`; PM5 → MID `.325`; side ATT `7×.219 + 17×.054 = 2.451`; center ATT `.126`. Bu da DEF/MID/central ATT tarafında gözlenen quarter-step değerlerin katsayılarla uyumlu olduğunu, side ATT'nin ise state/XP/quantization açısından henüz çözülmediğini gösteriyor.
-- **W çiftleri:** Gobiet-L + Dobóvári-R => **1.75 / 1.25 / 1.25 DEF, MID 1.75, ATT 5.25 / 1.25 / 5.25**. Ters yerleşim Dobóvári-L + Gobiet-R => **1.25 / 1.25 / 1.75 DEF, MID 1.75, ATT 5.25 / 1.25 / 5.25**.
-- Singleton raw katkılar toplandığında iki çift ekranı da tam olarak yeniden üretiyor: örn. MID `.75 + .25 + .75 floor = 1.75`; ATT side `4.5 + .75 floor = 5.25`. Bu, **player contribution ledger'ın en az bu kontrollü W örneğinde additive** olduğunu çok güçlü biçimde doğruluyor.
-- **Yeni sonuç:** 0.75 floor yalnızca görüntü tabanı gibi davranmıyor; singleton → çift geçişinde her oyuncunun gözlenen sektör katkısı doğrudan toplanıyor. Bu nedenle motorun ilk katmanı `player contribution → sector sum → display quantization` şeklinde modellenmeli; overcrowding/state katmanları bundan sonra test edilmeli.
-- Production katsayılarına hâlâ dokunulmadı. Bir sonraki kritik veri **IM singleton**; ardından FW singleton. W için aynı oyuncunun farklı emirleriyle ikinci set de değerli.
+### 2026-09-14 — Yeni veri: Doktor IM + FW singleton seti
+- Bertalan Doktor oyuncu girdisi: **Def 2, PM 16, Pass 11, Winger 6, Scoring 6, Form 6, XP 8, Stamina 6**.
+- **Normal IM — sağ:** DEF-L/C/R = **0 / 1 / 1**, MID **2.75**, ATT-L/C/R = **0 / 1.75 / 1.50**.
+- **Normal IM — merkez:** DEF-L/C/R = **1 / 1 / 1**, MID **2.75**, ATT-L/C/R = **1.25 / 1.75 / 1.25**.
+- **Normal IM — sol:** DEF-L/C/R = **1 / 1 / 0**, MID **2.75**, ATT-L/C/R = **1.50 / 1.75 / 0**.
+- Bu üç IM ekranında **MID tam sabit 2.75**. Yan pozisyon yalnızca savunma ve yan hücum dağılımını değiştiriyor; merkez hücum **1.75** sabit. Bu, önceki stoper/W bulgularındaki "pozisyon yanlara katkıyı yeniden dağıtır, merkez katkıyı büyük ölçüde korur" invariantını güçlü biçimde genişletiyor.
+- Published normal-IM skill-only katsayılarıyla Doktor'un kaba hesabı: side DEF `2×.028=.056`, center DEF `2×.070=.140`, MID `16×.139=2.224`, side ATT `11×.028=.308`, center ATT `11×.057 + 6×.038=.855`. Gözlenen değerler bundan belirgin yüksek; dolayısıyla form/XP/state + rating scale katmanı açıkça devrede. Katsayılar production'a değiştirilmedi.
+- **Normal FW — sağ/merkez/sol:** üç pozisyonun tamamında DEF **0/0/0**, MID **1.25**, ATT-L/C/R = **2 / 3 / 2**. Bu çok değerli: Normal FW'nin yatay slotu değişmesine rağmen üç hücum sektörünün gözlenen ratingleri aynı kaldı. Şimdilik bu, normal FW'nin side/center attack üretiminde slot-simetrik olduğunu gösteriyor; FW tarafında pozisyon emirlerinden bağımsız temel katkıyı ayırmak için güçlü singleton kanıtı.
+- Published normal-FW skill-only kaba hesap: MID `16×.041=.656`; side ATT `6×.058 + 6×.032 + 11×.048=1.068`; center ATT `6×.178 + 11×.066=1.794`. Gözlenen `1.25 / 2 / 3 / 2`, özellikle merkez hücumun skill-only değerden yaklaşık **1.67×** yüksek olması, state/XP/scale katmanının tek başına ihmal edilemeyeceğini gösteriyor.
+- Son IM/FW ekranlarındaki yeşil/turuncu küçük sayılar **delta göstergesi**; bunları oyuncunun mutlak katkısı olarak kullanmıyoruz. Ana beyaz rating sayıları ground truth olarak tutuluyor.
+- **Yeni sonuç:** IM için yan pozisyon değişiminde MID ve central-attack sabit kalıyor; FW için L/C/R değişiminde bütün hücum ratingleri sabit kalıyor. Bu, pozisyon katsayı matrisinin sadece "hangi skill ne kadar" değil, aynı zamanda **slot/order tarafından hangi sektöre yönlendirildiği** şeklinde modellenmesi gerektiğini doğruluyor.
+- Artık singleton kapsaması: **GK + CD + W + IM + FW**. Eksik büyük pozisyon ailesi **WB**. Sonraki en değerli deney: Manuel Gobiet/Nándor Dobóvári gibi WB adaylarından biriyle WB-C/L/R; ardından IM/FW emirleri (offensive/defensive/towards wing).
 
 ## 1. Scope
 
@@ -53,16 +39,24 @@ M7 regional rating için derin hesaplama notu. Kaynaklar: production V5 fixed en
 ### Nocoń
 - R: 0 / 1.75 / 5.75, MID 1, ATT-R 1.25
 - CR: 0 / 3.75 / 3.5, MID 1
-- C: 2 / 3.75 / 2, MID 1
+- C: 2 / 3.75 / 2, MID 1, attacks 0
 - CL: 3.5 / 3.75 / 0, MID 1
 - L: 5.75 / 1.75 / 0, MID 1, ATT-L 1.5
 
 ### Takyi
 - R: 0 / 1.75 / 5.75, MID 1, ATT-R 1.5
 - CR: 0 / 3.75 / 3.25, MID 1
-- C: 2 / 3.75 / 2, MID 1
+- C: 2 / 3.75 / 2, MID 1, attacks 0
 - CL: 3.25 / 3.75 / 0, MID 1
 - L: 5.75 / 1.75 / 0, MID 1, ATT-L 1.5
+
+### Yeni Doktor singleton seti
+- IM-R: 0 / 1 / 1, MID 2.75, ATT 0 / 1.75 / 1.50
+- IM-C: 1 / 1 / 1, MID 2.75, ATT 1.25 / 1.75 / 1.25
+- IM-L: 1 / 1 / 0, MID 2.75, ATT 1.50 / 1.75 / 0
+- FW-R: 0 / 0 / 0, MID 1.25, ATT 2 / 3 / 2
+- FW-C: 0 / 0 / 0, MID 1.25, ATT 2 / 3 / 2
+- FW-L: 0 / 0 / 0, MID 1.25, ATT 2 / 3 / 2
 
 ## 4. Additivity check
 
@@ -109,4 +103,4 @@ Repo'da `pow(x,1.2)/4+1` araştırma converter'ı bulunuyor; production fixed en
 
 ## 9. Next calibration target
 
-Öncelik: **raw contribution scale → form/loyalty → XP → overcrowding → display quantization → coefficient refinement**. Önce singleton set fit edilecek, sonra tüm 3-defender kombinasyonları tekrar test edilecek. Aynı oyuncu/slot ve farklı state içeren kontrollü screenshot en değerli yeni kanıt; özellikle IM/W/F singletonları artık bir sonraki büyük veri adımı.
+Öncelik: **raw contribution scale → form/loyalty → XP → overcrowding → display quantization → coefficient refinement**. Singleton set artık GK/CD/W/IM/FW ailelerini kapsıyor. Sonraki kritik aile **WB**. Ardından IM/FW individual-order deneyleriyle order katsayıları ayrıştırılacak. Aynı oyuncu/slot ve farklı state içeren kontrollü screenshot yine en değerli kalibrasyon kanıtı.
