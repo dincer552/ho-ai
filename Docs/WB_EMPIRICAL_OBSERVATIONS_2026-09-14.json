@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-14",
+  "purpose": "WB singleton and pair empirical observations extracted from Hattrick screenshots",
+  "observations": [
+    {"sourceImage":"1000048902.jpg","role":"WB-R","player":"Pesalovo","formation":"1-0-0","DEF-L":0.0,"DEF-C":2.0,"DEF-R":6.0,"MID":1.0,"ATT-L":0.0,"ATT-C":0.0,"ATT-R":1.25},
+    {"sourceImage":"1000048898.jpg","role":"WB-L","player":"Pesalovo","formation":"1-0-0","DEF-L":6.0,"DEF-C":2.0,"DEF-R":0.0,"MID":1.0,"ATT-L":1.25,"ATT-C":0.0,"ATT-R":0.0},
+    {"sourceImage":"1000048888.jpg","role":"WB-R","player":"Nocon","formation":"1-0-0","DEF-L":0.0,"DEF-C":1.75,"DEF-R":5.75,"MID":1.0,"ATT-L":0.0,"ATT-C":0.0,"ATT-R":1.25},
+    {"sourceImage":"1000048885.jpg","role":"WB-L","player":"Nocon","formation":"1-0-0","DEF-L":5.75,"DEF-C":1.75,"DEF-R":0.0,"MID":1.0,"ATT-L":1.25,"ATT-C":0.0,"ATT-R":0.0},
+    {"sourceImage":"1000048897.jpg","role":"WB-L + WB-R","players":"Nocon left + Pesalovo right","formation":"2-0-0","DEF-L":5.75,"DEF-C":3.25,"DEF-R":6.0,"MID":1.0,"ATT-L":1.25,"ATT-C":0.0,"ATT-R":1.25},
+    {"sourceImage":"1000048893.jpg","role":"WB-L + WB-R","players":"Pesalovo left + Nocon right","formation":"2-0-0","DEF-L":6.0,"DEF-C":3.25,"DEF-R":5.75,"MID":1.0,"ATT-L":1.25,"ATT-C":0.0,"ATT-R":1.25}
+  ],
+  "analysis": "WB-L/WB-R side movement redistributes side defence and side attack symmetrically. Pair captures support near-additivity, especially central defence. These are empirical evidence only; production coefficients are unchanged."
+}
