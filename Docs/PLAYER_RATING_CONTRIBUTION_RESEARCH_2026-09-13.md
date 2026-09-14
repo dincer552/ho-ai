@@ -1,5 +1,17 @@
 # Player Rating Contribution Research — 2026-09-13
 
+## 2026-09-14 WB ekran analizi — son bulgu
+
+Pesalovo ve Nocoń ile alınan **WB-L / WB-R singleton** ve **WB-L + WB-R pair** ekranları `EmpiricalMotorObservationDb.json` içine işlendi. Bu kontrollü set, WB'de taraf değişiminin yan DEF/ATT katkılarını karşı tarafa taşıdığını ve iki oyunculu durumda katkıların büyük ölçüde toplandığını gösteriyor.
+
+- Pesalovo WB-L: DEF `6.00 / 2.00 / 0.00`, ATT `1.25 / 0.00 / 0.00`
+- Pesalovo WB-R: DEF `0.00 / 2.00 / 6.00`, ATT `0.00 / 0.00 / 1.25`
+- Nocoń WB-L: DEF `5.75 / 1.75 / 0.00`, ATT `1.25 / 0.00 / 0.00`
+- Nocoń WB-R: DEF `0.00 / 1.75 / 5.75`, ATT `0.00 / 0.00 / 1.25`
+- WB-L + WB-R çiftlerinde merkez DEF `3.25`, MID `1.75` ve merkez ATT `1.25` görülüyor.
+
+**Kısa analiz:** WB position/side mapping ve additivity hipotezi güçlendi. Ancak görünen değerler form, XP ve display dönüşüm katmanlarını birlikte içerdiğinden bu veri tek başına production katsayısı değiştirmek için kullanılmıyor. Sonraki kontrollü hedef WB davranışları: **Normal / Defensive / Offensive / Towards Middle**.
+
 ## Kısa sonuç
 
 Oyuncunun DB'deki skill değerleri takım ratingine **doğrudan tek bir "oyuncu ratingi" olarak eklenmiyor**. Oyuncu önce bulunduğu pozisyon + taraf + bireysel davranış için skill katkılarına ayrılıyor; bu katkılar 7 takım sektöründe toplanıyor.
