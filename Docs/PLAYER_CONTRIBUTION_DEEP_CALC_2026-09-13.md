@@ -1,27 +1,30 @@
 # Player Contribution Deep Calculation — 2026-09-13
 
+## Running research log
+
+Kısa kural: Her yeni hesap/yorum buraya kısa ve sayısal olarak eklenecek. Üretim katsayıları, kanıt güçlenmeden değiştirilmeyecek.
+
+### 2026-09-14 — State-layer ayrıştırma
+- Pesalovo/Nocoń/Takyi normal C stoper gözlemleri: **4.00 / 3.75 / 3.75 DEF-C**; Def 16/17/17, Form 7/6/5, XP 6/12/10.
+- **Defending tek başına yeterli değil**; oyuncu-state katmanı var.
+- Yan DEF üç oyuncuda da **2.00**. State etkisi + çeyrek-step quantization birlikte ele alınmalı.
+- C→CL / C→CR testlerinde merkez DEF yaklaşık sabit kalırken katkı sol/sağ arasında yeniden dağılıyor; bu pozisyon katsayıları için güçlü invariant.
+- Mevcut `max(skill-1)` + ayrı XP modeli bu gözlemleri tutarlı açıklamıyor; production değişikliği yok.
+
 ## 1. Scope
 
-This note is the first deep-calculation pass for the M7 regional rating model. It uses the current production V5 fixed engine, the CHPP player snapshot, and the empirical single-player / 3-defender observations already collected from Hattrick screenshots.
-
-This is calibration/reverse-engineering work. The coefficients below are not claimed to be official Hattrick source code.
+M7 regional rating için derin hesaplama notu. Kaynaklar: production V5 fixed engine, CHPP oyuncu snapshot'ı ve Hattrick screenshot singleton/3-defender gözlemleri. Katsayılar reverse-engineering/calibration sonucudur; resmi Hattrick source code iddiası değildir.
 
 ## 2. Ground-truth player inputs
-
-From the CHPP snapshot used for the current calibration:
 
 - Cristian Pesalovo: Def 16, PM 6, Pass 9, Winger 3, Scoring 6, Form 7, XP 6, Stamina 7.
 - Dawid Nocoń: Def 17, PM 3, Pass 5, Winger 4, Scoring 7, Form 6, XP 12, Stamina 5.
 - Abeiku Takyi: Def 17, PM 3, Pass 8, Winger 4, Scoring 7, Form 5, XP 10, Stamina 6.
 
-Source snapshot: `hattrickai-team-players-2026-09-12T04-49-44-576Z.json`.
-
 ## 3. Empirical singleton observations
 
-Observed displayed regional ratings for the three defender calibration players are quarter-step values. Important examples:
-
 ### Pesalovo
-- R:  DEF-L 0 / DEF-C 2 / DEF-R 6, MID 1, ATT-R 1.25
+- R: DEF-L 0 / DEF-C 2 / DEF-R 6, MID 1, ATT-R 1.25
 - CR: 0 / 4 / 3.5, MID 1
 - C: 2 / 4 / 2, MID 1
 - CL: 3.5 / 4 / 0, MID 1
@@ -43,76 +46,45 @@ Observed displayed regional ratings for the three defender calibration players a
 
 ## 4. Additivity check
 
-The cleanest three-defender observations are approximately additive:
+- P-L + N-C + T-R => **7.75 / 7.00 / 7.50**
+- P-L + N-CL + T-R => **9.50 / 7.00 / 5.75**
+- P-L + N-CR + T-R => **6.00 / 7.00 / 9.25**
+- T-L + N-C + P-R => **7.50 / 7.00 / 7.75**
 
-- P-L + N-C + T-R => 7.75 / 7.00 / 7.50
-- P-L + N-CL + T-R => 9.50 / 7.00 / 5.75
-- P-L + N-CR + T-R => 6.00 / 7.00 / 9.25
-- T-L + N-C + P-R => 7.50 / 7.00 / 7.75
+İlk üç kombinasyon Nocoń C→CL için yaklaşık **+1.75 sol / -1.75 sağ**, C→CR için **-1.75 sol / +1.75 sağ** gösteriyor. Residual genelde 0.25–0.50; çoğunlukla additive ledger geçerli.
 
-The first three imply the Nocoń position shift C -> CL is roughly +1.75 left / -1.75 right, and C -> CR is roughly -1.75 left / +1.75 right. Residuals in other combinations are small (usually 0.25–0.50), so a mostly additive player-contribution ledger remains justified.
+## 5. Current-engine mismatch
 
-## 5. Important current-engine mismatch
-
-`RegionalRatingEngineFixed` currently performs all of the following before/around the position coefficients:
-
-1. Converts each skill with `max(0, skill - 1)`.
-2. Applies loyalty as an additive skill term.
-3. Applies a strong fixed-engine form multiplier (`FormFactor(form) / .756`).
-4. Adds stamina-at-minute multiplier.
-5. Adds experience as a separate sector contribution after positional contribution.
-6. Applies position crowding.
-7. Applies team/context calibration.
-
-The current engine therefore has a stronger player-state effect than the older `RegionalRatingEngine`, which instead folds `experienceDelta = ExperienceBonus(XP) - 1.13` into the skill vector and uses the smaller researched form table.
+`RegionalRatingEngineFixed`: `max(0, skill-1)` → loyalty → form multiplier → stamina/minute → ayrı XP contribution → crowding → team/context. Eski engine XP delta'yı skill vector içine alıyor. İki yaklaşımın hangisinin gerçek olduğu henüz kanıtlanmadı.
 
 ## 6. First numerical test — normal central defender
 
-Using the current `RegionalRatingEngineFixed` logic for a single normal central defender (no crowding, default match context, minute 0):
-
-| Player | Current raw DEF-C | Observed DEF-C | Delta |
+| Player | Current raw DEF-C | Observed | Delta |
 |---|---:|---:|---:|
 | Pesalovo | ~3.933 | 4.00 | -0.067 |
 | Nocoń | ~3.935 | 3.75 | +0.185 |
 | Takyi | ~3.531 | 3.75 | -0.219 |
 
-For the lateral defence component of a normal central defender:
+Side DEF:
 
-| Player | Current raw side DEF | Observed side DEF | Delta |
+| Player | Current raw | Observed | Delta |
 |---|---:|---:|---:|
 | Pesalovo | ~1.716 | 2.00 | -0.284 |
 | Nocoń | ~1.751 | 2.00 | -0.249 |
 | Takyi | ~1.574 | 2.00 | -0.426 |
 
-These numbers show that the published positional coefficients alone are close enough to explain the shape, but the current state layer does not reproduce all three players consistently. In particular, Takyi's lower-form player state is under-predicted despite high defending, while Nocoń's high XP compensates much of the lower form.
+## 7. Display conversion finding
 
-## 7. Critical finding: display conversion is not the source of these screenshot values
+Repo'da `pow(x,1.2)/4+1` araştırma converter'ı bulunuyor; production fixed engine ise 2-decimal round/clamp kullanıyor. Screenshot değerleri quarter-step. Bu nonlinear converter **şimdilik M7'ye bağlanmayacak**; kontrollü screenshot ile doğrulanacak.
 
-The repository contains a separate nonlinear `HattrickRatingDisplayConverter` using a researched `pow(x, 1.2) / 4 + 1` transformation. However, the production `RegionalRatingEngineFixed` currently publishes `RegionalRatingEngine.Display(raw)`, which is only 2-decimal rounding/clamping. The empirical values collected here are also naturally quarter-step rating values rather than the output of the unused nonlinear converter.
+## 8. Deep-calculation conclusions
 
-Therefore the next calibration step should **not** blindly wire the nonlinear converter into M7. It must first be validated against a controlled screenshot series.
+**Yüksek güven:** katkı yaklaşık additive; pozisyon/yan davranışı birinci derecede belirleyici; sektör değerleri quarter-step quantized.
 
-## 8. Deep-calculation conclusions so far
+**Orta güven:** mevcut Contribution katsayıları yön olarak doğru; form ve XP etkili.
 
-### High confidence
-- Player contribution is approximately additive across players before contextual/team layers.
-- Position and lateral behaviour are a first-order determinant of which sector receives the player's skills.
-- The empirical sector values are quantized in quarter steps.
-- The current `max(skill-1)` + separate XP layer is a model choice, not something yet proven by the empirical set.
-
-### Medium confidence
-- The existing Contribution research coefficients are directionally correct and produce the right positional pattern.
-- Form and experience both affect the observed contribution, but their exact placement in the pipeline is still unresolved.
-
-### Not yet solved
-- Exact skill normalization (`skill`, `skill-1`, or another latent level mapping).
-- Exact form multiplier curve.
-- Exact experience interaction (separate sector bonus vs skill-vector uplift).
-- Exact quarter-step rounding/quantization point.
-- Whether the old researched nonlinear display converter is relevant to any layer of the live Hattrick display.
+**Çözülmedi:** skill normalization, form eğrisi, XP'nin ayrı/skill-vector etkisi, quantization noktası ve nonlinear display converter'ın canlı ekrandaki rolü.
 
 ## 9. Next calibration target
 
-Do **not** change the production coefficient table yet. The next step is to fit the player-state layer against the controlled singleton observations first, then re-run all 3-defender combinations.
-
-Most valuable next evidence is a controlled screenshot set where the same player is tested in the same slot while only the player state differs (form/experience/skill profile). That will separate the state multiplier from the positional coefficients. Existing data is already sufficient to continue the numerical fitting pass without waiting for a new screenshot.
+Öncelik: **skill normalization → form → experience → quantization → coefficient refinement**. Önce singleton set fit edilecek, sonra tüm 3-defender kombinasyonları tekrar test edilecek. Aynı oyuncu/slot ve farklı state içeren kontrollü screenshot en değerli yeni kanıt; fakat mevcut veriyle hesaplama devam edebilir.
