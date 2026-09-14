@@ -107,6 +107,21 @@ Manuel Gobiet:   PM 11, WING 15, PASS 9, DEF 9, SCORE 8, STAM 6, FORM 8, EXP 7
 
 Aynı görünen oyuncu dizilimi için iki capture'da DEF-L 7.75 ve 7.50 olarak farklı çıktı. Bu nedenle iki ölçüm ayrı tutuldu; ortalaması alınmadı. Bu farkın UI refresh/context/slot mapping kaynaklı olup olmadığı ayrıca araştırılacak.
 
+### 6A. 14.09.2026 WB singleton + pair kanıtı
+
+Pesalovo ve Nocoń ile WB-L/WB-R tek oyuncu testleri ve karşılıklı WB-L + WB-R çift testleri kaydedildi. Sonuçlar, oyuncu sağa/sola taşındığında yan savunma ve yan hücum katkılarının beklenen şekilde karşı tarafa yeniden dağıldığını; çift testlerde ise sektörlerin büyük ölçüde tek oyuncu katkılarının toplamı olduğunu gösteriyor.
+
+Özellikle:
+
+- Pesalovo WB-L: DEF 6.00 / 2.00 / 0.00, ATT 1.25 / 0.00 / 0.00
+- Pesalovo WB-R: DEF 0.00 / 2.00 / 6.00, ATT 0.00 / 0.00 / 1.25
+- Nocoń WB-L: DEF 5.75 / 1.75 / 0.00, ATT 1.25 / 0.00 / 0.00
+- Nocoń WB-R: DEF 0.00 / 1.75 / 5.75, ATT 0.00 / 0.00 / 1.25
+
+İki WB birlikte kullanıldığında merkez savunmanın yaklaşık 3.25'e çıkması, tekil merkez katkıların toplandığını destekliyor. Bu veri **WB position/side mapping ve additivity hipotezini güçlendiriyor**, ancak form/XP/display katmanları ayrıştırılmadan production katsayılarını değiştirmek için tek başına yeterli değil.
+
+Bu nedenle mevcut karar korunuyor: **veri DB'ye eklenir, production coefficient değiştirilmez.** Bir sonraki kontrollü deney WB davranış varyantları (normal/defensive/offensive/towards middle) ve ardından kalan davranışların A/B karşılaştırmasıdır.
+
 ## 7. Kalibrasyon kararı
 
 Henüz Contribution katsayılarını rastgele değiştirmiyoruz.
