@@ -9,24 +9,39 @@ namespace HattrickAI.V5.Core;
 ///
 /// The researched Fixed engine remains the calculation source for established
 /// position/order/coefficient layers. Normal forwards keep the empirically
-/// verified L/C/R slot symmetry. Match-level factors that were previously
-/// present only in the separate HO path are applied here when HOEngineContext
-/// is available: weather, team spirit, confidence and coach style.
+/// verified L/C/R slot symmetry. Match-level factors are applied when
+/// HOEngineContext is available: weather, team spirit, confidence and coach
+/// style. The documented Technical defensive-forward side-passing bonus is
+/// added as a separate correction so the central-attack coefficient is not
+/// accidentally inflated.
 /// </summary>
 public sealed class RegionalRatingEngineFinal
 {
+    private const double BaselineFormFactor = .756;
+    private const double ReferenceLeftAttackCalibration = 1.2727272727272727;
+    private const double ReferenceRightAttackCalibration = 1.2258064516129032;
+
     private readonly RegionalRatingEngineFixed _inner = new();
 
     public RegionalRatingSnapshot Calculate(IReadOnlyList<RegionalPlayer> players, RatingContext? context = null)
-        => Calculate(players, context, null);
+        => Calculate(players, context, null, null);
 
     public RegionalRatingSnapshot Calculate(
         IReadOnlyList<RegionalPlayer> players,
         RatingContext? context,
         HOEngineContext? engineContext)
+        => Calculate(players, context, engineContext, null);
+
+    private RegionalRatingSnapshot Calculate(
+        IReadOnlyList<RegionalPlayer> players,
+        RatingContext? context,
+        HOEngineContext? engineContext,
+        IReadOnlySet<int>? technicalDefensiveForwardIds)
     {
         context ??= RatingContext.Default;
-        var baseline = ApplyExtraContext(_inner.Calculate(players, context), engineContext);
+        var baseline = ApplyExtraContext(
+            ApplyTechnicalBonus(_inner.Calculate(players, context), players, technicalDefensiveForwardIds),
+            engineContext);
 
         var normalForwards = players
             .Where(p => p.Position == RegionalPosition.Forward && p.Order == PlayerOrder.Normal)
@@ -59,11 +74,23 @@ public sealed class RegionalRatingEngineFinal
         HOEngineContext? engineContext = null)
     {
         var byId = players.ToDictionary(p => p.Id);
-        var mapped = lineup.Slots
+        var selected = lineup.Slots
             .Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId))
-            .Select(s => ToRegionalPlayer(lineup.Formation, s, PrepareWeatherPlayer(byId[s.PlayerId], engineContext)))
+            .Select(s => (slot: s, player: PrepareWeatherPlayer(byId[s.PlayerId], engineContext)))
             .ToList();
-        return Calculate(mapped, context, engineContext);
+
+        var mapped = selected
+            .Select(s => ToRegionalPlayer(lineup.Formation, s.slot, s.player))
+            .ToList();
+
+        var technicalDefensiveForwardIds = selected
+            .Where(s => s.slot.Order == PlayerOrder.Defensive
+                        && s.player.Specialty == PlayerSpecialty.Technical
+                        && RatingPositionResolver.Resolve(lineup.Formation, s.slot.Code) == RegionalPosition.Forward)
+            .Select(s => s.player.Id)
+            .ToHashSet();
+
+        return Calculate(mapped, context, engineContext, technicalDefensiveForwardIds);
     }
 
     public RegionalRatingPair CalculatePair(
@@ -108,6 +135,40 @@ public sealed class RegionalRatingEngineFinal
             (PlayerSpecialty.Quick, 2) => 0.95,
             _ => 1.0
         };
+
+    private static RegionalRatingSnapshot ApplyTechnicalBonus(
+        RegionalRatingSnapshot rating,
+        IReadOnlyList<RegionalPlayer> players,
+        IReadOnlySet<int>? technicalIds)
+    {
+        if (technicalIds is null || technicalIds.Count == 0)
+            return rating;
+
+        var forwardCount = players.Count(p => p.Position == RegionalPosition.Forward);
+        var crowding = forwardCount == 2 ? .945 : forwardCount >= 3 ? .865 : 1.0;
+        var ld = rating.RawLeftDefence;
+        var cd = rating.RawCentralDefence;
+        var rd = rating.RawRightDefence;
+        var mid = rating.RawMidfield;
+        var la = rating.RawLeftAttack;
+        var ca = rating.RawCentralAttack;
+        var ra = rating.RawRightAttack;
+
+        foreach (var p in players.Where(p => technicalIds.Contains(p.Id) && p.Position == RegionalPosition.Forward && p.Order == PlayerOrder.Defensive))
+        {
+            var passing = RegionalRatingEngineFixed.SkillRating(p.Passing) + LoyaltyEffect(p.Loyalty);
+            var form = FormFactor(p.Form) / BaselineFormFactor;
+            form *= RegionalRatingEngineFixed.StaminaMatchMultiplier(p.Stamina, 0);
+            var delta = passing * (.087 - .033) * form * crowding;
+            la += delta * ReferenceLeftAttackCalibration;
+            ra += delta * ReferenceRightAttackCalibration;
+        }
+
+        return ToSnapshot(ld, cd, rd, mid, la, ca, ra);
+    }
+
+    private static double LoyaltyEffect(double loyalty) => loyalty >= 20 ? 1.5 : Math.Clamp(loyalty / 19.0, 0.0, 1.0);
+    private static double FormFactor(double form) => 0.378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
 
     private static RegionalRatingSnapshot ApplyExtraContext(
         RegionalRatingSnapshot rating,
@@ -166,13 +227,8 @@ public sealed class RegionalRatingEngineFinal
     {
         if (count <= 0) return [];
         return Enumerable.Range(1, count)
-            .Select(i => new RegionalPlayer(
-                -i,
-                RegionalPosition.Forward,
-                PlayerSide.Center,
-                PlayerOrder.Normal,
-                0, 0, 0, 0, 0, 0,
-                1, 0, 0, 9.4))
+            .Select(i => new RegionalPlayer(-i, RegionalPosition.Forward, PlayerSide.Center, PlayerOrder.Normal,
+                0, 0, 0, 0, 0, 0, 1, 0, 0, 9.4))
             .ToArray();
     }
 
@@ -181,54 +237,40 @@ public sealed class RegionalRatingEngineFinal
         RegionalRatingSnapshot oldSubset,
         RegionalRatingSnapshot newSubset)
     {
-        var ld = baseline.RawLeftDefence - oldSubset.RawLeftDefence + newSubset.RawLeftDefence;
-        var cd = baseline.RawCentralDefence - oldSubset.RawCentralDefence + newSubset.RawCentralDefence;
-        var rd = baseline.RawRightDefence - oldSubset.RawRightDefence + newSubset.RawRightDefence;
-        var mid = baseline.RawMidfield - oldSubset.RawMidfield + newSubset.RawMidfield;
-        var la = baseline.RawLeftAttack - oldSubset.RawLeftAttack + newSubset.RawLeftAttack;
-        var ca = baseline.RawCentralAttack - oldSubset.RawCentralAttack + newSubset.RawCentralAttack;
-        var ra = baseline.RawRightAttack - oldSubset.RawRightAttack + newSubset.RawRightAttack;
-        return ToSnapshot(ld, cd, rd, mid, la, ca, ra);
+        return ToSnapshot(
+            baseline.RawLeftDefence - oldSubset.RawLeftDefence + newSubset.RawLeftDefence,
+            baseline.RawCentralDefence - oldSubset.RawCentralDefence + newSubset.RawCentralDefence,
+            baseline.RawRightDefence - oldSubset.RawRightDefence + newSubset.RawRightDefence,
+            baseline.RawMidfield - oldSubset.RawMidfield + newSubset.RawMidfield,
+            baseline.RawLeftAttack - oldSubset.RawLeftAttack + newSubset.RawLeftAttack,
+            baseline.RawCentralAttack - oldSubset.RawCentralAttack + newSubset.RawCentralAttack,
+            baseline.RawRightAttack - oldSubset.RawRightAttack + newSubset.RawRightAttack);
     }
 
     private static RegionalRatingSnapshot Rebuild(
         RegionalRatingSnapshot rating,
-        Func<double, double> ld,
-        Func<double, double> cd,
-        Func<double, double> rd,
-        Func<double, double> mid,
-        Func<double, double> la,
-        Func<double, double> ca,
-        Func<double, double> ra)
-        => ToSnapshot(
-            ld(rating.RawLeftDefence), cd(rating.RawCentralDefence), rd(rating.RawRightDefence),
+        Func<double, double> ld, Func<double, double> cd, Func<double, double> rd,
+        Func<double, double> mid, Func<double, double> la, Func<double, double> ca, Func<double, double> ra)
+        => ToSnapshot(ld(rating.RawLeftDefence), cd(rating.RawCentralDefence), rd(rating.RawRightDefence),
             mid(rating.RawMidfield), la(rating.RawLeftAttack), ca(rating.RawCentralAttack), ra(rating.RawRightAttack));
 
-    private static RegionalRatingSnapshot ToSnapshot(
-        double ld, double cd, double rd, double mid, double la, double ca, double ra)
-        => new(
-            ld, cd, rd, mid, la, ca, ra,
+    private static RegionalRatingSnapshot ToSnapshot(double ld, double cd, double rd, double mid, double la, double ca, double ra)
+        => new(ld, cd, rd, mid, la, ca, ra,
             QuarterDisplay(ld), QuarterDisplay(cd), QuarterDisplay(rd), QuarterDisplay(mid),
             QuarterDisplay(la), QuarterDisplay(ca), QuarterDisplay(ra));
 
     private static double QuarterDisplay(double raw)
     {
-        if (!double.IsFinite(raw) || raw <= 0)
-            return 0;
+        if (!double.IsFinite(raw) || raw <= 0) return 0;
         return Math.Clamp(Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0, 0, 20);
     }
 
     private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p)
     {
         var position = RatingPositionResolver.Resolve(formation, slot.Code);
-        var side = slot.Code.EndsWith("-L", StringComparison.Ordinal)
-            ? PlayerSide.Left
-            : slot.Code.EndsWith("-R", StringComparison.Ordinal)
-                ? PlayerSide.Right
-                : PlayerSide.Center;
-
-        return new RegionalPlayer(
-            p.Id, position, side, slot.Order,
+        var side = slot.Code.EndsWith("-L", StringComparison.Ordinal) ? PlayerSide.Left
+            : slot.Code.EndsWith("-R", StringComparison.Ordinal) ? PlayerSide.Right : PlayerSide.Center;
+        return new RegionalPlayer(p.Id, position, side, slot.Order,
             p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring,
             p.Form, p.Loyalty, p.Experience, p.Stamina);
     }
