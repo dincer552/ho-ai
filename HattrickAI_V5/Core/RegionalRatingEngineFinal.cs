@@ -37,14 +37,10 @@ public sealed class RegionalRatingEngineFinal
         var totalForwards = players.Count(p => p.Position == RegionalPosition.Forward);
         var dummies = CreateForwardDummies(totalForwards - normalForwards.Count);
 
-        // Keep the same forward-sector crowding count while isolating only the
-        // normal-forward side-routing contribution.
         var currentNormal = ApplyExtraContext(
             _inner.Calculate(normalForwards.Concat(dummies).ToList(), context),
             engineContext);
 
-        // Empirical invariant from the supplied singleton screenshots:
-        // normal FW-L/FW-C/FW-R produce the same seven-sector attack profile.
         var empiricalNormal = ApplyExtraContext(
             _inner.Calculate(
                 normalForwards.Select(p => p with { Side = PlayerSide.Center })
@@ -212,13 +208,15 @@ public sealed class RegionalRatingEngineFinal
         double ld, double cd, double rd, double mid, double la, double ca, double ra)
         => new(
             ld, cd, rd, mid, la, ca, ra,
-            RegionalRatingEngine.Display(ld),
-            RegionalRatingEngine.Display(cd),
-            RegionalRatingEngine.Display(rd),
-            RegionalRatingEngine.Display(mid),
-            RegionalRatingEngine.Display(la),
-            RegionalRatingEngine.Display(ca),
-            RegionalRatingEngine.Display(ra));
+            QuarterDisplay(ld), QuarterDisplay(cd), QuarterDisplay(rd), QuarterDisplay(mid),
+            QuarterDisplay(la), QuarterDisplay(ca), QuarterDisplay(ra));
+
+    private static double QuarterDisplay(double raw)
+    {
+        if (!double.IsFinite(raw) || raw <= 0)
+            return 0;
+        return Math.Clamp(Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0, 0, 20);
+    }
 
     private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p)
     {
