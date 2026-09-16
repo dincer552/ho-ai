@@ -28,9 +28,6 @@ public static class RatingEngineValidationRegression
         CheckFinite(results[RatingEngineKind.HattrickDash].Rating, "HattrickDash engine");
         CheckRawSectors(results[RatingEngineKind.Foxtrick].Rating, ExpectedV5, "Foxtrick canonical sector source");
 
-        // Production display values must stay in each engine's native rating
-        // scale. HO and HattrickDash expose their native values at two-decimal
-        // display precision; V5/Foxtrick use the V5 display transform.
         foreach (var kind in Enum.GetValues<RatingEngineKind>())
         {
             CheckDisplayMatchesNativeScale(results[kind].Rating, kind, $"{kind} engine display");
@@ -61,7 +58,7 @@ public static class RatingEngineValidationRegression
 
         Console.WriteLine("RatingEngineValidationRegression PASS");
         Console.WriteLine("Canonical full CHPP fixture validated across V5 / HO / HattrickDash / Foxtrick.");
-        Console.WriteLine("Production display isolation validated: no Stage-2 nonlinear compression in the production rating path.");
+        Console.WriteLine("V5 production display quantization validated at quarter-step precision.");
         return 0;
     }
 
@@ -84,9 +81,17 @@ public static class RatingEngineValidationRegression
         {
             var expected = kind is RatingEngineKind.HO or RatingEngineKind.HattrickDash
                 ? Math.Round(raw[i], 2, MidpointRounding.AwayFromZero)
-                : RegionalRatingEngine.Display(raw[i]);
+                : kind == RatingEngineKind.V5
+                    ? QuarterDisplay(raw[i])
+                    : RegionalRatingEngine.Display(raw[i]);
             CheckNear(display[i], expected, 1e-9, $"{label} sector {i}");
         }
+    }
+
+    private static double QuarterDisplay(double raw)
+    {
+        if (!double.IsFinite(raw) || raw <= 0) return 0;
+        return Math.Clamp(Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0, 0, 20);
     }
 
     private static void CheckNear(double actual, double expected, double tolerance, string label)
