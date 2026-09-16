@@ -1,13 +1,14 @@
 {
   "schemaVersion": "hattrickai-v5-empirical-observations-v1",
   "source": "Direct Hattrick match-order screenshots supplied by manager",
-  "capturedAt": "2026-09-14",
+  "capturedAt": "2026-09-16",
   "notes": [
     "Values are transcribed from the visible seven sector ratings in the screenshots.",
     "These observations are evidence data only; they do not change production coefficients automatically.",
     "Two earlier captures show the same visible player arrangement but a 0.25 DEF-L discrepancy; both are retained rather than silently averaged or discarded.",
     "For the earlier singleton/pair captures, the empty-sector display floor was 0.75. New Doktor IM/FW screenshots are retained as displayed ratings and deltas; zero-valued sectors are not converted to a raw floor assumption.",
-    "WB singleton/pair observations from 2026-09-14 are retained as direct screenshot evidence for position/side mapping and additivity analysis."
+    "WB singleton/pair observations from 2026-09-14 are retained as direct screenshot evidence for position/side mapping and additivity analysis.",
+    "2026-09-16 Adrian Beta WB screenshots are retained as direct singleton evidence. The screenshot UI does not expose the selected order label, so order is intentionally left unspecified rather than inferred from the player-selection marker. Duplicate-looking captures are retained with duplicate markers when applicable."
   ],
   "observations": [
     {"id":"2026-09-13-2236-01","formation":"3-0-0","positions":{"left":"Nocon","center":"Pesalovo","right":"Takyi"},"sectorRatings":{"DEF-L":7.75,"DEF-C":7.0,"DEF-R":7.5,"MID":1.25,"ATT-L":1.25,"ATT-C":0.0,"ATT-R":1.25},"sourceImage":"1000048917.jpg","captureType":"screenshot"},
@@ -30,6 +31,14 @@
     {"id":"2026-09-14-wb-nocon-r","formation":"1-0-0","positions":{"right":"Nocon"},"sectorRatings":{"DEF-L":0.0,"DEF-C":1.75,"DEF-R":5.75,"MID":1.0,"ATT-L":0.0,"ATT-C":0.0,"ATT-R":1.25},"sourceImage":"1000048897.jpg","captureType":"singleton","role":"WB-R"},
     {"id":"2026-09-14-wb-nocon-l","formation":"1-0-0","positions":{"left":"Nocon"},"sectorRatings":{"DEF-L":5.75,"DEF-C":1.75,"DEF-R":0.0,"MID":1.0,"ATT-L":1.25,"ATT-C":0.0,"ATT-R":0.0},"sourceImage":"1000048893.jpg","captureType":"singleton","role":"WB-L"},
     {"id":"2026-09-14-wb-pesalovo-l-nocon-r","formation":"2-0-0","positions":{"left":"Pesalovo","right":"Nocon"},"sectorRatings":{"DEF-L":5.75,"DEF-C":3.25,"DEF-R":5.75,"MID":1.75,"ATT-L":1.25,"ATT-C":1.25,"ATT-R":1.25},"sourceImage":"1000048888.jpg","captureType":"pair","role":"WB-L + WB-R"},
-    {"id":"2026-09-14-wb-nocon-l-pesalovo-r","formation":"2-0-0","positions":{"left":"Nocon","right":"Pesalovo"},"sectorRatings":{"DEF-L":5.75,"DEF-C":3.25,"DEF-R":5.75,"MID":1.75,"ATT-L":1.25,"ATT-C":1.25,"ATT-R":1.25},"sourceImage":"1000048885.jpg","captureType":"pair","role":"WB-L + WB-R"}
+    {"id":"2026-09-14-wb-nocon-l-pesalovo-r","formation":"2-0-0","positions":{"left":"Nocon","right":"Pesalovo"},"sectorRatings":{"DEF-L":5.75,"DEF-C":3.25,"DEF-R":5.75,"MID":1.75,"ATT-L":1.25,"ATT-C":1.25,"ATT-R":1.25},"sourceImage":"1000048885.jpg","captureType":"pair","role":"WB-L + WB-R"},
+    {"id":"2026-09-16-wb-beta-r-01","formation":"0-0-1","positions":{"right":"Beta"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.0,"ATT-L":1.75,"ATT-C":3.25,"ATT-R":3.75},"sourceImage":"1000049145.jpg","captureType":"singleton","role":"WB-R","dataQuality":"order-unspecified"},
+    {"id":"2026-09-16-wb-beta-c-01","formation":"0-0-1","positions":{"center":"Beta"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.0,"ATT-L":2.0,"ATT-C":3.5,"ATT-R":2.0},"sourceImage":"1000049144.jpg","captureType":"singleton","role":"WB-C","dataQuality":"order-unspecified"},
+    {"id":"2026-09-16-wb-beta-c-02","formation":"0-0-1","positions":{"center":"Beta"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.0,"ATT-L":2.25,"ATT-C":4.75,"ATT-R":2.25},"sourceImage":"1000049143.jpg","captureType":"singleton","role":"WB-C","dataQuality":"order-unspecified"},
+    {"id":"2026-09-16-wb-beta-c-03","formation":"0-0-1","positions":{"center":"Beta"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.0,"ATT-L":2.0,"ATT-C":3.5,"ATT-R":2.0},"sourceImage":"1000049142.jpg","captureType":"singleton","role":"WB-C","dataQuality":"duplicate-of-2026-09-16-wb-beta-c-01"},
+    {"id":"2026-09-16-wb-beta-c-04","formation":"0-0-1","positions":{"center":"Beta"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.0,"ATT-L":2.25,"ATT-C":4.75,"ATT-R":2.25},"sourceImage":"1000049141.jpg","captureType":"singleton","role":"WB-C","dataQuality":"duplicate-of-2026-09-16-wb-beta-c-02"},
+    {"id":"2026-09-16-wb-beta-l-01","formation":"0-0-1","positions":{"left":"Beta"},"sectorRatings":{"DEF-L":3.75,"DEF-C":0.0,"DEF-R":0.0,"MID":1.0,"ATT-L":3.75,"ATT-C":3.25,"ATT-R":1.75},"sourceImage":"1000049140.jpg","captureType":"singleton","role":"WB-L","dataQuality":"order-unspecified"},
+    {"id":"2026-09-16-wb-beta-c-05","formation":"0-0-1","positions":{"center":"Beta"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.0,"ATT-L":2.0,"ATT-C":3.5,"ATT-R":2.0},"sourceImage":"1000049139.jpg","captureType":"singleton","role":"WB-C","dataQuality":"duplicate-of-2026-09-16-wb-beta-c-01"},
+    {"id":"2026-09-16-wb-beta-c-06","formation":"0-0-1","positions":{"center":"Beta"},"sectorRatings":{"DEF-L":0.0,"DEF-C":0.0,"DEF-R":0.0,"MID":1.0,"ATT-L":2.25,"ATT-C":4.75,"ATT-R":2.25},"sourceImage":"1000049138.jpg","captureType":"singleton","role":"WB-C","dataQuality":"duplicate-of-2026-09-16-wb-beta-c-02"}
   ]
 }
