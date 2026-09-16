@@ -181,8 +181,28 @@ public sealed class RegionalRatingEngineFixed
 
     private static void AddWingBack(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
     {
-        var centralDef = p.Order switch { PlayerOrder.Defensive => .089, PlayerOrder.TowardsMiddle => .126, PlayerOrder.Offensive => .071, _ => .083 };
-        var sideDef = p.Order switch { PlayerOrder.Defensive => .284, PlayerOrder.TowardsMiddle => .209, PlayerOrder.Offensive => .175, _ => .268 };
+        // 2026-09-16 empirical WB evidence: the supplied 1-0-0 Pesalovo
+        // screenshots show a left-side "Towards Wing" order concentrating
+        // defending toward the player's side while reducing central defence.
+        // The exact historical coefficient is not published, so the V5 model
+        // uses a deliberately small empirical routing layer anchored to Normal:
+        // side defence x1.50, central defence x0.6875, PM/wing attack unchanged.
+        var centralDef = p.Order switch
+        {
+            PlayerOrder.TowardsWing => .0570625,
+            PlayerOrder.Defensive => .089,
+            PlayerOrder.TowardsMiddle => .126,
+            PlayerOrder.Offensive => .071,
+            _ => .083
+        };
+        var sideDef = p.Order switch
+        {
+            PlayerOrder.TowardsWing => .402,
+            PlayerOrder.Defensive => .284,
+            PlayerOrder.TowardsMiddle => .209,
+            PlayerOrder.Offensive => .175,
+            _ => .268
+        };
         var midfield = p.Order switch { PlayerOrder.Defensive => .009, PlayerOrder.Offensive => .032, _ => .023 };
         var sideAttack = p.Order switch { PlayerOrder.Defensive => .082, PlayerOrder.TowardsMiddle => .072, PlayerOrder.Offensive => .163, _ => .129 };
         var def = p.Side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence; var att = p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack;
