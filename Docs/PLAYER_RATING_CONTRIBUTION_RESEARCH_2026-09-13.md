@@ -1,20 +1,52 @@
 # Player Rating Contribution Research — 2026-09-13
 
-## 2026-09-14 WB ekran analizi — son bulgu
+## 2026-09-16 — Güncel V5 durumu ve sonraki kalibrasyon
 
-Pesalovo ve Nocoń ile alınan **WB-L / WB-R singleton** ve **WB-L + WB-R pair** ekranları `EmpiricalMotorObservationDb.json` içine işlendi. Bu kontrollü set, WB'de taraf değişiminin yan DEF/ATT katkılarını karşı tarafa taşıdığını ve iki oyunculu durumda katkıların büyük ölçüde toplandığını gösteriyor.
+V5 regional rating motorunda mevcut ampirik kanıtlar yeniden özetlendi. **GK + CD + W + IM + FW + WB** pozisyon aileleri artık singleton/yan davranış gözlemleriyle kapsanıyor. Production'a alınan son ampirik düzeltme yalnızca **Normal FW slot simetrisi**: normal FW'nin L/C/R konumu değiştiğinde gözlenen 3 hücum sektörünün aynı kalması nedeniyle normal FW katkısı merkez-side normalize ediliyor. Defensive/Towards Wing FW davranışı değiştirilmedi.
 
-- Pesalovo WB-L: DEF `6.00 / 2.00 / 0.00`, ATT `1.25 / 0.00 / 0.00`
-- Pesalovo WB-R: DEF `0.00 / 2.00 / 6.00`, ATT `0.00 / 0.00 / 1.25`
-- Nocoń WB-L: DEF `5.75 / 1.75 / 0.00`, ATT `1.25 / 0.00 / 0.00`
-- Nocoń WB-R: DEF `0.00 / 1.75 / 5.75`, ATT `0.00 / 0.00 / 1.25`
-- WB-L + WB-R çiftlerinde merkez DEF `3.25`, MID `1.75` ve merkez ATT `1.25` görülüyor.
+Gerçek 3-4-3 CAL fixture'ında bu son değişiklikten sonra V5 ile eski kilitli değerler arasında yalnızca küçük farklar kaldı: **Sol Atak 9.91 vs 9.74 (+0.17)** ve **Sağ Atak 10.06 vs 9.93 (+0.13)**. Bu küçük farklar şimdilik kabul edilerek yeni katsayı oynanmayacak; eski regression lock'ları sırf sonucu eşleştirmek için değiştirmeden mevcut ampirik davranış korunacak.
 
-**Kısa analiz:** WB position/side mapping ve additivity hipotezi güçlendi. Görünen değerler form, XP ve display dönüşüm katmanlarını birlikte içerdiğinden global katsayıları değiştirmek için kullanılmadı. WB'nin normal/defensive/offensive/towards-middle order varyantları henüz ayrı singleton kanıtıyla doğrulanmadı.
+### Pozisyon ailelerinin mevcut durumu
+
+| Pozisyon | Mevcut bulgu | Durum |
+|---|---|---|
+| GK | Published GK katsayıları singleton ekranla çok yakın örtüşüyor | Güçlü |
+| CD | L/C/R side redistribution ve 3-defender additivity doğrulandı | Güçlü |
+| WB | WB-L/R mirror davranışı ve pair additivity doğrulandı; order varyantları eksik | Singleton temel davranış doğrulandı |
+| IM | L/C/R'de MID ve central attack sabit; yan DEF/ATT yeniden dağılıyor | Mimari güçlü, state/scale açık |
+| W | L/R mirror davranışı ve pair additivity doğrulandı | Güçlü |
+| FW | Normal FW L/C/R ekranları tamamen 2/3/2 simetrisi gösteriyor | Normal order güçlü; diğer order'lar açık |
+
+### 2026-09-16 sonraki deney sırası
+
+1. **WB singleton order deneyleri:** aynı oyuncuyla Normal / Defensive / Offensive / Towards Middle; mümkünse L/C/R kontrollü ekranlar.
+2. **IM order deneyleri:** Normal / Defensive / Offensive / Towards Wing; mümkün olduğunca aynı oyuncu ve aynı maç bağlamı.
+3. **FW order deneyleri:** Defensive / Towards Wing; normal FW simetrisi değiştirilmeden karşılaştırılacak.
+4. Her deneyde önce 7 sektörün mutlak beyaz ratingleri ground truth alınacak; yeşil/turuncu delta göstergeleri intrinsic contribution olarak kullanılmayacak.
+5. Yeterli kontrollü veri birikmeden global Contribution katsayıları değiştirilmeyecek.
+
+### Ana açık matematiksel konu
+
+Pozisyon/side mapping artık büyük ölçüde gözlemlenmiş durumda. Bundan sonraki kalibrasyonun ana hedefi:
+
+```text
+skill normalization
+→ loyalty
+→ form
+→ position/order contribution
+→ overcrowding
+→ experience
+→ stamina/minute
+→ context/tactic
+→ raw contribution scale
+→ Hattrick quarter-step display
+```
+
+Özellikle **raw contribution scale, XP ölçeği ve standard-state uplift'in form/XP katmanlarından ayrıştırılması** hâlâ çözülmemiştir. Bu nedenle yeni ekranlar öncelikle bu katmanları ayıracak şekilde seçilecektir.
 
 ## Kısa sonuç
 
-Oyuncunun DB'deki skill değerleri takım ratingine **doğrudan tek bir "oyuncu ratingi" olarak eklenmiyor**. Oyuncu önce bulunduğu pozisyon + taraf + bireysel davranış için skill katkılarına ayrılıyor; bu katkılar 7 takım sektöründe toplanıyor.
+Oyuncunun DB'deki skill değerleri takım ratingine doğrudan tek bir "oyuncu ratingi" olarak eklenmiyor. Oyuncu önce bulunduğu pozisyon + taraf + bireysel davranış için skill katkılarına ayrılıyor; bu katkılar 7 takım sektöründe toplanıyor.
 
 Temel zincir:
 
@@ -59,7 +91,7 @@ Bu katsayılar araştırılmış referanstır; gizli Hattrick source-code formü
 
 ### M7 — gerçek takım rating katkısı
 
-`V5RatingEngine` artık `RegionalRatingEngineFinal` üzerinden gidiyor. Final wrapper'ın tabanı `RegionalRatingEngineFixed`; CHPP'deki gerçek skill/form/stamina/experience/loyalty değerleri regional contribution hesabına giriyor. Yeni wrapper yalnızca gerçek ekran kanıtıyla doğrulanan normal-FW slot simetrisini production yoluna alıyor.
+`V5RatingEngine` `RegionalRatingEngineFinal` üzerinden çalışacak şekilde tasarlanmıştır. Final wrapper'ın tabanı `RegionalRatingEngineFixed`; CHPP'deki gerçek skill/form/stamina/experience/loyalty değerleri regional contribution hesabına girer. Yeni wrapper yalnızca gerçek ekran kanıtıyla doğrulanan normal-FW slot simetrisini production yoluna alır.
 
 Bu ayrım kritik: **M3 = oyuncu uygunluğu, M7 = takım sektör ratingi.**
 
@@ -103,40 +135,30 @@ Böylece örneğin bir DEF oyuncusunun `Defending 17` değerinin DEF-C'ye kaç p
 
 CHPP snapshot'ında 31 oyuncunun skill/form/stamina/experience/loyalty/specialty alanları mevcut. Bu veri gelecekte contribution ledger ve gerçek Hattrick screenshot kalibrasyonu için kullanılacak. Ham oyuncu verisi production katsayılarına otomatik olarak yazılmayacak.
 
+## 6. Gerçek ekran verisiyle ana kanıtlar
+
+### 6A. WB singleton + pair
+
+Pesalovo ve Nocoń ile WB-L/WB-R tek oyuncu testleri ve karşılıklı WB-L + WB-R çift testleri kaydedildi. Sonuçlar, oyuncu sağa/sola taşındığında yan savunma ve yan hücum katkılarının karşı tarafa yeniden dağıldığını; çift testlerde sektörlerin büyük ölçüde tek oyuncu katkılarının toplamı olduğunu gösteriyor.
+
 Örnek:
-
-```text
-Abeiku Takyi:    DEF 17, PM 3, PASS 8, WING 4, SCORE 7, STAM 6, FORM 5, EXP 10
-Dawid Nocoń:     DEF 17, PM 3, PASS 5, WING 4, SCORE 7, STAM 5, FORM 6, EXP 12
-Cristian Pesalovo: DEF 16, PM 6, PASS 9, WING 3, SCORE 6, STAM 7, FORM 7, EXP 6
-Bertalan Doktor: PM 16, PASS 11, DEF 2, WING 6, SCORE 6, STAM 6, FORM 6, EXP 8
-Manuel Gobiet:   PM 11, WING 15, PASS 9, DEF 9, SCORE 8, STAM 6, FORM 8, EXP 7
-```
-
-## 6. Gerçek ekran verisiyle yeni kanıt
-
-13.09.2026 tarihli 3-0-0 ekran gözlemleri `HattrickAI_V5/Core/EmpiricalMotorObservationDb.json` içine iki ayrı capture olarak kaydedildi.
-
-Aynı görünen oyuncu dizilimi için iki capture'da DEF-L 7.75 ve 7.50 olarak farklı çıktı. Bu nedenle iki ölçüm ayrı tutuldu; ortalaması alınmadı. Bu farkın UI refresh/context/slot mapping kaynaklı olup olmadığı ayrıca araştırılacak.
-
-### 6A. 14.09.2026 WB singleton + pair kanıtı
-
-Pesalovo ve Nocoń ile WB-L/WB-R tek oyuncu testleri ve karşılıklı WB-L + WB-R çift testleri kaydedildi. Sonuçlar, oyuncu sağa/sola taşındığında yan savunma ve yan hücum katkılarının beklenen şekilde karşı tarafa yeniden dağıldığını; çift testlerde ise sektörlerin büyük ölçüde tek oyuncu katkılarının toplamı olduğunu gösteriyor.
-
-Özellikle:
 
 - Pesalovo WB-L: DEF 6.00 / 2.00 / 0.00, ATT 1.25 / 0.00 / 0.00
 - Pesalovo WB-R: DEF 0.00 / 2.00 / 6.00, ATT 0.00 / 0.00 / 1.25
 - Nocoń WB-L: DEF 5.75 / 1.75 / 0.00, ATT 1.25 / 0.00 / 0.00
 - Nocoń WB-R: DEF 0.00 / 1.75 / 5.75, ATT 0.00 / 0.00 / 1.25
 
-İki WB birlikte kullanıldığında merkez savunmanın yaklaşık 3.25'e çıkması, tekil merkez katkıların toplandığını destekliyor. Bu veri **WB position/side mapping ve additivity hipotezini güçlendiriyor**, ancak form/XP/display katmanları ayrıştırılmadan production katsayılarını değiştirmek için tek başına yeterli değil.
+İki WB birlikte kullanıldığında merkez savunmanın yaklaşık 3.25'e çıkması, tekil merkez katkıların toplandığını destekliyor. Bu veri WB position/side mapping ve additivity hipotezini güçlendiriyor; ancak form/XP/display katmanları ayrıştırılmadan production katsayılarını değiştirmek için tek başına yeterli değil.
 
-### 6B. 14.09.2026 Doktor IM/FW kanıtı
+### 6B. Doktor IM/FW singleton
 
 Bertalan Doktor'un IM-L/C/R singleton seti MID **2.75** ve central attack **1.75** değerlerini sabit tutarken yan DEF/ATT dağılımını değiştiriyor. Aynı oyuncunun normal FW-L/C/R setinde ise üç hücum sektörü **2 / 3 / 2** olarak sabit kalıyor.
 
-**Production sonucu:** normal FW için slot simetrisi artık V5 final motorunda uygulanıyor. IM/W/WB taraf-routing davranışları mevcut katsayı matrisiyle korunuyor. Defensive/TowardsWing FW order'ları için ayrı screenshot seti bekleniyor.
+**Production sonucu:** normal FW için slot simetrisi V5 final motorunda uygulanıyor. Defensive/TowardsWing FW order'ları için ayrı screenshot seti bekleniyor.
+
+### 6C. CD ve W additivity / mirror bulguları
+
+CD singleton ve üçlü kombinasyonlar, oyuncunun L/C/R taraf değişiminin yan sektörleri yeniden dağıttığını ve katkıların büyük ölçüde additive olduğunu gösterdi. W singleton ve pair testleri de aynı mirror/additivity davranışını destekledi. Bu iki aile için mevcut pozisyon/side mapping korunuyor.
 
 ## 7. Kalibrasyon kararı
 
@@ -152,7 +174,7 @@ Korunan/kanıtlı katmanlar:
 6. separate experience contribution
 7. context/tactic/minute
 8. raw/display pipeline
-9. yeni: normal-FW slot symmetry correction
+9. normal-FW slot symmetry correction
 
 **Henüz çözülmeyenler:** raw contribution → Hattrick quarter-step display dönüşümü, XP'nin kesin ölçeklemesi ve standard-state uplift'in form/XP ile ayrıştırılması.
 
@@ -176,4 +198,4 @@ Korunan/kanıtlı katmanlar:
 
 **Asıl eksik artık "oyuncunun skill'i ratinge katkı yapıyor mu?" değil; katkının tam olarak hangi ara katmanlardan geçip Hattrick'in görünen 7 sektör değerine dönüştüğü.**
 
-Bir sonraki teknik hedef: `Player Contribution Ledger` + kontrollü order/state screenshot setleri.
+Bir sonraki teknik hedef: **WB order singleton testleri → IM order singleton testleri → FW defensive/towards-wing testleri → Player Contribution Ledger → raw/display/XP kalibrasyonu.**
