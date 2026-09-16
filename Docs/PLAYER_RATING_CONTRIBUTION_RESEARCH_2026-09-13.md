@@ -10,7 +10,7 @@ Pesalovo ve Nocoń ile alınan **WB-L / WB-R singleton** ve **WB-L + WB-R pair**
 - Nocoń WB-R: DEF `0.00 / 1.75 / 5.75`, ATT `0.00 / 0.00 / 1.25`
 - WB-L + WB-R çiftlerinde merkez DEF `3.25`, MID `1.75` ve merkez ATT `1.25` görülüyor.
 
-**Kısa analiz:** WB position/side mapping ve additivity hipotezi güçlendi. Ancak görünen değerler form, XP ve display dönüşüm katmanlarını birlikte içerdiğinden bu veri tek başına production katsayısı değiştirmek için kullanılmıyor. Sonraki kontrollü hedef WB davranışları: **Normal / Defensive / Offensive / Towards Middle**.
+**Kısa analiz:** WB position/side mapping ve additivity hipotezi güçlendi. Görünen değerler form, XP ve display dönüşüm katmanlarını birlikte içerdiğinden global katsayıları değiştirmek için kullanılmadı. WB'nin normal/defensive/offensive/towards-middle order varyantları henüz ayrı singleton kanıtıyla doğrulanmadı.
 
 ## Kısa sonuç
 
@@ -59,13 +59,13 @@ Bu katsayılar araştırılmış referanstır; gizli Hattrick source-code formü
 
 ### M7 — gerçek takım rating katkısı
 
-`V5RatingEngine` doğrudan `RegionalRatingEngineFixed` kullanıyor. Yani production V5 ratinginde oyuncunun M3 Foxtrick skoru tekrar takım ratingine sokulmuyor; CHPP'deki gerçek skill/form/stamina/experience/loyalty değerleri doğrudan regional contribution hesabına giriyor.
+`V5RatingEngine` artık `RegionalRatingEngineFinal` üzerinden gidiyor. Final wrapper'ın tabanı `RegionalRatingEngineFixed`; CHPP'deki gerçek skill/form/stamina/experience/loyalty değerleri regional contribution hesabına giriyor. Yeni wrapper yalnızca gerçek ekran kanıtıyla doğrulanan normal-FW slot simetrisini production yoluna alıyor.
 
 Bu ayrım kritik: **M3 = oyuncu uygunluğu, M7 = takım sektör ratingi.**
 
 ## 3. DB alanlarının ratinge etkisi
 
-Mevcut production `RegionalRatingEngineFixed` akışında:
+Mevcut production rating akışında:
 
 - `keeper`, `defending`, `playmaking`, `passing`, `winger`, `scoring`: pozisyon katsayılarıyla sektörlere katkı verir.
 - `form`: contribution'ın form çarpanını değiştirir.
@@ -132,19 +132,29 @@ Pesalovo ve Nocoń ile WB-L/WB-R tek oyuncu testleri ve karşılıklı WB-L + WB
 
 İki WB birlikte kullanıldığında merkez savunmanın yaklaşık 3.25'e çıkması, tekil merkez katkıların toplandığını destekliyor. Bu veri **WB position/side mapping ve additivity hipotezini güçlendiriyor**, ancak form/XP/display katmanları ayrıştırılmadan production katsayılarını değiştirmek için tek başına yeterli değil.
 
-Bu nedenle mevcut karar korunuyor: **veri DB'ye eklenir, production coefficient değiştirilmez.** Bir sonraki kontrollü deney WB davranış varyantları (normal/defensive/offensive/towards middle) ve ardından kalan davranışların A/B karşılaştırmasıdır.
+### 6B. 14.09.2026 Doktor IM/FW kanıtı
+
+Bertalan Doktor'un IM-L/C/R singleton seti MID **2.75** ve central attack **1.75** değerlerini sabit tutarken yan DEF/ATT dağılımını değiştiriyor. Aynı oyuncunun normal FW-L/C/R setinde ise üç hücum sektörü **2 / 3 / 2** olarak sabit kalıyor.
+
+**Production sonucu:** normal FW için slot simetrisi artık V5 final motorunda uygulanıyor. IM/W/WB taraf-routing davranışları mevcut katsayı matrisiyle korunuyor. Defensive/TowardsWing FW order'ları için ayrı screenshot seti bekleniyor.
 
 ## 7. Kalibrasyon kararı
 
-Henüz Contribution katsayılarını rastgele değiştirmiyoruz.
+Global Contribution katsayıları hâlâ rastgele değiştirilmiyor.
 
-Önce:
+Korunan/kanıtlı katmanlar:
 
-1. Her oyuncunun contribution ledger'ı çıkarılacak.
-2. Aynı XI'nin Hattrick 7 sektör ground truth'u ile karşılaştırılacak.
-3. Skill normalization, form, experience, loyalty, crowding ve position/side mapping ayrı A/B testleriyle ölçülecek.
-4. Raw contribution → displayed rating dönüşümü ayrı test edilecek.
-5. Birden fazla gerçek maç/screenshot aynı hatayı doğrularsa production katsayısı değiştirilecek.
+1. skill normalization (`skill - 1`)
+2. loyalty
+3. form/stamina
+4. published position/order coefficients
+5. crowding
+6. separate experience contribution
+7. context/tactic/minute
+8. raw/display pipeline
+9. yeni: normal-FW slot symmetry correction
+
+**Henüz çözülmeyenler:** raw contribution → Hattrick quarter-step display dönüşümü, XP'nin kesin ölçeklemesi ve standard-state uplift'in form/XP ile ayrıştırılması.
 
 ## 8. Proje araştırma durumu — kısa özet
 
@@ -166,4 +176,4 @@ Henüz Contribution katsayılarını rastgele değiştirmiyoruz.
 
 **Asıl eksik artık "oyuncunun skill'i ratinge katkı yapıyor mu?" değil; katkının tam olarak hangi ara katmanlardan geçip Hattrick'in görünen 7 sektör değerine dönüştüğü.**
 
-Bir sonraki teknik hedef: `Player Contribution Ledger` + gerçek screenshot karşılaştırması.
+Bir sonraki teknik hedef: `Player Contribution Ledger` + kontrollü order/state screenshot setleri.
