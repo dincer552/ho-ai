@@ -104,3 +104,13 @@ Repo'da `pow(x,1.2)/4+1` araştırma converter'ı bulunuyor; production fixed en
 ## 9. Next calibration target
 
 Öncelik: **raw contribution scale → form/loyalty → XP → overcrowding → display quantization → coefficient refinement**. Singleton set artık GK/CD/W/IM/FW ailelerini kapsıyor. Sonraki kritik aile **WB**. Ardından IM/FW individual-order deneyleriyle order katsayıları ayrıştırılacak. Aynı oyuncu/slot ve farklı state içeren kontrollü screenshot yine en değerli kalibrasyon kanıtı.
+
+## 10. 2026-09-16 — Empirical final V5 motor
+
+Son screenshot setleriyle doğrulanan WB-L/WB-R additivity + W mirror davranışı + normal IM slot invariantı + normal FW L/C/R simetrisi birlikte değerlendirildi.
+
+**Production'a alınan tek yeni davranış:** `Normal Forward` katkısı artık slot tarafına bağlanmıyor. V5 final wrapper'ı normal FW'leri hesaplama sırasında merkez-side normalize ederek üç hücum sektöründeki kanıtlanmış `L/C/R` simetrisini koruyor. Defensive/TowardsWing FW davranışı değiştirilmedi; bu order'lar için henüz yeterli singleton kanıt yok.
+
+**Korunan katmanlar:** skill-1 normalization, loyalty, form/stamina, published position coefficients, crowding, separate XP, context/tactic ve mevcut raw/display pipeline.
+
+**Değiştirilmeyen belirsizlikler:** raw→Hattrick quarter-step display dönüşümü, XP'nin kesin ölçeklemesi ve standard-state uplift ayrıştırması için yeni kontrollü ekranlar gerekiyor. Bunlar doğrulanmadan global katsayılar değiştirilmedi.
