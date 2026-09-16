@@ -1,6 +1,6 @@
 namespace HattrickAI.V5.Core;
 
-/// <summary>Production adapter that exposes the current empirically calibrated V5 rating calculation without applying the experimental Stage 2 nonlinear display compression.</summary>
+/// <summary>Production adapter exposing the empirically calibrated V5 rating calculation.</summary>
 public sealed class V5RatingEngine : IRatingEngine
 {
     private readonly RegionalRatingEngineFinal _engine = new();
@@ -10,7 +10,11 @@ public sealed class V5RatingEngine : IRatingEngine
     public RatingEngineResult Calculate(RatingEngineRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var rating = _engine.CalculateLineup(request.Lineup, request.Players, request.Context);
+        var rating = _engine.CalculateLineup(
+            request.Lineup,
+            request.Players,
+            request.Context,
+            request.HOContext);
         return new RatingEngineResult(Kind, rating);
     }
 }
