@@ -15,7 +15,6 @@ Kısa kural: Her yeni hesap/yorum buraya kısa ve sayısal olarak eklenecek. Ür
 - Published normal-FW skill-only kaba hesap: MID `16×.041=.656`; side ATT `6×.058 + 6×.032 + 11×.048=1.068`; center ATT `6×.178 + 11×.066=1.794`. Gözlenen `1.25 / 2 / 3 / 2`, özellikle merkez hücumun skill-only değerden yaklaşık **1.67×** yüksek olması, state/XP/scale katmanının tek başına ihmal edilemeyeceğini gösteriyor.
 - Son IM/FW ekranlarındaki yeşil/turuncu küçük sayılar **delta göstergesi**; bunları oyuncunun mutlak katkısı olarak kullanmıyoruz. Ana beyaz rating sayıları ground truth olarak tutuluyor.
 - **Yeni sonuç:** IM için yan pozisyon değişiminde MID ve central-attack sabit kalıyor; FW için L/C/R değişiminde bütün hücum ratingleri sabit kalıyor. Bu, pozisyon katsayı matrisinin sadece "hangi skill ne kadar" değil, aynı zamanda **slot/order tarafından hangi sektöre yönlendirildiği** şeklinde modellenmesi gerektiğini doğruluyor.
-- Artık singleton kapsaması: **GK + CD + W + IM + FW**. Eksik büyük pozisyon ailesi **WB**. Sonraki en değerli deney: Manuel Gobiet/Nándor Dobóvári gibi WB adaylarından biriyle WB-C/L/R; ardından IM/FW emirleri (offensive/defensive/towards wing).
 
 ## 1. Scope
 
@@ -39,14 +38,14 @@ M7 regional rating için derin hesaplama notu. Kaynaklar: production V5 fixed en
 ### Nocoń
 - R: 0 / 1.75 / 5.75, MID 1, ATT-R 1.25
 - CR: 0 / 3.75 / 3.5, MID 1
-- C: 2 / 3.75 / 2, MID 1, attacks 0
+- C: 2 / 3.75 / 2, MID 1
 - CL: 3.5 / 3.75 / 0, MID 1
 - L: 5.75 / 1.75 / 0, MID 1, ATT-L 1.5
 
 ### Takyi
 - R: 0 / 1.75 / 5.75, MID 1, ATT-R 1.5
 - CR: 0 / 3.75 / 3.25, MID 1
-- C: 2 / 3.75 / 2, MID 1, attacks 0
+- C: 2 / 3.75 / 2, MID 1
 - CL: 3.25 / 3.75 / 0, MID 1
 - L: 5.75 / 1.75 / 0, MID 1, ATT-L 1.5
 
@@ -57,6 +56,17 @@ M7 regional rating için derin hesaplama notu. Kaynaklar: production V5 fixed en
 - FW-R: 0 / 0 / 0, MID 1.25, ATT 2 / 3 / 2
 - FW-C: 0 / 0 / 0, MID 1.25, ATT 2 / 3 / 2
 - FW-L: 0 / 0 / 0, MID 1.25, ATT 2 / 3 / 2
+
+### 2026-09-16 Pesalovo WB controlled order/position set
+- **WB-L Normal:** DEF-L/C/R = **3.50 / 4.00 / 0**, MID **1.00**, ATT = **0 / 0 / 0**.
+- **WB-L Towards Wing:** **5.25 / 2.75 / 0**, MID **1.00**, ATT = **0 / 0 / 0**.
+- **WB-L Offensive:** **2.75 / 3.00 / 0**, MID **1.25**, ATT = **0 / 0 / 0**.
+- **WB-C Normal:** **2.00 / 4.00 / 2.00**, MID **1.00**, ATT = **0 / 0 / 0**.
+- **WB-C Offensive:** **1.75 / 3.00 / 1.75**, MID **1.25**, ATT = **0 / 0 / 0**.
+- Normal L→C preserves central defence at **4.00** and mirrors the side defence (**3.50/0 → 2.00/2.00**).
+- Offensive L→C preserves central defence at **3.00** and mirrors the side defence (**2.75/0 → 1.75/1.75**); MID remains **1.25**.
+- Normal→Offensive in the controlled same-side/center captures reduces central defence by **1.00**, shifts side defence downward, and raises MID by **0.25**.
+- Normal→Towards Wing on the left concentrates defence toward the player's own side: **DEF-L +1.75**, **DEF-C -1.25**, while MID stays **1.00**.
 
 ## 4. Additivity check
 
@@ -101,16 +111,10 @@ Repo'da `pow(x,1.2)/4+1` araştırma converter'ı bulunuyor; production fixed en
 
 **Çözülmedi:** skill normalization, form eğrisi/baseline, XP'nin exact scale'i, raw→display dönüşümü, tactic/context ve coefficient tablosunun standard-state uplift'inin nasıl ayrıştırılacağı.
 
-## 9. Next calibration target
+## 9. Production V5 status
 
-Öncelik: **raw contribution scale → form/loyalty → XP → overcrowding → display quantization → coefficient refinement**. Singleton set artık GK/CD/W/IM/FW ailelerini kapsıyor. Sonraki kritik aile **WB**. Ardından IM/FW individual-order deneyleriyle order katsayıları ayrıştırılacak. Aynı oyuncu/slot ve farklı state içeren kontrollü screenshot yine en değerli kalibrasyon kanıtı.
-
-## 10. 2026-09-16 — Empirical final V5 motor
-
-Son screenshot setleriyle doğrulanan WB-L/WB-R additivity + W mirror davranışı + normal IM slot invariantı + normal FW L/C/R simetrisi birlikte değerlendirildi.
-
-**Production'a alınan tek yeni davranış:** `Normal Forward` katkısı artık slot tarafına bağlanmıyor. V5 final wrapper'ı normal FW'leri hesaplama sırasında merkez-side normalize ederek üç hücum sektöründeki kanıtlanmış `L/C/R` simetrisini koruyor. Defensive/TowardsWing FW davranışı değiştirilmedi; bu order'lar için henüz yeterli singleton kanıt yok.
-
-**Korunan katmanlar:** skill-1 normalization, loyalty, form/stamina, published position coefficients, crowding, separate XP, context/tactic ve mevcut raw/display pipeline.
-
-**Değiştirilmeyen belirsizlikler:** raw→Hattrick quarter-step display dönüşümü, XP'nin kesin ölçeklemesi ve standard-state uplift ayrıştırması için yeni kontrollü ekranlar gerekiyor. Bunlar doğrulanmadan global katsayılar değiştirilmedi.
+- Normal FW slot-symmetry invariant production `RegionalRatingEngineFinal` içinde aktif.
+- 2026-09-16 Pesalovo WB controlled seti DB'ye işlendi.
+- Yeni WB Towards Wing ekranı üretim motorunda ayrı routing olarak işlendi: Normal WB savunma matrisine göre **side defence ×1.50**, **central defence ×0.6875**; PM ve wing-attack katsayıları korunuyor. Bu katman doğrudan supplied screenshot delta'sına dayalı empirik kalibrasyondur; resmi Hattrick katsayısı iddiası değildir.
+- WB Normal/Offensive L↔C mirror davranışı mevcut slot-side routing ile korunuyor.
+- Raw→Hattrick quarter-step display dönüşümü ve XP kesin ölçeği hâlâ bağımsız kalibrasyon katmanı olarak tutuluyor; bu aşamada global display dönüşümü production path'e bağlanmadı.
