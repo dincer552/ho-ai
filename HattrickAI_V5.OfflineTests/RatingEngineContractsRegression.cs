@@ -36,7 +36,11 @@ public static class RatingEngineContractsRegression
         var codes = new[] { "GK", "DEF-L", "DEF-C", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-R" };
         var slots = codes.Select((code, i) => new Slot(code, code, "contract", players[i].Name, players[i].Id, 0, 0, 0)).ToList();
         var request = new RatingEngineRequest(new Lineup("Contract", "3-5-2", slots), players, RatingContext.Default);
-        var expectedV5 = new RegionalRatingEngineFixed().CalculateLineup(request.Lineup, request.Players, request.Context);
+
+        // The contract expected value must come from the same production final
+        // engine as the V5 registry adapter. This intentionally includes the
+        // empirically verified normal-FW slot-symmetry correction.
+        var expectedV5 = new RegionalRatingEngineFinal().CalculateLineup(request.Lineup, request.Players, request.Context);
         var actualV5 = registry.Calculate(RatingEngineKind.V5, request).Rating;
         var actual = Values(actualV5).ToArray();
         var expectedValues = Values(expectedV5).ToArray();
