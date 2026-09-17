@@ -239,7 +239,19 @@ public sealed class RegionalRatingEngineFixed
 
     private static void AddWinger(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
     {
-        var v = p.Order switch { PlayerOrder.Defensive => new WingerMatrix(.050,.148,.054,.185,.044,.009), PlayerOrder.TowardsMiddle => new WingerMatrix(.047,.093,.082,.160,.043,.026), PlayerOrder.Offensive => new WingerMatrix(.016,.055,.054,.247,.062,.024), _ => new WingerMatrix(.037,.104,.065,.219,.054,.018) };
+        // 2026-09-16 controlled W-L singleton set (M. Gobiet): the same
+        // player/slot was captured in Normal, Towards Middle, Offensive and
+        // Defensive orders. The displayed sector deltas prove redistribution,
+        // not a scalar order multiplier. These coefficients are calibrated to
+        // that four-case singleton set; the skill-routing split is preserved
+        // from the previous matrix for the side-attack passing/winger pair.
+        var v = p.Order switch
+        {
+            PlayerOrder.TowardsMiddle => new WingerMatrix(.0884884743818279, .1204434042855921, .16922954343958763, .04631865503416777, .012448138540432587, .13758562247257852),
+            PlayerOrder.Offensive => new WingerMatrix(.0648656948187512, .07319784515943871, .16922954343958763, .05998694709321824, .015057452306799718, .18483118159873194),
+            PlayerOrder.Defensive => new WingerMatrix(.11211125394490458, .1440661838486688, .16922954343958763, .04817532425246202, .011457914957342318, .09034006334642512),
+            _ => new WingerMatrix(.11211125394490458, .0968206247225154, .1464213424821343, .18725421398707254, .04617227194201788, .09034006334642512)
+        };
         Add(s, RatingSector.CentralDefence, k.Defending * v.CentralDefence, k.FormMultiplier); AddSideOnly(s, p.Side, RatingSector.LeftDefence, RatingSector.RightDefence, k.Defending * v.SideDefence, k.FormMultiplier); Add(s, RatingSector.Midfield, k.Playmaking * v.Midfield, k.FormMultiplier); AddSideOnly(s, p.Side, RatingSector.LeftAttack, RatingSector.RightAttack, k.Passing * v.SidePassing + k.Winger * v.SideWinger, k.FormMultiplier); Add(s, RatingSector.CentralAttack, k.Passing * v.CenterPassing, k.FormMultiplier);
     }
 
