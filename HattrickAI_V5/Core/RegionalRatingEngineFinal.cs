@@ -115,12 +115,12 @@ public sealed class RegionalRatingEngineFinal
 
         return p with
         {
-            Keeper = p.Keeper * multiplier,
-            Defending = p.Defending * multiplier,
-            Playmaking = p.Playmaking * multiplier,
-            Passing = p.Passing * multiplier,
-            Winger = p.Winger * multiplier,
-            Scoring = p.Scoring * multiplier
+            Keeper = (int)Math.Round(p.Keeper * multiplier, MidpointRounding.AwayFromZero),
+            Defending = (int)Math.Round(p.Defending * multiplier, MidpointRounding.AwayFromZero),
+            Playmaking = (int)Math.Round(p.Playmaking * multiplier, MidpointRounding.AwayFromZero),
+            Passing = (int)Math.Round(p.Passing * multiplier, MidpointRounding.AwayFromZero),
+            Winger = (int)Math.Round(p.Winger * multiplier, MidpointRounding.AwayFromZero),
+            Scoring = (int)Math.Round(p.Scoring * multiplier, MidpointRounding.AwayFromZero)
         };
     }
 
