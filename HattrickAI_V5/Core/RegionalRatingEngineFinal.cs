@@ -262,7 +262,8 @@ public sealed class RegionalRatingEngineFinal
     private static double QuarterDisplay(double raw)
     {
         if (!double.IsFinite(raw) || raw <= 0) return 0;
-        return Math.Clamp(Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0, 0, 20);
+        var rounded = Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0;
+        return Math.Clamp(Math.Max(1.0, rounded), 1.0, 20.0);
     }
 
     private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p)
