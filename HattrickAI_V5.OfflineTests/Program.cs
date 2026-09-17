@@ -51,6 +51,8 @@ if (args.Length > 0 && string.Equals(args[0], "cal001-variants", StringCompariso
     return CAL001ModelVariantRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "empirical-defence", StringComparison.OrdinalIgnoreCase))
     return EmpiricalDefensiveSingletonRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "empirical-winger", StringComparison.OrdinalIgnoreCase))
+    return EmpiricalWingerSingletonRegression.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
