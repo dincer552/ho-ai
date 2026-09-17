@@ -33,7 +33,11 @@ public sealed class TeamPlayerChppExportService
             ["teamId"] = teamId.ToString(CultureInfo.InvariantCulture)
         }, ct);
 
-        var trainerId = XmlV5.Int(team, "Trainer/PlayerID");
+        // IMPORTANT: "Trainer/PlayerID" is not a valid XML element name. Passing
+        // that path to XElement.Element() makes .NET throw the exact 502 seen in
+        // production: "The '/' character ... cannot be included in a name."
+        // Reuse the existing safe team-details traversal used by AnalysisService.
+        var trainerId = ChppRosterFilter.ReadTrainerId(team);
         var players = XmlV5.Root(playersXml)?.Descendants("Player")
             .Select(ParsePlayer)
             .Where(p => p.Id > 0 && p.Id != trainerId)
