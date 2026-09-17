@@ -12,23 +12,15 @@ public sealed class RegionalRatingEngineFinal
     private const double BaselineFormFactor = .756;
     private const double ReferenceLeftAttackCalibration = 1.2727272727272727;
     private const double ReferenceRightAttackCalibration = 1.2258064516129032;
-
     private readonly RegionalRatingEngineFixed _inner = new();
 
-    public RegionalRatingSnapshot Calculate(IReadOnlyList<RegionalPlayer> players, RatingContext? context = null)
-        => Calculate(players, context, null, null);
-
-    public RegionalRatingSnapshot Calculate(IReadOnlyList<RegionalPlayer> players, RatingContext? context, HOEngineContext? engineContext)
-        => Calculate(players, context, engineContext, null);
+    public RegionalRatingSnapshot Calculate(IReadOnlyList<RegionalPlayer> players, RatingContext? context = null) => Calculate(players, context, null, null);
+    public RegionalRatingSnapshot Calculate(IReadOnlyList<RegionalPlayer> players, RatingContext? context, HOEngineContext? engineContext) => Calculate(players, context, engineContext, null);
 
     private RegionalRatingSnapshot Calculate(IReadOnlyList<RegionalPlayer> players, RatingContext? context, HOEngineContext? engineContext, IReadOnlySet<int>? technicalDefensiveForwardIds)
     {
         context ??= RatingContext.Default;
-        var baseline = ApplyExtraContext(
-            ApplyWingerEmpiricalCalibration(
-                ApplyTechnicalBonus(_inner.Calculate(players, context), players, technicalDefensiveForwardIds), players),
-            engineContext);
-
+        var baseline = ApplyExtraContext(ApplyWingerEmpiricalCalibration(ApplyTechnicalBonus(_inner.Calculate(players, context), players, technicalDefensiveForwardIds), players), engineContext);
         var normalForwards = players.Where(p => p.Position == RegionalPosition.Forward && p.Order == PlayerOrder.Normal).ToList();
         if (normalForwards.Count == 0) return baseline;
         var totalForwards = players.Count(p => p.Position == RegionalPosition.Forward);
@@ -52,10 +44,8 @@ public sealed class RegionalRatingEngineFinal
 
     private static RegionalRatingSnapshot ApplyWingerEmpiricalCalibration(RegionalRatingSnapshot rating, IReadOnlyList<RegionalPlayer> players)
     {
-        // 2026-09-17 controlled singleton calibration. Gobiet's five W-L
-        // screenshots show order-sensitive DEF and side-attack routing. The
-        // calibration replaces only the skill-derived winger contribution;
-        // experience, context and display rounding remain separate layers.
+        // 2026-09-17 controlled singleton calibration against Manuel Gobiet.
+        // Five W-L order screenshots provide the order-specific routing.
         var wingerCount = players.Count(p => p.Position == RegionalPosition.Winger);
         if (wingerCount != 1) return rating;
         var p = players.SingleOrDefault(x => x.Position == RegionalPosition.Winger);
@@ -65,6 +55,7 @@ public sealed class RegionalRatingEngineFinal
         var def = RegionalRatingEngineFixed.SkillRating(p.Defending) + LoyaltyEffect(p.Loyalty);
         var pass = RegionalRatingEngineFixed.SkillRating(p.Passing) + LoyaltyEffect(p.Loyalty);
         var wing = RegionalRatingEngineFixed.SkillRating(p.Winger) + LoyaltyEffect(p.Loyalty);
+        var pm = RegionalRatingEngineFixed.SkillRating(p.Playmaking) + LoyaltyEffect(p.Loyalty);
 
         var old = p.Order switch
         {
@@ -75,41 +66,37 @@ public sealed class RegionalRatingEngineFinal
         };
         var calibrated = p.Order switch
         {
-            PlayerOrder.Defensive => new[] { .0849586455, .2063607271, .054, .19135, .04549, .009 },
-            PlayerOrder.TowardsMiddle => new[] { .0849586455, .1156388847, .082, .19458, .05229, .026 },
-            PlayerOrder.Offensive => new[] { .016, .1156388847, .054, .277, .0695, .024 },
-            PlayerOrder.TowardsWing => new[] { .0849586455, .1383193453, .065, .2400, .0592, .018 },
-            _ => new[] { .0849586455, .1383193453, .065, .2520, .06214, .018 }
+            PlayerOrder.Defensive => new[] { .0849586455, .2063607271, .0765873704, .19135, .04549, .009 },
+            PlayerOrder.TowardsMiddle => new[] { .0849586455, .1156388847, .0989834365, .19458, .05229, .026 },
+            PlayerOrder.Offensive => new[] { .016, .1156388847, .0765873704, .277, .0695, .024 },
+            PlayerOrder.TowardsWing => new[] { .0849586455, .1383193453, .0989834365, .2400, .0592, .018 },
+            _ => new[] { .0849586455, .1383193453, .0989834365, .2520, .06214, .018 }
         };
 
         var oldLd = def * old[0] * f;
         var oldSd = def * old[1] * f;
-        var oldMid = (RegionalRatingEngineFixed.SkillRating(p.Playmaking) + LoyaltyEffect(p.Loyalty)) * old[2] * f;
+        var oldMid = pm * old[2] * f;
         var oldSa = (pass * old[3] + wing * old[4]) * f;
         var oldCa = pass * old[5] * f;
         var newLd = def * calibrated[0] * f;
         var newSd = def * calibrated[1] * f;
-        var newMid = (RegionalRatingEngineFixed.SkillRating(p.Playmaking) + LoyaltyEffect(p.Loyalty)) * calibrated[2] * f;
+        var newMid = pm * calibrated[2] * f;
         var newSa = (pass * calibrated[3] + wing * calibrated[4]) * f;
         var newCa = pass * calibrated[5] * f;
 
-        var sideDefSector = p.Side == PlayerSide.Left ? rating.RawLeftDefence : rating.RawRightDefence;
-        var sideAttackSector = p.Side == PlayerSide.Left ? rating.RawLeftAttack : rating.RawRightAttack;
-        var centralAttack = rating.RawCentralAttack;
-        var centralDefence = rating.RawCentralDefence;
-        var midfield = rating.RawMidfield;
-        var leftDefence = rating.RawLeftDefence;
-        var rightDefence = rating.RawRightDefence;
-        var leftAttack = rating.RawLeftAttack;
-        var rightAttack = rating.RawRightAttack;
-
-        centralDefence += newLd - oldLd;
-        midfield += newMid - oldMid;
-        centralAttack += newCa - oldCa;
-        if (p.Side == PlayerSide.Left) { leftDefence += newSd - oldSd; leftAttack += newSa - oldSa; }
-        else { rightDefence += newSd - oldSd; rightAttack += newSa - oldSa; }
-        _ = sideDefSector; _ = sideAttackSector;
-        return ToSnapshot(leftDefence, centralDefence, rightDefence, midfield, leftAttack, centralAttack, rightAttack);
+        var ld = rating.RawLeftDefence;
+        var cd = rating.RawCentralDefence;
+        var rd = rating.RawRightDefence;
+        var mid = rating.RawMidfield;
+        var la = rating.RawLeftAttack;
+        var ca = rating.RawCentralAttack;
+        var ra = rating.RawRightAttack;
+        cd += newLd - oldLd;
+        mid += newMid - oldMid;
+        ca += newCa - oldCa;
+        if (p.Side == PlayerSide.Left) { ld += newSd - oldSd; la += newSa - oldSa; }
+        else { rd += newSd - oldSd; ra += newSa - oldSa; }
+        return ToSnapshot(ld, cd, rd, mid, la, ca, ra);
     }
 
     private static Player PrepareWeatherPlayer(Player p, HOEngineContext? context)
@@ -119,13 +106,7 @@ public sealed class RegionalRatingEngineFinal
         if (Math.Abs(multiplier - 1.0) < 1e-12) return p;
         return p with { Keeper = (int)Math.Round(p.Keeper * multiplier, MidpointRounding.AwayFromZero), Defending = (int)Math.Round(p.Defending * multiplier, MidpointRounding.AwayFromZero), Playmaking = (int)Math.Round(p.Playmaking * multiplier, MidpointRounding.AwayFromZero), Passing = (int)Math.Round(p.Passing * multiplier, MidpointRounding.AwayFromZero), Winger = (int)Math.Round(p.Winger * multiplier, MidpointRounding.AwayFromZero), Scoring = (int)Math.Round(p.Scoring * multiplier, MidpointRounding.AwayFromZero) };
     }
-
-    private static double WeatherMultiplier(PlayerSpecialty specialty, int weather) => (specialty, weather) switch
-    {
-        (PlayerSpecialty.Technical, 1) => 1.05, (PlayerSpecialty.Technical, 2) => 0.95,
-        (PlayerSpecialty.Powerful, 1) => 0.95, (PlayerSpecialty.Powerful, 2) => 1.05,
-        (PlayerSpecialty.Quick, 1) => 0.95, (PlayerSpecialty.Quick, 2) => 0.95, _ => 1.0
-    };
+    private static double WeatherMultiplier(PlayerSpecialty specialty, int weather) => (specialty, weather) switch { (PlayerSpecialty.Technical, 1) => 1.05, (PlayerSpecialty.Technical, 2) => 0.95, (PlayerSpecialty.Powerful, 1) => 0.95, (PlayerSpecialty.Powerful, 2) => 1.05, (PlayerSpecialty.Quick, 1) => 0.95, (PlayerSpecialty.Quick, 2) => 0.95, _ => 1.0 };
 
     private static RegionalRatingSnapshot ApplyTechnicalBonus(RegionalRatingSnapshot rating, IReadOnlyList<RegionalPlayer> players, IReadOnlySet<int>? technicalIds)
     {
@@ -139,48 +120,26 @@ public sealed class RegionalRatingEngineFinal
         }
         return ToSnapshot(ld, cd, rd, mid, la, ca, ra);
     }
-
     private static double LoyaltyEffect(double loyalty) => loyalty >= 20 ? 1.5 : Math.Clamp(loyalty / 19.0, 0.0, 1.0);
     private static double FormFactor(double form) => 0.378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
-
     private static RegionalRatingSnapshot ApplyExtraContext(RegionalRatingSnapshot rating, HOEngineContext? context)
     {
         if (context is null) return rating;
         var coachModifier = context.CoachModifier != 0 ? Math.Clamp(context.CoachModifier, -10, 10) : context.CoachStyle switch { CoachStyle.Offensive => 10, CoachStyle.Defensive => -10, _ => 0 };
-        var defenceFactor = CoachFactor(coachModifier, false); var attackFactor = CoachFactor(coachModifier, true);
-        if (context.Confidence > 0) attackFactor *= 0.8 + 0.05 * (Math.Clamp(context.Confidence, 0, 10) + 0.5);
+        var defenceFactor = CoachFactor(coachModifier, false); var attackFactor = CoachFactor(coachModifier, true); if (context.Confidence > 0) attackFactor *= 0.8 + 0.05 * (Math.Clamp(context.Confidence, 0, 10) + 0.5);
         var midfieldFactor = context.TeamSpirit > 0 ? 0.10 + 0.425 * Math.Sqrt(Math.Clamp(context.TeamSpirit, 0, 10)) : 1.0;
         return Rebuild(rating, x => x * defenceFactor, x => x * defenceFactor, x => x * defenceFactor, x => x * midfieldFactor, x => x * attackFactor, x => x * attackFactor, x => x * attackFactor);
     }
-
     private static double CoachFactor(int modifier, bool attack)
     {
         if (modifier == 0) return 1.0;
         if (!attack) return modifier <= 0 ? 1.02 - modifier * (1.15 - 1.02) / 10.0 : 1.02 - modifier * (1.02 - 0.90) / 10.0;
         return modifier <= 0 ? 1.02 - modifier * (0.90 - 1.02) / 10.0 : 1.02 - modifier * (1.02 - 1.10) / 10.0;
     }
-
-    private static IReadOnlyList<RegionalPlayer> CreateForwardDummies(int count)
-    {
-        if (count <= 0) return [];
-        return Enumerable.Range(1, count).Select(i => new RegionalPlayer(-i, RegionalPosition.Forward, PlayerSide.Center, PlayerOrder.Normal, 0, 0, 0, 0, 0, 0, 1, 0, 0, 9.4)).ToArray();
-    }
-
-    private static RegionalRatingSnapshot ReplaceSubset(RegionalRatingSnapshot baseline, RegionalRatingSnapshot oldSubset, RegionalRatingSnapshot newSubset)
-        => ToSnapshot(baseline.RawLeftDefence - oldSubset.RawLeftDefence + newSubset.RawLeftDefence, baseline.RawCentralDefence - oldSubset.RawCentralDefence + newSubset.RawCentralDefence, baseline.RawRightDefence - oldSubset.RawRightDefence + newSubset.RawRightDefence, baseline.RawMidfield - oldSubset.RawMidfield + newSubset.RawMidfield, baseline.RawLeftAttack - oldSubset.RawLeftAttack + newSubset.RawLeftAttack, baseline.RawCentralAttack - oldSubset.RawCentralAttack + newSubset.RawCentralAttack, baseline.RawRightAttack - oldSubset.RawRightAttack + newSubset.RawRightAttack);
-    private static RegionalRatingSnapshot Rebuild(RegionalRatingSnapshot rating, Func<double,double> ld, Func<double,double> cd, Func<double,double> rd, Func<double,double> mid, Func<double,double> la, Func<double,double> ca, Func<double,double> ra)
-        => ToSnapshot(ld(rating.RawLeftDefence), cd(rating.RawCentralDefence), rd(rating.RawRightDefence), mid(rating.RawMidfield), la(rating.RawLeftAttack), ca(rating.RawCentralAttack), ra(rating.RawRightAttack));
-    private static RegionalRatingSnapshot ToSnapshot(double ld, double cd, double rd, double mid, double la, double ca, double ra)
-        => new(ld, cd, rd, mid, la, ca, ra, QuarterDisplay(ld), QuarterDisplay(cd), QuarterDisplay(rd), QuarterDisplay(mid), QuarterDisplay(la), QuarterDisplay(ca), QuarterDisplay(ra));
-    private static double QuarterDisplay(double raw)
-    {
-        if (!double.IsFinite(raw) || raw <= 0) return 0;
-        var rounded = Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0;
-        return Math.Clamp(Math.Max(1.0, rounded), 1.0, 20.0);
-    }
-    private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p)
-    {
-        var position = RatingPositionResolver.Resolve(formation, slot.Code); var side = slot.Code.EndsWith("-L", StringComparison.Ordinal) ? PlayerSide.Left : slot.Code.EndsWith("-R", StringComparison.Ordinal) ? PlayerSide.Right : PlayerSide.Center;
-        return new RegionalPlayer(p.Id, position, side, slot.Order, p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring, p.Form, p.Loyalty, p.Experience, p.Stamina);
-    }
+    private static IReadOnlyList<RegionalPlayer> CreateForwardDummies(int count) { if (count <= 0) return []; return Enumerable.Range(1, count).Select(i => new RegionalPlayer(-i, RegionalPosition.Forward, PlayerSide.Center, PlayerOrder.Normal, 0, 0, 0, 0, 0, 0, 1, 0, 0, 9.4)).ToArray(); }
+    private static RegionalRatingSnapshot ReplaceSubset(RegionalRatingSnapshot baseline, RegionalRatingSnapshot oldSubset, RegionalRatingSnapshot newSubset) => ToSnapshot(baseline.RawLeftDefence - oldSubset.RawLeftDefence + newSubset.RawLeftDefence, baseline.RawCentralDefence - oldSubset.RawCentralDefence + newSubset.RawCentralDefence, baseline.RawRightDefence - oldSubset.RawRightDefence + newSubset.RawRightDefence, baseline.RawMidfield - oldSubset.RawMidfield + newSubset.RawMidfield, baseline.RawLeftAttack - oldSubset.RawLeftAttack + newSubset.RawLeftAttack, baseline.RawCentralAttack - oldSubset.RawCentralAttack + newSubset.RawCentralAttack, baseline.RawRightAttack - oldSubset.RawRightAttack + newSubset.RawRightAttack);
+    private static RegionalRatingSnapshot Rebuild(RegionalRatingSnapshot rating, Func<double,double> ld, Func<double,double> cd, Func<double,double> rd, Func<double,double> mid, Func<double,double> la, Func<double,double> ca, Func<double,double> ra) => ToSnapshot(ld(rating.RawLeftDefence), cd(rating.RawCentralDefence), rd(rating.RawRightDefence), mid(rating.RawMidfield), la(rating.RawLeftAttack), ca(rating.RawCentralAttack), ra(rating.RawRightAttack));
+    private static RegionalRatingSnapshot ToSnapshot(double ld, double cd, double rd, double mid, double la, double ca, double ra) => new(ld, cd, rd, mid, la, ca, ra, QuarterDisplay(ld), QuarterDisplay(cd), QuarterDisplay(rd), QuarterDisplay(mid), QuarterDisplay(la), QuarterDisplay(ca), QuarterDisplay(ra));
+    private static double QuarterDisplay(double raw) { if (!double.IsFinite(raw) || raw <= 0) return 0; var rounded = Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0; return Math.Clamp(Math.Max(1.0, rounded), 1.0, 20.0); }
+    private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p) { var position = RatingPositionResolver.Resolve(formation, slot.Code); var side = slot.Code.EndsWith("-L", StringComparison.Ordinal) ? PlayerSide.Left : slot.Code.EndsWith("-R", StringComparison.Ordinal) ? PlayerSide.Right : PlayerSide.Center; return new RegionalPlayer(p.Id, position, side, slot.Order, p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring, p.Form, p.Loyalty, p.Experience, p.Stamina); }
 }
