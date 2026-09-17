@@ -172,8 +172,27 @@ public sealed class RegionalRatingEngineFixed
 
     private static void AddCentralDefender(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
     {
-        var central = p.Order switch { PlayerOrder.Offensive => k.Defending * .130, PlayerOrder.TowardsWing => k.Defending * .133, _ => k.Defending * .186 };
-        var side = p.Order switch { PlayerOrder.TowardsWing => k.Defending * .217, PlayerOrder.Offensive => k.Defending * .058, _ => k.Defending * .077 };
+        // 2026-09-14 defensive singleton evidence: a normal central defender
+        // changes its DEF distribution materially when moved from the centre
+        // slot to a side slot. The old engine used one coefficient pair for all
+        // CD slots, which could not reproduce the empirical L/C/R symmetry.
+        // These normal-order coefficients are calibrated from the Pesalovo,
+        // Nocoń and Takyi singleton screenshots. Non-normal orders stay on the
+        // existing researched routing until their controlled singleton sets are
+        // calibrated separately.
+        var isCenter = p.Side == PlayerSide.Center;
+        var central = p.Order switch
+        {
+            PlayerOrder.Offensive => k.Defending * .130,
+            PlayerOrder.TowardsWing => k.Defending * .133,
+            _ => k.Defending * (isCenter ? .20202548157305372 : .09315927078269022)
+        };
+        var side = p.Order switch
+        {
+            PlayerOrder.TowardsWing => k.Defending * .217,
+            PlayerOrder.Offensive => k.Defending * .058,
+            _ => k.Defending * (isCenter ? .09757684765984834 : .3153092692405753)
+        };
         var midfield = p.Order switch { PlayerOrder.Offensive => k.Playmaking * .047, PlayerOrder.TowardsWing => k.Playmaking * .023, _ => k.Playmaking * .035 };
         Add(s, RatingSector.CentralDefence, central, k.FormMultiplier); AddSideOnly(s, p.Side, RatingSector.LeftDefence, RatingSector.RightDefence, side, k.FormMultiplier); Add(s, RatingSector.Midfield, midfield, k.FormMultiplier);
         if (p.Order == PlayerOrder.TowardsWing && p.Side != PlayerSide.Center) AddSideOnly(s, p.Side, RatingSector.LeftAttack, RatingSector.RightAttack, k.Passing * .063, k.FormMultiplier);
