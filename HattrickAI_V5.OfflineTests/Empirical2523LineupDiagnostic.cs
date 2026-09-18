@@ -15,16 +15,16 @@ public static class Empirical2523LineupDiagnostic
         var players = new RegionalPlayer[]
         {
             P(479235895, RegionalPosition.Goalkeeper, PlayerSide.Center, PlayerOrder.Normal, 17,4,1,2,1,4,6,6,7),
-            P(458524225, RegionalPosition.WingBack, PlayerSide.Left, PlayerOrder.Normal, 0,17,3,5,4,7,6,6,12),
-            P(476114406, RegionalPosition.WingBack, PlayerSide.Right, PlayerOrder.Normal, 1,16,6,9,3,6,7,7,6),
-            P(474962854, RegionalPosition.Winger, PlayerSide.Left, PlayerOrder.Offensive, 1,9,11,9,15,8,7,8,7),
-            P(465805392, RegionalPosition.InnerMidfielder, PlayerSide.Left, PlayerOrder.TowardsWing, 1,2,16,11,6,6,6,6,8),
-            P(465141092, RegionalPosition.InnerMidfielder, PlayerSide.Center, PlayerOrder.Normal, 1,5,12,9,14,6,7,7,8),
-            P(454418419, RegionalPosition.InnerMidfielder, PlayerSide.Right, PlayerOrder.Normal, 0,2,15,8,1,7,6,6,10),
-            P(492253331, RegionalPosition.Winger, PlayerSide.Right, PlayerOrder.Offensive, 2,3,5,7,17,4,7,7,3),
-            P(491743384, RegionalPosition.Forward, PlayerSide.Left, PlayerOrder.Normal, 1,4,5,8,3,15,7,7,3),
-            P(495041177, RegionalPosition.Forward, PlayerSide.Center, PlayerOrder.Normal, 1,3,6,7,5,13,7,7,3),
-            P(497641568, RegionalPosition.Forward, PlayerSide.Right, PlayerOrder.Normal, 1,2,5,9,4,13,7,7,3)
+            P(458524225, RegionalPosition.WingBack, PlayerSide.Left, PlayerOrder.Normal, 0,17,3,5,4,7,6,12,5),
+            P(476114406, RegionalPosition.WingBack, PlayerSide.Right, PlayerOrder.Normal, 1,16,6,9,3,6,7,6,7),
+            P(474962854, RegionalPosition.Winger, PlayerSide.Left, PlayerOrder.Offensive, 1,9,11,9,15,8,8,7,6),
+            P(465805392, RegionalPosition.InnerMidfielder, PlayerSide.Left, PlayerOrder.TowardsWing, 1,2,16,11,6,6,6,8,6),
+            P(465141092, RegionalPosition.InnerMidfielder, PlayerSide.Center, PlayerOrder.Normal, 1,5,12,9,14,6,7,8,6),
+            P(454418419, RegionalPosition.InnerMidfielder, PlayerSide.Right, PlayerOrder.Normal, 0,2,15,8,1,7,6,10,3),
+            P(492253331, RegionalPosition.Winger, PlayerSide.Right, PlayerOrder.Offensive, 2,3,5,7,17,4,7,3,6),
+            P(491743384, RegionalPosition.Forward, PlayerSide.Center, PlayerOrder.Normal, 1,4,5,8,3,15,7,3,7),
+            P(495041177, RegionalPosition.Forward, PlayerSide.Left, PlayerOrder.Normal, 1,3,6,7,5,13,7,3,6),
+            P(497641568, RegionalPosition.Forward, PlayerSide.Right, PlayerOrder.Normal, 1,2,5,9,4,13,7,3,6)
         };
 
         // Direct Hattrick screenshot: DEF-L 11.75, DEF-C 8.50, DEF-R 12.00,
