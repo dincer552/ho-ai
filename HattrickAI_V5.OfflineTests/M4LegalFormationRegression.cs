@@ -9,7 +9,7 @@ namespace HattrickAI.V5.OfflineTests;
 public static class M4LegalFormationRegression
 {
     private static readonly string[] ExpectedFormationNames = ["2-5-3", "3-4-3", "3-5-2", "4-4-2", "4-5-1", "5-3-2", "5-5-0"];
-    private static readonly string[] AllSlots = ["GK", "DEF-L", "DEF-CL", "DEF-C", "DEF-CR", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"];
+    private static readonly string[] AllSlots = ["GK", "WB-L", "DEF-CL", "DEF-C", "DEF-CR", "WB-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"];
 
     public static int Run()
     {
@@ -29,14 +29,14 @@ public static class M4LegalFormationRegression
             }
 
             var twoFiveThree = registry.Single(x => x.Formation == "2-5-3");
-            Check(twoFiveThree.SlotCodes.SequenceEqual(["GK", "DEF-L", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"]), "2-5-3 must be the two-wing-back variant");
-            Check(twoFiveThree.SlotCodes.Count(x => x == "DEF-L" || x == "DEF-R") == 2, "2-5-3 must contain two wing-back slots");
+            Check(twoFiveThree.SlotCodes.SequenceEqual(["GK", "WB-L", "WB-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"]), "2-5-3 must be the two-wing-back variant");
+            Check(twoFiveThree.SlotCodes.Count(x => x == "WB-L" || x == "WB-R") == 2, "2-5-3 must contain two wing-back slots");
             Check(twoFiveThree.SlotCodes.All(x => x is not "DEF-CL" and not "DEF-C" and not "DEF-CR"), "2-5-3 must leave all central-stopper slots empty");
             Check(twoFiveThree.SlotCodes.Count(x => x.StartsWith("W-", StringComparison.Ordinal) || x.StartsWith("IM-", StringComparison.Ordinal)) == 5, "2-5-3 must contain five midfield slots");
             Check(twoFiveThree.SlotCodes.Count(x => x.StartsWith("FW-", StringComparison.Ordinal)) == 3, "2-5-3 must contain three forward slots");
 
             var fiveFiveZero = registry.Single(x => x.Formation == "5-5-0");
-            Check(fiveFiveZero.SlotCodes.Count(x => x.StartsWith("DEF-", StringComparison.Ordinal)) == 5, "5-5-0 must contain five defenders");
+            Check(fiveFiveZero.SlotCodes.Count(x => x is "WB-L" or "DEF-CL" or "DEF-C" or "DEF-CR" or "WB-R") == 5, "5-5-0 must contain five defenders");
             Check(fiveFiveZero.SlotCodes.Count(x => x.StartsWith("W-", StringComparison.Ordinal) || x.StartsWith("IM-", StringComparison.Ordinal)) == 5, "5-5-0 must contain five midfield slots");
             Check(fiveFiveZero.SlotCodes.All(x => !x.StartsWith("FW-", StringComparison.Ordinal)), "5-5-0 must contain no forward slot");
 
