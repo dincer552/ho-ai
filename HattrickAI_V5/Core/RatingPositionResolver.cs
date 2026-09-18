@@ -3,10 +3,9 @@ using System;
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// Resolves the tactical meaning of a lineup slot before rating contributions are calculated.
-/// DEF-L/DEF-R are not always wing-backs: in a one-defender setup the lone defender is a
-/// central defender, while in three-defender setups the side defenders are central defenders.
-/// In two-, four- and five-defender setups the side defender slots are wing-backs.
+/// Resolves a lineup slot into its tactical position. The slot assignment is
+/// authoritative; formation text is only a fallback for legacy callers.
+/// This allows V5 to calculate arbitrary XI selections such as 3-2-3.
 /// </summary>
 public static class RatingPositionResolver
 {
@@ -28,6 +27,25 @@ public static class RatingPositionResolver
         };
     }
 
+    /// <summary>
+    /// Resolves positions from the actual selected XI rather than from a
+    /// predefined formation list. DEF-L/DEF-R are central when the XI has
+    /// three defensive slots, wing-backs when it has two/four/five.
+    /// </summary>
+    public static RegionalPosition Resolve(Lineup lineup, string slotCode)
+    {
+        ArgumentNullException.ThrowIfNull(lineup);
+        ArgumentException.ThrowIfNullOrEmpty(slotCode);
+
+        if (slotCode is not ("DEF-L" or "DEF-R"))
+            return Resolve(lineup.Formation, slotCode);
+
+        var defenderCount = lineup.Slots.Count(s => s.Code is "DEF-L" or "DEF-C" or "DEF-CL" or "DEF-CR" or "DEF-R");
+        return defenderCount is 1 or 3
+            ? RegionalPosition.CentralDefender
+            : RegionalPosition.WingBack;
+    }
+
     private static bool IsCentralDefenderFormation(string? formation)
     {
         var normalized = formation?.Trim();
@@ -38,9 +56,6 @@ public static class RatingPositionResolver
         if (separator <= 0 || !int.TryParse(normalized[..separator], out var defenders))
             return normalized.StartsWith("3-", StringComparison.Ordinal);
 
-        // A lone defender is the central defender. Three-defender formations use
-        // three central defenders. This also keeps DEF-L/DEF-R + TowardsWing valid
-        // for the 1-0-0 empirical order screenshots.
         return defenders is 1 or 3;
     }
 }
