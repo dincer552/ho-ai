@@ -19,8 +19,8 @@
       "experience": 6,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 5,
+      "setPiecesSkill": 3
     },
     {
       "id": 468363070,
@@ -36,8 +36,8 @@
       "experience": 10,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 2,
+      "setPiecesSkill": 7
     },
     {
       "id": 476114406,
@@ -54,7 +54,7 @@
       "loyalty": 0,
       "injuryLevel": -1,
       "specialty": 0,
-      "setPiecesSkill": 0
+      "setPiecesSkill": 4
     },
     {
       "id": 458524225,
@@ -70,8 +70,8 @@
       "experience": 6,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 5,
+      "setPiecesSkill": 1
     },
     {
       "id": 465141092,
@@ -87,8 +87,8 @@
       "experience": 6,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 3,
+      "setPiecesSkill": 2
     },
     {
       "id": 465805392,
@@ -104,8 +104,8 @@
       "experience": 6,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 3,
+      "setPiecesSkill": 10
     },
     {
       "id": 474962854,
@@ -121,8 +121,8 @@
       "experience": 7,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 1,
+      "setPiecesSkill": 4
     },
     {
       "id": 454418419,
@@ -138,8 +138,8 @@
       "experience": 10,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 1,
+      "setPiecesSkill": 2
     },
     {
       "id": 492253331,
@@ -155,8 +155,8 @@
       "experience": 3,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 2,
+      "setPiecesSkill": 1
     },
     {
       "id": 491743384,
@@ -172,8 +172,8 @@
       "experience": 3,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 3,
+      "setPiecesSkill": 3
     },
     {
       "id": 497641568,
@@ -189,8 +189,8 @@
       "experience": 3,
       "loyalty": 0,
       "injuryLevel": -1,
-      "specialty": 0,
-      "setPiecesSkill": 0
+      "specialty": 1,
+      "setPiecesSkill": 4
     }
   ],
   "lineup": {
