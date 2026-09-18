@@ -87,6 +87,110 @@ Böylece seçilen motor V5/HO/HattrickDash/Foxtrick olsa da saha üzerindeki 7 r
 
 Bu değişiklik V5 katsayılarını veya Stage-2 converter'ı değiştirmez.
 
+## V5 — 14 Pozisyon Bağımsız Katkı Matrisi
+
+V5 rating modeli, Hattrick saha yerleşimini **14 ayrı slot** olarak ele almalıdır. Aynı rol ailesi içinde dahi slotlar birbirine eşit kabul edilmez.
+
+### Savunma hattı — 5 ayrı slot
+
+| Slot | Normal temel katkı |
+|---|---|
+| `WB-L` | Central Defence = Defending × 0.083; Left Defence = Defending × 0.268; Midfield = Playmaking × 0.023; Left Attack = Winger × 0.129 |
+| `DEF-CL` | Central Defence = Defending × 0.186; Left Defence = Defending × 0.077; Midfield = Playmaking × 0.035 |
+| `DEF-C` | Central Defence = Defending × 0.186; Side Defence = Defending × 0.077; Midfield = Playmaking × 0.035 |
+| `DEF-CR` | Central Defence = Defending × 0.186; Right Defence = Defending × 0.077; Midfield = Playmaking × 0.035 |
+| `WB-R` | Central Defence = Defending × 0.083; Right Defence = Defending × 0.268; Midfield = Playmaking × 0.023; Right Attack = Winger × 0.129 |
+
+`DEF-L` / `DEF-R` yalnızca diziliş sayısına bakılarak otomatik olarak WingBack'e dönüştürülmemelidir. Gerçek `WB-L/WB-R` rolü ile savunmacı `DEF-L/DEF-R` rolü ayrılmalıdır.
+
+Central Defender tarafında merkez/yan yerleşimin savunma dağılımı ve birden fazla CD olduğunda overcrowding etkisi ayrıca uygulanır; tek bir ortak DEF katsayısı kullanılmaz.
+
+### Orta saha hattı — 5 ayrı slot
+
+`W-L | IM-L | IM-C | IM-R | W-R`
+
+**Normal Inner Midfielder:**
+- Central Defence = Defending × 0.070
+- Side Defence = Defending × 0.028
+- Midfield = Playmaking × 0.139
+- Side Attack = Passing × 0.028
+- Central Attack = Passing × 0.057 + Scoring × 0.038
+
+**Defensive Inner Midfielder:**
+- Central Defence = Defending × 0.115
+- Side Defence = Defending × 0.040
+- Midfield = Playmaking × 0.131
+- Side Attack = Passing × 0.018
+- Central Attack = Passing × 0.039 + Scoring × 0.028
+
+**Offensive Inner Midfielder:**
+- Central Defence = Defending × 0.115
+- Side Defence = Defending × 0.040
+- Midfield = Playmaking × 0.131
+- Side Attack = Passing × 0.018
+- Central Attack = Passing × 0.039 + Scoring × 0.025
+
+`IM-L`, `IM-C` ve `IM-R` aynı katkıları farklı yönlere taşır. Merkez oyuncunun iki yana dağıttığı katkı ile sol/sağ oyuncunun kendi tarafına taşıdığı katkı ayrı uygulanmalıdır.
+
+**Normal Winger:**
+- Central Defence = Defending × 0.037
+- Side Defence = Defending × 0.104
+- Midfield = Playmaking × 0.065
+- Own Side Attack = Winger × 0.219 + Passing × 0.054
+- Central Attack = Passing × 0.018
+
+`W-L` sol bölgeye, `W-R` sağ bölgeye yönlendirilir. Winger emirleri Normal / Defensive / Offensive / Towards Middle olarak ayrı tutulmalıdır.
+
+### Forvet hattı — 3 ayrı slot
+
+`FW-L | FW-C | FW-R`
+
+**Normal FW-C:**
+- Midfield = Playmaking × 0.041
+- Left Attack = Scoring × 0.058 + Passing × 0.048 + Winger × 0.032
+- Right Attack = Scoring × 0.058 + Passing × 0.048 + Winger × 0.032
+- Central Attack = Scoring × 0.178 + Passing × 0.066
+
+**Normal FW-L:**
+- Midfield = Playmaking × 0.041
+- Left Attack = Scoring × 0.058 + Passing × 0.048 + Winger × 0.032
+- Right Attack = Scoring × 0.058 + Passing × 0.048
+- Central Attack = Scoring × 0.178 + Passing × 0.066
+
+**Normal FW-R:**
+- Midfield = Playmaking × 0.041
+- Right Attack = Scoring × 0.058 + Passing × 0.048 + Winger × 0.032
+- Left Attack = Scoring × 0.058 + Passing × 0.048
+- Central Attack = Scoring × 0.178 + Passing × 0.066
+
+### Forvet emirleri
+
+**Towards Wing:**
+- Midfield = Playmaking × 0.024
+- Own Side Attack = Scoring × 0.093 + Passing × 0.101 + Winger × 0.044
+- Far Side Attack = Scoring × 0.018 + Passing × 0.034
+- Central Attack = Passing × 0.102 + Scoring × 0.044
+
+**Defensive:**
+- Midfield = Playmaking × 0.058
+- Own Side Attack = Scoring × 0.030 + Passing × 0.033 + Winger × 0.059
+- Far Side Attack = Scoring × 0.030 + Passing × 0.033
+- Central Attack = Scoring × 0.102 + Passing × 0.108
+
+### Uygulama kuralı
+
+14 slotun tamamı bağımsız rol/yan/emir hesabından geçirilir:
+
+`DEFENCE : WB-L / DEF-CL / DEF-C / DEF-CR / WB-R
+`MIDFIELD: W-L / IM-L / IM-C / IM-R / W-R
+`ATTACK  : FW-L / FW-C / FW-R`
+
+Her slot için gerçek saha rolü, tarafı ve oyuncu emri ayrı belirlenir; skill katkıları ilgili sektörlere dağıtılır; overcrowding ile Form/Experience/Stamina ve diğer V5 context katmanları daha sonra uygulanır.
+
+Bu bölüm, V5 katsayılarının tek bir genel DEF/IM/FW fonksiyonunda birleştirilmemesini sağlayan referans tasarım sözleşmesidir.
+
+> Not: Pozisyon/katsayı matrisi Hattrick Wiki'deki açık kaynak topluluk araştırma tabloları temel alınarak dokümante edilmiştir; Hattrick'ın kapalı server-side kodunun resmi kaynak kodu değildir. Kontrollü gerçek Hattrick fixture'ları son kalibrasyonda ground truth olarak kullanılacaktır.
+
 ## Registry ve karşılaştırma
 
 `RatingEngineRegistry` dört motoru deterministik biçimde sunar. V5 registry'de zorunludur.
