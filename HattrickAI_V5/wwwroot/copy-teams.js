@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  var SLOT_MAP={gk:'GK',dl:'DEF-L',dcl:'DEF-CL',dc:'DEF-C',dcr:'DEF-CR',dr:'DEF-R',wl:'W-L',iml:'IM-L',imc:'IM-C',imr:'IM-R',wr:'W-R',fwl:'FW-L',fwc:'FW-C',fwr:'FW-R'};
+  var SLOT_MAP={gk:'GK',dl:'WB-L',dcl:'DEF-CL',dc:'DEF-C',dcr:'DEF-CR',dr:'WB-R',wl:'W-L',iml:'IM-L',imc:'IM-C',imr:'IM-R',wr:'W-R',fwl:'FW-L',fwc:'FW-C',fwr:'FW-R'};
   function clean(v){return String(v==null?'':v).replace(/\s+/g,' ').trim();}
   function readTeam(prefix){
     var pitch=document.getElementById(prefix+'Pitch');
