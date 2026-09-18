@@ -5,9 +5,10 @@ using System.Linq;
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// Corrected V5 regional-rating engine.
-/// Stage 7 adds researched stamina/match-minute effects after position
-/// contribution inputs, while keeping experience as a separate layer.
+/// V5 regional rating engine. Skill contribution is calculated from the
+/// canonical 14 Hattrick field slots independently; context, experience,
+/// loyalty, stamina and central-position crowding are applied as separate
+/// layers afterwards.
 /// </summary>
 public sealed class RegionalRatingEngineFixed
 {
@@ -20,15 +21,17 @@ public sealed class RegionalRatingEngineFixed
     {
         context ??= RatingContext.Default;
         var sectors = Empty();
-        var cds = players.Count(p => p.Position == RegionalPosition.CentralDefender);
-        var ims = players.Count(p => p.Position == RegionalPosition.InnerMidfielder);
-        var fws = players.Count(p => p.Position == RegionalPosition.Forward);
+
+        var centralDefenders = players.Count(p => RatingPositionMatrix.CanonicalSlot(p) is "DEF-CL" or "DEF-C" or "DEF-CR");
+        var centralMidfielders = players.Count(p => RatingPositionMatrix.CanonicalSlot(p) is "IM-L" or "IM-C" or "IM-R");
+        var forwards = players.Count(p => RatingPositionMatrix.CanonicalSlot(p) is "FW-L" or "FW-C" or "FW-R");
 
         foreach (var p in players)
         {
             var formMultiplier = FormFactor(p.Form) / BaselineFormFactor;
             formMultiplier *= StaminaMatchMultiplier(p.Stamina, context.MatchMinute);
             var loyalty = LoyaltyEffect(p.Loyalty);
+
             var k = new EffectiveSkillsFixed(
                 SkillRating(p.Keeper) + loyalty,
                 SkillRating(p.Defending) + loyalty,
@@ -39,8 +42,11 @@ public sealed class RegionalRatingEngineFixed
                 formMultiplier);
 
             var before = new Dictionary<RatingSector, double>(sectors);
-            AddPositionContribution(sectors, p, k, cds);
-            var crowding = PositionCrowding(p.Position, cds, ims, fws);
+            RatingPositionMatrix.AddContribution(
+                sectors, p, k.Keeper, k.Defending, k.Playmaking, k.Passing,
+                k.Winger, k.Scoring, k.FormMultiplier);
+
+            var crowding = PositionCrowding(RatingPositionMatrix.CanonicalSlot(p), centralDefenders, centralMidfielders, forwards);
             if (crowding != 1.0)
             {
                 foreach (var sector in Enum.GetValues<RatingSector>())
@@ -62,23 +68,29 @@ public sealed class RegionalRatingEngineFixed
             .Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId))
             .Select(s => ToRegionalPlayer(lineup.Formation, s, byId[s.PlayerId]))
             .ToList();
+
         return Calculate(mapped, context);
     }
 
-    public RegionalRatingPair CalculatePair(Lineup ownLineup, IReadOnlyList<Player> ownPlayers,
+    public RegionalRatingPair CalculatePair(
+        Lineup ownLineup, IReadOnlyList<Player> ownPlayers,
         Lineup opponentLineup, IReadOnlyList<Player> opponentPlayers,
         RatingContext? ownContext = null, RatingContext? opponentContext = null)
-        => new(CalculateLineup(ownLineup, ownPlayers, ownContext), CalculateLineup(opponentLineup, opponentPlayers, opponentContext));
+        => new(
+            CalculateLineup(ownLineup, ownPlayers, ownContext),
+            CalculateLineup(opponentLineup, opponentPlayers, opponentContext));
 
     internal static double SkillRating(double skill) => Math.Max(0.0, skill - 1.0);
 
     internal static double StaminaMatchMultiplier(double stamina, int minute)
     {
         if (minute <= 0) return 1.0;
+
         var m = Math.Clamp(minute, 0, 120);
         var factor45 = StaminaAtPoint(stamina, 45);
         var factor90 = StaminaAtPoint(stamina, 90);
         var factor120 = StaminaAtPoint(stamina, 120);
+
         if (m <= 45) return Lerp(1.0, factor45, m / 45.0);
         if (m <= 90) return Lerp(factor45, factor90, (m - 45) / 45.0);
         return Lerp(factor90, factor120, (m - 90) / 30.0);
@@ -86,14 +98,13 @@ public sealed class RegionalRatingEngineFixed
 
     private static double StaminaAtPoint(double stamina, int minute)
     {
-        // Schum stamina research table: remaining midfield performance at 45/90/120.
-        // The published table is research/community material, not an official source-code formula.
         var levels = new[] { 1.7, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.4 };
         var at45 = new[] { .5886, .608, .640, .671, .703, .735, .767, .799, .831, .863, .894, .926, .958, .990, 1.000, 1.000, 1.000 };
         var at90 = new[] { .265, .294, .344, .393, .442, .491, .541, .590, .639, .688, .737, .787, .836, .885, .956, 1.000, 1.000 };
         var at120 = new[] { .100, .100, .100, .100, .156, .218, .281, .344, .406, .469, .532, .595, .657, .720, .791, .863, .920 };
         var table = minute <= 45 ? at45 : minute <= 90 ? at90 : at120;
         var x = Math.Clamp(stamina, levels[0], levels[^1]);
+
         for (var i = 1; i < levels.Length; i++)
         {
             if (x <= levels[i])
@@ -102,197 +113,258 @@ public sealed class RegionalRatingEngineFixed
                 return Lerp(table[i - 1], table[i], t);
             }
         }
+
         return table[^1];
     }
 
     private static double Lerp(double a, double b, double t) => a + (b - a) * t;
 
-    private static Dictionary<RatingSector, double> Empty() => Enum.GetValues<RatingSector>().ToDictionary(x => x, _ => 0d);
-    private static RegionalRatingSnapshot ToSnapshot(Dictionary<RatingSector, double> s) => new(
-        s[RatingSector.LeftDefence], s[RatingSector.CentralDefence], s[RatingSector.RightDefence], s[RatingSector.Midfield],
-        s[RatingSector.LeftAttack], s[RatingSector.CentralAttack], s[RatingSector.RightAttack],
-        RegionalRatingEngine.Display(s[RatingSector.LeftDefence]), RegionalRatingEngine.Display(s[RatingSector.CentralDefence]),
-        RegionalRatingEngine.Display(s[RatingSector.RightDefence]), RegionalRatingEngine.Display(s[RatingSector.Midfield]),
-        RegionalRatingEngine.Display(s[RatingSector.LeftAttack]), RegionalRatingEngine.Display(s[RatingSector.CentralAttack]),
-        RegionalRatingEngine.Display(s[RatingSector.RightAttack]));
+    private static Dictionary<RatingSector, double> Empty()
+        => Enum.GetValues<RatingSector>().ToDictionary(x => x, _ => 0d);
 
     private static double CentralDefenderCrowding(int count) => count == 2 ? .964 : count >= 3 ? .900 : 1.0;
     private static double InnerMidfielderCrowding(int count) => count == 2 ? .935 : count >= 3 ? .825 : 1.0;
     private static double ForwardCrowding(int count) => count == 2 ? .945 : count >= 3 ? .865 : 1.0;
-    private static double PositionCrowding(RegionalPosition position, int cds, int ims, int fws) => position switch
+
+    private static double PositionCrowding(string slot, int cds, int ims, int fws) => slot switch
     {
-        RegionalPosition.CentralDefender => CentralDefenderCrowding(cds),
-        RegionalPosition.InnerMidfielder => InnerMidfielderCrowding(ims),
-        RegionalPosition.Forward => ForwardCrowding(fws),
+        "DEF-CL" or "DEF-C" or "DEF-CR" => CentralDefenderCrowding(cds),
+        "IM-L" or "IM-C" or "IM-R" => InnerMidfielderCrowding(ims),
+        "FW-L" or "FW-C" or "FW-R" => ForwardCrowding(fws),
         _ => 1.0
     };
-
-    private static void AddPositionContribution(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k, int centralDefenderCount)
-    {
-        switch (p.Position)
-        {
-            case RegionalPosition.Goalkeeper:
-                Add(s, RatingSector.CentralDefence, k.Keeper * .165 + k.Defending * .079, k.FormMultiplier);
-                AddBothSides(s, RatingSector.LeftDefence, RatingSector.RightDefence, k.Keeper * .183 + k.Defending * .082, k.FormMultiplier); break;
-            case RegionalPosition.CentralDefender: AddCentralDefender(s, p, k); break;
-            case RegionalPosition.WingBack: AddWingBack(s, p, k); break;
-            case RegionalPosition.InnerMidfielder: AddInnerMidfielder(s, p, k); break;
-            case RegionalPosition.Winger: AddWinger(s, p, k); break;
-            case RegionalPosition.Forward: AddForward(s, p, k); break;
-        }
-    }
 
     private static void AddExperienceContribution(Dictionary<RatingSector, double> s, RegionalPlayer p)
     {
         var exp = ExperienceBonus(p.Experience);
         if (exp <= 0) return;
+
         var scale = exp / 1.73;
-        void AddExp(RatingSector sector, double divineWeight) => s[sector] += scale * divineWeight;
-        switch (p.Position)
-        {
-            case RegionalPosition.Goalkeeper:
-                AddExp(RatingSector.CentralDefence, .480); AddExp(RatingSector.LeftDefence, .345); AddExp(RatingSector.RightDefence, .345); break;
-            case RegionalPosition.CentralDefender:
-                AddExp(RatingSector.CentralDefence, .480); AddExp(RatingSector.LeftDefence, .345); AddExp(RatingSector.RightDefence, .345); AddExp(RatingSector.Midfield, .730);
-                if (p.Order == PlayerOrder.TowardsWing && p.Side != PlayerSide.Center) AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375); break;
-            case RegionalPosition.WingBack:
-                AddExp(RatingSector.CentralDefence, .480); AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, .345); AddExp(RatingSector.Midfield, .730); AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375); break;
-            case RegionalPosition.InnerMidfielder:
-                AddExp(RatingSector.CentralDefence, .480); AddExp(RatingSector.Midfield, .730); AddExp(RatingSector.CentralAttack, .450);
-                if (p.Side == PlayerSide.Center) { AddExp(RatingSector.LeftDefence, .345); AddExp(RatingSector.RightDefence, .345); AddExp(RatingSector.LeftAttack, .375); AddExp(RatingSector.RightAttack, .375); }
-                else { AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, .345); AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375); } break;
-            case RegionalPosition.Winger:
-                AddExp(RatingSector.CentralDefence, .480); AddExp(RatingSector.Midfield, .730); AddExp(RatingSector.CentralAttack, .450); AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, .345); AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375); break;
-            case RegionalPosition.Forward:
-                AddExp(RatingSector.Midfield, .730); AddExp(RatingSector.CentralAttack, .450);
-                if (p.Side == PlayerSide.Center) { AddExp(RatingSector.LeftAttack, .375); AddExp(RatingSector.RightAttack, .375); }
-                else { AddExp(p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, .375); AddExp(p.Side == PlayerSide.Left ? RatingSector.RightAttack : RatingSector.LeftAttack, .375); } break;
-        }
-    }
+        void AddExp(RatingSector sector, double weight) => s[sector] += scale * weight;
 
-    private static void AddCentralDefender(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
-    {
-        // 2026-09-14 defensive singleton evidence: a normal central defender
-        // changes its DEF distribution materially when moved from the centre
-        // slot to a side slot. The old engine used one coefficient pair for all
-        // CD slots, which could not reproduce the empirical L/C/R symmetry.
-        // These normal-order coefficients are calibrated from the Pesalovo,
-        // Nocoń and Takyi singleton screenshots. Non-normal orders stay on the
-        // existing researched routing until their controlled singleton sets are
-        // calibrated separately.
-        var isCenter = p.Side == PlayerSide.Center;
-        var central = p.Order switch
+        switch (RatingPositionMatrix.CanonicalSlot(p))
         {
-            PlayerOrder.Offensive => k.Defending * .130,
-            PlayerOrder.TowardsWing => k.Defending * .133,
-            _ => k.Defending * (isCenter ? .20202548157305372 : .09315927078269022)
-        };
-        var side = p.Order switch
-        {
-            PlayerOrder.TowardsWing => k.Defending * .217,
-            PlayerOrder.Offensive => k.Defending * .058,
-            _ => k.Defending * (isCenter ? .09757684765984834 : .3153092692405753)
-        };
-        var midfield = p.Order switch { PlayerOrder.Offensive => k.Playmaking * .047, PlayerOrder.TowardsWing => k.Playmaking * .023, _ => k.Playmaking * .035 };
-        Add(s, RatingSector.CentralDefence, central, k.FormMultiplier); AddSideOnly(s, p.Side, RatingSector.LeftDefence, RatingSector.RightDefence, side, k.FormMultiplier); Add(s, RatingSector.Midfield, midfield, k.FormMultiplier);
-        if (p.Side != PlayerSide.Center)
-        {
-            if (p.Order == PlayerOrder.TowardsWing)
-                // Wiki contribution table: only Central Defender Towards Wing
-                // receives a direct side-attack contribution (Passing .063).
-                // A normal central defender has no side-attack routing here.
-                AddSideOnly(s, p.Side, RatingSector.LeftAttack, RatingSector.RightAttack, k.Passing * .063, k.FormMultiplier);
-        }
-    }
+            case "GK":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.LeftDefence, .345);
+                AddExp(RatingSector.RightDefence, .345);
+                break;
 
-    private static void AddWingBack(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
-    {
-        // 2026-09-16 empirical WB evidence: the supplied 1-0-0 Pesalovo
-        // screenshots show a left-side "Towards Wing" order concentrating
-        // defending toward the player's side while reducing central defence.
-        // The exact historical coefficient is not published, so the V5 model
-        // uses a deliberately small empirical routing layer anchored to Normal:
-        // side defence x1.50, central defence x0.6875, PM/wing attack unchanged.
-        var centralDef = p.Order switch
-        {
-            PlayerOrder.TowardsWing => .0570625,
-            PlayerOrder.Defensive => .089,
-            PlayerOrder.TowardsMiddle => .126,
-            PlayerOrder.Offensive => .071,
-            _ => .083
-        };
-        var sideDef = p.Order switch
-        {
-            PlayerOrder.TowardsWing => .402,
-            PlayerOrder.Defensive => .284,
-            PlayerOrder.TowardsMiddle => .209,
-            PlayerOrder.Offensive => .175,
-            _ => .268
-        };
-        var midfield = p.Order switch { PlayerOrder.Defensive => .009, PlayerOrder.Offensive => .032, _ => .023 };
-        var sideAttack = p.Order switch { PlayerOrder.Defensive => .082, PlayerOrder.TowardsMiddle => .072, PlayerOrder.Offensive => .163, _ => .129 };
-        var def = p.Side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence; var att = p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack;
-        Add(s, RatingSector.CentralDefence, k.Defending * centralDef, k.FormMultiplier); Add(s, def, k.Defending * sideDef, k.FormMultiplier); Add(s, RatingSector.Midfield, k.Playmaking * midfield, k.FormMultiplier); Add(s, att, k.Winger * sideAttack, k.FormMultiplier);
-    }
+            case "WB-L":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.LeftDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.LeftAttack, .375);
+                break;
 
-    private static void AddInnerMidfielder(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
-    {
-        var v = p.Order switch { PlayerOrder.Defensive => new OrderMatrix(.115,.040,.131,.018,.039,.028,0d), PlayerOrder.Offensive => new OrderMatrix(.115,.040,.131,.018,.039,.025,0d), PlayerOrder.TowardsWing => new OrderMatrix(.059,.068,.113,.064,.038,0d,.117), _ => new OrderMatrix(.070,.028,.139,.028,.057,.038,0d) };
-        Add(s, RatingSector.CentralDefence, k.Defending * v.CentralDefence, k.FormMultiplier); AddSideOnly(s, p.Side, RatingSector.LeftDefence, RatingSector.RightDefence, k.Defending * v.SideDefence, k.FormMultiplier); Add(s, RatingSector.Midfield, k.Playmaking * v.Midfield, k.FormMultiplier);
-        var sidePass = k.Passing * v.SidePassing; if (p.Side == PlayerSide.Center) AddBothSides(s, RatingSector.LeftAttack, RatingSector.RightAttack, sidePass, k.FormMultiplier); else AddSideOnly(s, p.Side, RatingSector.LeftAttack, RatingSector.RightAttack, sidePass, k.FormMultiplier);
-        Add(s, RatingSector.CentralAttack, k.Passing * v.CenterPassing + k.Scoring * v.CenterScoring, k.FormMultiplier);
-        if (v.SideWinger > 0) { if (p.Side == PlayerSide.Center) AddBothSides(s, RatingSector.LeftAttack, RatingSector.RightAttack, k.Winger * v.SideWinger, k.FormMultiplier); else AddSideOnly(s, p.Side, RatingSector.LeftAttack, RatingSector.RightAttack, k.Winger * v.SideWinger, k.FormMultiplier); }
-    }
+            case "WB-R":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.RightDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.RightAttack, .375);
+                break;
 
-    private static void AddWinger(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
-    {
-        // 2026-09-16 controlled W-L singleton set (M. Gobiet): the same
-        // player/slot was captured in Normal, Towards Middle, Offensive and
-        // Defensive orders. The displayed sector deltas prove redistribution,
-        // not a scalar order multiplier. These coefficients are calibrated to
-        // that four-case singleton set; the skill-routing split is preserved
-        // from the previous matrix for the side-attack passing/winger pair.
-        var v = p.Order switch
-        {
-            PlayerOrder.TowardsMiddle => new WingerMatrix(.0884884743818279, .1204434042855921, .16922954343958763, .04631865503416777, .012448138540432587, .13758562247257852),
-            PlayerOrder.Offensive => new WingerMatrix(.0648656948187512, .07319784515943871, .16922954343958763, .05998694709321824, .015057452306799718, .18483118159873194),
-            PlayerOrder.Defensive => new WingerMatrix(.11211125394490458, .1440661838486688, .16922954343958763, .04817532425246202, .011457914957342318, .09034006334642512),
-            _ => new WingerMatrix(.11211125394490458, .0968206247225154, .1464213424821343, .18725421398707254, .04617227194201788, .09034006334642512)
-        };
-        Add(s, RatingSector.CentralDefence, k.Defending * v.CentralDefence, k.FormMultiplier); AddSideOnly(s, p.Side, RatingSector.LeftDefence, RatingSector.RightDefence, k.Defending * v.SideDefence, k.FormMultiplier); Add(s, RatingSector.Midfield, k.Playmaking * v.Midfield, k.FormMultiplier); AddSideOnly(s, p.Side, RatingSector.LeftAttack, RatingSector.RightAttack, k.Passing * v.SidePassing + k.Winger * v.SideWinger, k.FormMultiplier); Add(s, RatingSector.CentralAttack, k.Passing * v.CenterPassing, k.FormMultiplier);
-    }
+            case "DEF-CL":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.LeftDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                break;
 
-    private static void AddForward(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
-    {
-        var side = p.Side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack; var opposite = p.Side == PlayerSide.Left ? RatingSector.RightAttack : RatingSector.LeftAttack;
-        switch (p.Order)
-        {
-            case PlayerOrder.TowardsWing:
-                Add(s, RatingSector.Midfield, k.Playmaking * .024, k.FormMultiplier); if (p.Side == PlayerSide.Center) AddBothSides(s, RatingSector.LeftAttack, RatingSector.RightAttack, k.Scoring * .093 + k.Passing * .101 + k.Winger * .044, k.FormMultiplier); else { Add(s, side, k.Scoring * .093 + k.Passing * .101 + k.Winger * .044, k.FormMultiplier); Add(s, opposite, k.Scoring * .018 + k.Passing * .034, k.FormMultiplier); } Add(s, RatingSector.CentralAttack, k.Passing * .102 + k.Scoring * .044, k.FormMultiplier); break;
-            case PlayerOrder.Defensive:
-                Add(s, RatingSector.Midfield, k.Playmaking * .058, k.FormMultiplier); if (p.Side == PlayerSide.Center) AddBothSides(s, RatingSector.LeftAttack, RatingSector.RightAttack, k.Scoring * .030 + k.Passing * .033 + k.Winger * .059, k.FormMultiplier); else { Add(s, side, k.Scoring * .030 + k.Passing * .033 + k.Winger * .059, k.FormMultiplier); Add(s, opposite, k.Scoring * .030 + k.Passing * .033, k.FormMultiplier); } Add(s, RatingSector.CentralAttack, k.Scoring * .102 + k.Passing * .108, k.FormMultiplier); break;
-            default:
-                Add(s, RatingSector.Midfield, k.Playmaking * .041, k.FormMultiplier); if (p.Side == PlayerSide.Center) AddBothSides(s, RatingSector.LeftAttack, RatingSector.RightAttack, k.Scoring * .058 + k.Passing * .048 + k.Winger * .032, k.FormMultiplier); else { var core = k.Scoring * .058 + k.Passing * .048; Add(s, side, core + k.Winger * .032, k.FormMultiplier); Add(s, opposite, core, k.FormMultiplier); } Add(s, RatingSector.CentralAttack, k.Scoring * .178 + k.Passing * .066, k.FormMultiplier); break;
+            case "DEF-C":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.LeftDefence, .345);
+                AddExp(RatingSector.RightDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                break;
+
+            case "DEF-CR":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.RightDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                break;
+
+            case "W-L":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.LeftDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.CentralAttack, .450);
+                AddExp(RatingSector.LeftAttack, .375);
+                break;
+
+            case "W-R":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.RightDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.CentralAttack, .450);
+                AddExp(RatingSector.RightAttack, .375);
+                break;
+
+            case "IM-L":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.LeftDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.CentralAttack, .450);
+                AddExp(RatingSector.LeftAttack, .375);
+                break;
+
+            case "IM-C":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.LeftDefence, .345);
+                AddExp(RatingSector.RightDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.CentralAttack, .450);
+                AddExp(RatingSector.LeftAttack, .375);
+                AddExp(RatingSector.RightAttack, .375);
+                break;
+
+            case "IM-R":
+                AddExp(RatingSector.CentralDefence, .480);
+                AddExp(RatingSector.RightDefence, .345);
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.CentralAttack, .450);
+                AddExp(RatingSector.RightAttack, .375);
+                break;
+
+            case "FW-L":
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.CentralAttack, .450);
+                AddExp(RatingSector.LeftAttack, .375);
+                AddExp(RatingSector.RightAttack, .375);
+                break;
+
+            case "FW-C":
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.CentralAttack, .450);
+                AddExp(RatingSector.LeftAttack, .375);
+                AddExp(RatingSector.RightAttack, .375);
+                break;
+
+            case "FW-R":
+                AddExp(RatingSector.Midfield, .730);
+                AddExp(RatingSector.CentralAttack, .450);
+                AddExp(RatingSector.LeftAttack, .375);
+                AddExp(RatingSector.RightAttack, .375);
+                break;
         }
     }
 
     private static void ApplyContext(Dictionary<RatingSector, double> s, RatingContext c)
     {
-        var midfield = c.MatchLocation switch { MatchLocation.Home => 1.19892, MatchLocation.DerbyAway => 1.11493, _ => 1.0 }; midfield *= c.Attitude switch { TeamAttitude.MatchOfTheSeason => 1.1149, TeamAttitude.PlayItCool => .83945, _ => 1.0 }; if (c.Tactic == TeamTactic.CounterAttack) midfield *= .93;
-        switch (c.Tactic) { case TeamTactic.AttackMiddle: s[RatingSector.LeftDefence] *= .85; s[RatingSector.RightDefence] *= .85; break; case TeamTactic.AttackWings: s[RatingSector.CentralDefence] *= .85; break; case TeamTactic.Creative: s[RatingSector.LeftDefence] *= .93; s[RatingSector.CentralDefence] *= .93; s[RatingSector.RightDefence] *= .93; break; case TeamTactic.LongShots: s[RatingSector.LeftAttack] *= .96; s[RatingSector.CentralAttack] *= .96; s[RatingSector.RightAttack] *= .96; break; }
-        if (c.MatchMinute > 0) { var minute = Math.Clamp(c.MatchMinute, 0, 120); s[RatingSector.Midfield] *= 1.0 - .10 * Math.Clamp(minute / 90.0, 0, 1); } s[RatingSector.Midfield] *= midfield;
-        if (c.GoalDifference >= 2 && !c.IgnoreLeadRetreat) { var steps = Math.Min(c.GoalDifference - 1, 7); var protection = 1.0 + steps * .075; var attack = 1.0 - steps * .09; s[RatingSector.LeftDefence] *= protection; s[RatingSector.CentralDefence] *= protection; s[RatingSector.RightDefence] *= protection; s[RatingSector.LeftAttack] *= attack; s[RatingSector.CentralAttack] *= attack; s[RatingSector.RightAttack] *= attack; }
+        var midfield = c.MatchLocation switch
+        {
+            MatchLocation.Home => 1.19892,
+            MatchLocation.DerbyAway => 1.11493,
+            _ => 1.0
+        };
+
+        midfield *= c.Attitude switch
+        {
+            TeamAttitude.MatchOfTheSeason => 1.1149,
+            TeamAttitude.PlayItCool => .83945,
+            _ => 1.0
+        };
+
+        if (c.Tactic == TeamTactic.CounterAttack)
+            midfield *= .93;
+
+        switch (c.Tactic)
+        {
+            case TeamTactic.AttackMiddle:
+                s[RatingSector.LeftDefence] *= .85;
+                s[RatingSector.RightDefence] *= .85;
+                break;
+            case TeamTactic.AttackWings:
+                s[RatingSector.CentralDefence] *= .85;
+                break;
+            case TeamTactic.Creative:
+                s[RatingSector.LeftDefence] *= .93;
+                s[RatingSector.CentralDefence] *= .93;
+                s[RatingSector.RightDefence] *= .93;
+                break;
+            case TeamTactic.LongShots:
+                s[RatingSector.LeftAttack] *= .96;
+                s[RatingSector.CentralAttack] *= .96;
+                s[RatingSector.RightAttack] *= .96;
+                break;
+        }
+
+        if (c.MatchMinute > 0)
+            s[RatingSector.Midfield] *= 1.0 - .10 * Math.Clamp(c.MatchMinute / 90.0, 0, 1);
+
+        s[RatingSector.Midfield] *= midfield;
+
+        if (c.GoalDifference >= 2 && !c.IgnoreLeadRetreat)
+        {
+            var steps = Math.Min(c.GoalDifference - 1, 7);
+            var protection = 1.0 + steps * .075;
+            var attack = 1.0 - steps * .09;
+
+            s[RatingSector.LeftDefence] *= protection;
+            s[RatingSector.CentralDefence] *= protection;
+            s[RatingSector.RightDefence] *= protection;
+            s[RatingSector.LeftAttack] *= attack;
+            s[RatingSector.CentralAttack] *= attack;
+            s[RatingSector.RightAttack] *= attack;
+        }
     }
 
-    private static void ApplyReferenceCalibration(Dictionary<RatingSector, double> s) { s[RatingSector.Midfield] *= ReferenceMidfieldCalibration; s[RatingSector.LeftAttack] *= ReferenceLeftAttackCalibration; s[RatingSector.RightAttack] *= ReferenceRightAttackCalibration; }
-    private static double LoyaltyEffect(double loyalty) => loyalty >= 20 ? 1.5 : Math.Clamp(loyalty / 19.0, 0.0, 1.0);
-    private static double ExperienceBonus(double experience) { var values = new[] { 0.00,0.00,.40,.64,.80,.93,1.04,1.13,1.20,1.27,1.33,1.39,1.44,1.49,1.53,1.57,1.61,1.64,1.67,1.71,1.73 }; return values[Math.Clamp((int)Math.Round(experience), 1, 20)]; }
-    private static double FormFactor(double form) => 0.378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
-    private static void AddBothSides(Dictionary<RatingSector,double> s, RatingSector left, RatingSector right, double value, double multiplier = 1.0) { s[left] += value * multiplier; s[right] += value * multiplier; }
-    private static void AddSideOnly(Dictionary<RatingSector,double> s, PlayerSide side, RatingSector left, RatingSector right, double value, double multiplier = 1.0) { value *= multiplier; if (side == PlayerSide.Left) s[left] += value; else if (side == PlayerSide.Right) s[right] += value; else AddBothSides(s, left, right, value); }
-    private static void Add(Dictionary<RatingSector,double> s, RatingSector sector, double value, double multiplier = 1.0) => s[sector] += value * multiplier;
-    private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p) { var position = RatingPositionResolver.Resolve(formation, slot.Code); var side = slot.Code.EndsWith("-L", StringComparison.Ordinal) ? PlayerSide.Left : slot.Code.EndsWith("-R", StringComparison.Ordinal) ? PlayerSide.Right : PlayerSide.Center; return new RegionalPlayer(p.Id, position, side, slot.Order, p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring, p.Form, p.Loyalty, p.Experience, p.Stamina); }
-    private readonly record struct OrderMatrix(double CentralDefence,double SideDefence,double Midfield,double SidePassing,double CenterPassing,double CenterScoring,double SideWinger);
-    private readonly record struct WingerMatrix(double CentralDefence,double SideDefence,double Midfield,double SidePassing,double SideWinger,double CenterPassing);
-    private readonly record struct EffectiveSkillsFixed(double Keeper,double Defending,double Playmaking,double Passing,double Winger,double Scoring,double FormMultiplier);
+    private static void ApplyReferenceCalibration(Dictionary<RatingSector, double> s)
+    {
+        s[RatingSector.Midfield] *= ReferenceMidfieldCalibration;
+        s[RatingSector.LeftAttack] *= ReferenceLeftAttackCalibration;
+        s[RatingSector.RightAttack] *= ReferenceRightAttackCalibration;
+    }
+
+    private static double LoyaltyEffect(double loyalty)
+        => loyalty >= 20 ? 1.5 : Math.Clamp(loyalty / 19.0, 0.0, 1.0);
+
+    private static double ExperienceBonus(double experience)
+    {
+        var values = new[]
+        {
+            0.00, 0.00, .40, .64, .80, .93, 1.04, 1.13, 1.20, 1.27, 1.33,
+            1.39, 1.44, 1.49, 1.53, 1.57, 1.61, 1.64, 1.67, 1.71, 1.73
+        };
+
+        return values[Math.Clamp((int)Math.Round(experience), 1, 20)];
+    }
+
+    private static double FormFactor(double form)
+        => .378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
+
+    private static RegionalRatingSnapshot ToSnapshot(Dictionary<RatingSector, double> s)
+        => new(
+            s[RatingSector.LeftDefence],
+            s[RatingSector.CentralDefence],
+            s[RatingSector.RightDefence],
+            s[RatingSector.Midfield],
+            s[RatingSector.LeftAttack],
+            s[RatingSector.CentralAttack],
+            s[RatingSector.RightAttack],
+            RegionalRatingEngine.Display(s[RatingSector.LeftDefence]),
+            RegionalRatingEngine.Display(s[RatingSector.CentralDefence]),
+            RegionalRatingEngine.Display(s[RatingSector.RightDefence]),
+            RegionalRatingEngine.Display(s[RatingSector.Midfield]),
+            RegionalRatingEngine.Display(s[RatingSector.LeftAttack]),
+            RegionalRatingEngine.Display(s[RatingSector.CentralAttack]),
+            RegionalRatingEngine.Display(s[RatingSector.RightAttack]));
+
+    private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p)
+    {
+        var position = RatingPositionResolver.Resolve(formation, slot.Code);
+        var side = slot.Code.EndsWith("-L", StringComparison.Ordinal)
+            ? PlayerSide.Left
+            : slot.Code.EndsWith("-R", StringComparison.Ordinal)
+                ? PlayerSide.Right
+                : PlayerSide.Center;
+
+        return new RegionalPlayer(
+            p.Id, position, side, slot.Order,
+            p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring,
+            p.Form, p.Loyalty, p.Experience, p.Stamina, slot.Code);
+    }
+
+    private readonly record struct EffectiveSkillsFixed(
+        double Keeper, double Defending, double Playmaking, double Passing,
+        double Winger, double Scoring, double FormMultiplier);
 }
