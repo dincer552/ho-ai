@@ -36,7 +36,7 @@ public static class EmpiricalWingerSingletonRegression
             var expected = new[] { c.LeftDefence, c.CentralDefence, c.RightDefence, c.Midfield,
                 c.LeftAttack, c.CentralAttack, c.RightAttack };
             var maxError = values.Zip(expected, (a, e) => Math.Abs(a - e)).Max();
-            Console.WriteLine($"{c.Name}: V5={string.Join('/', values.Select(x => x.ToString("0.##")))} DB={string.Join('/', expected.Select(x => x.ToString("0.##")))} maxErr={maxError:0.##}");
+            Console.WriteLine($"{c.Name}: V5={string.Join('/', values.Select(x => x.ToString("0.000000")))} DB={string.Join('/', expected.Select(x => x.ToString("0.000000")))} maxErr={maxError:0.000000}");
             if (maxError > Tolerance) failures++;
         }
 
