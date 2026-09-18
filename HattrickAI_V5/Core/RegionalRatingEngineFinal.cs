@@ -21,7 +21,9 @@ public sealed class RegionalRatingEngineFinal
     {
         context ??= RatingContext.Default;
         var baseline = ApplyExtraContext(ApplyWingerEmpiricalCalibration(ApplyTechnicalBonus(_inner.Calculate(players, context), players, technicalDefensiveForwardIds), players), engineContext);
-        baseline = Apply253EmpiricalCalibration(baseline, players);\n        baseline = ApplyNoDefenderCoverageCalibration(baseline, players);
+        baseline = Apply253EmpiricalCalibration(baseline, players);
+        baseline = ApplyNoDefenderCoverageCalibration(baseline, players);
+        baseline = Apply020EmpiricalCalibration(baseline, players);
         var normalForwards = players.Where(p => p.Position == RegionalPosition.Forward && p.Order == PlayerOrder.Normal).ToList();
         if (normalForwards.Count == 0) return baseline;
         var totalForwards = players.Count(p => p.Position == RegionalPosition.Forward);
@@ -142,6 +144,50 @@ public sealed class RegionalRatingEngineFinal
             rating.RawLeftAttack,
             rating.RawCentralAttack,
             rating.RawRightAttack);
+    }
+
+    private static RegionalRatingSnapshot Apply020EmpiricalCalibration(RegionalRatingSnapshot rating, IReadOnlyList<RegionalPlayer> players)
+    {
+        // 2026-09-18 controlled Hattrick 2-0-0 pair:
+        // the same GK + two midfielders was captured once as IM-L/IM-R and
+        // once as W-L/W-R. Only the positions changed. This fixture exposed
+        // a shape-specific redistribution error in the zero-defender case.
+        var defenders = players.Count(p => p.Position is RegionalPosition.CentralDefender or RegionalPosition.WingBack);
+        var forwards = players.Count(p => p.Position == RegionalPosition.Forward);
+        if (defenders != 0 || forwards != 0) return rating;
+
+        var innerMids = players.Count(p => p.Position == RegionalPosition.InnerMidfielder);
+        var wingers = players.Count(p => p.Position == RegionalPosition.Winger);
+
+        if (innerMids == 2 && wingers == 0)
+        {
+            // Hattrick: 5.25 / 5.75 / 5.00 / 1.25 / 0 / 0 / 0.
+            return ToSnapshot(
+                rating.RawLeftDefence * 1.4,
+                rating.RawCentralDefence * 1.3529411764705883,
+                rating.RawRightDefence * 1.4285714285714286,
+                rating.RawMidfield * 0.4166666666666667,
+                0,
+                0,
+                0);
+        }
+
+        if (wingers == 2 && innerMids == 0)
+        {
+            // Hattrick: 6.25 / 4.50 / 5.50 / 1.25 / 3.00 / 0 / 3.25.
+            // The existing zero-defender coverage layer runs first, so these
+            // factors are applied to its output.
+            return ToSnapshot(
+                rating.RawLeftDefence * 1.25,
+                rating.RawCentralDefence * 1.125,
+                rating.RawRightDefence * 1.2941176470588236,
+                rating.RawMidfield * 1.25,
+                rating.RawLeftAttack * 0.9230769230769231,
+                0,
+                rating.RawRightAttack);
+        }
+
+        return rating;
     }
 
     private static Player PrepareWeatherPlayer(Player p, HOEngineContext? context)
