@@ -89,7 +89,7 @@ Bu değişiklik V5 katsayılarını veya Stage-2 converter'ı değiştirmez.
 
 ## V5 — 14 Pozisyon Bağımsız Katkı Matrisi
 
-V5 rating modeli, Hattrick saha yerleşimini **14 ayrı slot** olarak ele almalıdır. Aynı rol ailesi içinde dahi slotlar birbirine eşit kabul edilmez.
+V5 rating modeli, Hattrick saha yerleşimini **14 ayrı canonical slot** olarak ele alır. Aynı rol ailesi içinde dahi slotlar birbirine eşit kabul edilmez. `WB-L/WB-R` wing-back, `DEF-CL/DEF-C/DEF-CR` ise üç ayrı central-defender slotudur. Eski `DEF-L/DEF-R` kodları yalnızca geriye dönük central-defender alias'ı olarak kabul edilir.
 
 ### Savunma hattı — 5 ayrı slot
 
@@ -101,7 +101,7 @@ V5 rating modeli, Hattrick saha yerleşimini **14 ayrı slot** olarak ele almal�
 | `DEF-CR` | Central Defence = Defending × 0.186; Right Defence = Defending × 0.077; Midfield = Playmaking × 0.035 |
 | `WB-R` | Central Defence = Defending × 0.083; Right Defence = Defending × 0.268; Midfield = Playmaking × 0.023; Right Attack = Winger × 0.129 |
 
-`DEF-L` / `DEF-R` yalnızca diziliş sayısına bakılarak otomatik olarak WingBack'e dönüştürülmemelidir. Gerçek `WB-L/WB-R` rolü ile savunmacı `DEF-L/DEF-R` rolü ayrılmalıdır.
+`DEF-L` / `DEF-R` artık diziliş sayısına bakılarak otomatik olarak WingBack'e dönüştürülmez. Canonical hesapta gerçek WingBack `WB-L/WB-R`, yan stoper `DEF-CL/DEF-CR` koduyla temsil edilir. Böylece aynı XI içinde örneğin `WB-L + DEF-L(alias)` açıkça iki farklı rol olarak hesaplanabilir.
 
 Central Defender tarafında merkez/yan yerleşimin savunma dağılımı ve birden fazla CD olduğunda overcrowding etkisi ayrıca uygulanır; tek bir ortak DEF katsayısı kullanılmaz.
 
