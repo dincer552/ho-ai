@@ -55,6 +55,8 @@ if (args.Length > 0 && string.Equals(args[0], "empirical-winger", StringComparis
     return EmpiricalWingerSingletonRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "empirical-253", StringComparison.OrdinalIgnoreCase))
     return Empirical2523LineupDiagnostic.Run();
+if (args.Length > 0 && string.Equals(args[0], "empirical-020", StringComparison.OrdinalIgnoreCase))
+    return Empirical020LineupRegression.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
