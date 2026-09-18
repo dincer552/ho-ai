@@ -11,8 +11,8 @@ public static class Stage9FormationRegression
         // Three-defender formations: DEF-L/DEF-R are central defenders, not wing-backs.
         foreach (var formation in new[] { "3-4-3", "3-5-2", "3-4-2-1", "3-3-4" })
         {
-            Check(formation, "DEF-L", RegionalPosition.CentralDefender, ref failures);
-            Check(formation, "DEF-R", RegionalPosition.CentralDefender, ref failures);
+            Check(formation, "WB-L", RegionalPosition.WingBack, ref failures);
+            Check(formation, "WB-R", RegionalPosition.WingBack, ref failures);
         }
 
         // Four- and five-defender formations: DEF-L/DEF-R are wing-backs.
