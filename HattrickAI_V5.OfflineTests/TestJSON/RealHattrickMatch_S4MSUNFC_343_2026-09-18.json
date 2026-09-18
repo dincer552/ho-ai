@@ -1,0 +1,88 @@
+{
+  "fixtureId": "S4MSUNFC-343-2026-09-18-02",
+  "source": "Hattrick mobile screenshot + current CHPP player snapshot",
+  "formation": "3-4-3",
+  "teamName": "S4MSUNFC",
+  "capturedAt": "2026-09-18",
+  "matchMinute": 0,
+  "tactic": "Normal",
+  "tacticLevel": 3,
+  "teamAttitude": "Normal",
+  "lineup": [
+    {
+      "code": "GK",
+      "playerId": 479235895,
+      "playerName": "Enzo Bultot",
+      "order": "Normal"
+    },
+    {
+      "code": "DEF-L",
+      "playerId": 468363070,
+      "playerName": "Abeiku Takyi",
+      "order": "Normal"
+    },
+    {
+      "code": "DEF-C",
+      "playerId": 458524225,
+      "playerName": "Dawid Nocoń",
+      "order": "Normal"
+    },
+    {
+      "code": "DEF-R",
+      "playerId": 476114406,
+      "playerName": "Cristian Pesalovo",
+      "order": "Normal"
+    },
+    {
+      "code": "W-L",
+      "playerId": 465141092,
+      "playerName": "Milen Bozev",
+      "order": "Normal"
+    },
+    {
+      "code": "IM-L",
+      "playerId": 465805392,
+      "playerName": "Bertalan Doktor",
+      "order": "Normal"
+    },
+    {
+      "code": "IM-R",
+      "playerId": 474962854,
+      "playerName": "Manuel Gobiet",
+      "order": "Normal"
+    },
+    {
+      "code": "W-R",
+      "playerId": 492253331,
+      "playerName": "Nándor Dobóvári",
+      "order": "Normal"
+    },
+    {
+      "code": "FW-L",
+      "playerId": 491743384,
+      "playerName": "Adrian Beța",
+      "order": "Normal"
+    },
+    {
+      "code": "FW-C",
+      "playerId": 498487535,
+      "playerName": "Mikel Thiebault",
+      "order": "Normal"
+    },
+    {
+      "code": "FW-R",
+      "playerId": 497641568,
+      "playerName": "Ersin Akşın",
+      "order": "Normal"
+    }
+  ],
+  "hattrickRating": {
+    "leftDefence": 14.25,
+    "centralDefence": 12.75,
+    "rightDefence": 13.5,
+    "midfield": 6.25,
+    "leftAttack": 12.5,
+    "centralAttack": 15.25,
+    "rightAttack": 12
+  }
+}
