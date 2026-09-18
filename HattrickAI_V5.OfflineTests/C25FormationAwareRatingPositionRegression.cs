@@ -15,8 +15,8 @@ public static class C25FormationAwareRatingPositionRegression
 
         Check("4-4-2 DEF-L", RatingPositionResolver.Resolve("4-4-2", "DEF-L"), RegionalPosition.WingBack, failures);
         Check("5-5-0 DEF-R", RatingPositionResolver.Resolve("5-5-0", "DEF-R"), RegionalPosition.WingBack, failures);
-        Check("2-5-3 DEF-L", RatingPositionResolver.Resolve("2-5-3", "DEF-L"), RegionalPosition.WingBack, failures);
-        Check("2-5-3 DEF-R", RatingPositionResolver.Resolve("2-5-3", "DEF-R"), RegionalPosition.WingBack, failures);
+        Check("2-5-3 DEF-L", RatingPositionResolver.Resolve("2-5-3", "WB-L"), RegionalPosition.WingBack, failures);
+        Check("2-5-3 DEF-R", RatingPositionResolver.Resolve("2-5-3", "WB-R"), RegionalPosition.WingBack, failures);
         Check("3-5-2 DEF-CL", RatingPositionResolver.Resolve("3-5-2", "DEF-CL"), RegionalPosition.CentralDefender, failures);
         Check("3-5-2 DEF-C", RatingPositionResolver.Resolve("3-5-2", "DEF-C"), RegionalPosition.CentralDefender, failures);
         Check("3-5-2 DEF-CR", RatingPositionResolver.Resolve("3-5-2", "DEF-CR"), RegionalPosition.CentralDefender, failures);
