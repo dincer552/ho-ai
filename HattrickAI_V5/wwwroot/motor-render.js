@@ -1,6 +1,6 @@
 (function () {
   const defs = [
-    ['GK','gk'],['DEF-L','dl'],['DEF-CL','dcl'],['DEF-C','dc'],['DEF-CR','dcr'],['DEF-R','dr'],
+    ['GK','gk'],['WB-L','dl'],['DEF-CL','dcl'],['DEF-C','dc'],['DEF-CR','dcr'],['WB-R','dr'],
     ['W-L','wl'],['IM-L','iml'],['IM-C','imc'],['IM-R','imr'],['W-R','wr'],
     ['FW-L','fwl'],['FW-C','fwc'],['FW-R','fwr']
   ];
