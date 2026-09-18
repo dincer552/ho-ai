@@ -17,7 +17,7 @@ public sealed class PlayerAnalysisEngine : IPlayerAnalysisEngine
     private static readonly string[] PositionCodes =
     [
         "GK",
-        "DEF-L", "DEF-CL", "DEF-C", "DEF-CR", "DEF-R",
+        "WB-L", "DEF-CL", "DEF-C", "DEF-CR", "WB-R",
         "W-L", "IM-L", "IM-C", "IM-R", "W-R",
         "FW-L", "FW-C", "FW-R"
     ];
@@ -96,7 +96,7 @@ public sealed class PlayerAnalysisEngine : IPlayerAnalysisEngine
     {
         "kp" => "GK",
         "cd" or "cdo" or "cdtw" => "DEF-C",
-        "wb" or "wbd" or "wbo" or "wbtm" => "DEF-L",
+        "wb" or "wbd" or "wbo" or "wbtm" => "WB-L",
         "w" or "wd" or "wo" or "wtm" => "W-L",
         "im" or "imd" or "imo" or "imtw" => "IM-C",
         "fw" or "fwd" or "tdf" or "fwtw" => "FW-C",
@@ -179,11 +179,11 @@ public sealed class PlayerAnalysisEngine : IPlayerAnalysisEngine
     private static int PositionOrder(string code) => code switch
     {
         "GK" => 0,
-        "DEF-L" => 10,
+        "WB-L" => 10,
         "DEF-CL" => 11,
         "DEF-C" => 12,
         "DEF-CR" => 13,
-        "DEF-R" => 14,
+        "WB-R" => 14,
         "W-L" => 20,
         "IM-L" => 21,
         "IM-C" => 22,
