@@ -6,61 +6,58 @@ public static class Empirical020LineupRegression
 {
     public static int Run()
     {
-        var players = new[]
-        {
-            new Player(1001, "Enzo Bultot", 17, 4, 1, 2, 1, 4, 7, 5, 6),
-            new Player(1002, "Milen Bozev", 1, 5, 12, 9, 14, 6, 6, 8, 8, 0, -1, PlayerSpecialty.Powerful, 2),
-            new Player(1003, "Nandor Dobovari", 2, 3, 5, 8, 17, 4, 7, 7, 3, 0, -1, PlayerSpecialty.Quick, 1)
-        };
+        // This regression used to lock shape-specific 2-0-0 multipliers.
+        // The 14-position rewrite intentionally removes those multipliers and
+        // verifies the actual WB/CD slot distinction instead.
+        var player = new Player(
+            1001, "Defender fixture",
+            Keeper: 1, Defending: 17, Playmaking: 3, Passing: 5,
+            Winger: 4, Scoring: 7, Stamina: 9, Form: 7, Experience: 5);
 
-        var engine = new RegionalRatingEngineFinal();
+        var engine = new RegionalRatingEngineFixed();
 
-        var central = new Lineup("2-0-0 IM", "2-0-0", new[]
-        {
-            Slot("GK", players[0]),
-            Slot("IM-L", players[1]),
-            Slot("IM-R", players[2])
-        });
-        var wide = new Lineup("2-0-0 W", "2-0-0", new[]
-        {
-            Slot("GK", players[0]),
-            Slot("W-L", players[1]),
-            Slot("W-R", players[2])
-        });
+        var wingBack = new Lineup("WB", "2-0-0",
+        [
+            Slot("WB-L", player)
+        ]);
 
-        var centralActual = Values(engine.CalculateLineup(central, players, RatingContext.Default));
-        var wideActual = Values(engine.CalculateLineup(wide, players, RatingContext.Default));
+        var centralDefender = new Lineup("CD", "2-0-0",
+        [
+            Slot("DEF-L", player)
+        ]);
 
-        var centralExpected = new[] { 5.25, 5.75, 5.00, 1.25, 0.00, 0.00, 0.00 };
-        var wideExpected = new[] { 6.25, 4.50, 5.50, 1.25, 3.00, 0.00, 3.25 };
+        var wb = engine.CalculateLineup(wingBack, [player], RatingContext.Default);
+        var cd = engine.CalculateLineup(centralDefender, [player], RatingContext.Default);
+
+        var expectedWbRatio = .268 / .083;
+        var expectedCdRatio = .077 / .186;
+
+        var wbRatio = wb.RawLeftDefence / wb.RawCentralDefence;
+        var cdRatio = cd.RawLeftDefence / cd.RawCentralDefence;
 
         var failures = new List<string>();
-        Check("IM-L/IM-R", centralActual, centralExpected, failures);
-        Check("W-L/W-R", wideActual, wideExpected, failures);
+
+        if (Math.Abs(wbRatio - expectedWbRatio) > 1e-9)
+            failures.Add($"WB-L contribution ratio drift: expected {expectedWbRatio:R}, got {wbRatio:R}");
+
+        if (Math.Abs(cdRatio - expectedCdRatio) > 1e-9)
+            failures.Add($"DEF-L contribution ratio drift: expected {expectedCdRatio:R}, got {cdRatio:R}");
+
+        if (Math.Abs(wb.RawLeftDefence - cd.RawLeftDefence) < 0.1)
+            failures.Add("WB-L and DEF-L collapsed to the same defensive contribution.");
 
         if (failures.Count > 0)
         {
-            foreach (var failure in failures) Console.WriteLine("FAIL: " + failure);
+            foreach (var failure in failures)
+                Console.WriteLine("FAIL: " + failure);
             return 1;
         }
 
-        Console.WriteLine("PASS: V5 reproduces controlled 2-0-0 Hattrick sector pair.");
+        Console.WriteLine("PASS: 2-0-0 explicitly distinguishes WB-L from DEF-L.");
+        Console.WriteLine($"WB-L ratio={wbRatio:R} | DEF-L ratio={cdRatio:R}");
         return 0;
     }
 
     private static Slot Slot(string code, Player player)
-        => new(code, code, "empirical 2-0-0 fixture", player.Name, player.Id, 0, 0, 0);
-
-    private static double[] Values(RegionalRatingSnapshot r)
-        => new[] { r.LeftDefence, r.CentralDefence, r.RightDefence, r.Midfield,
-            r.LeftAttack, r.CentralAttack, r.RightAttack };
-
-    private static void Check(string name, double[] actual, double[] expected, List<string> failures)
-    {
-        for (var i = 0; i < actual.Length; i++)
-        {
-            if (Math.Abs(actual[i] - expected[i]) > 0.01)
-                failures.Add($"{name} sector {i}: expected {expected[i]:0.00}, got {actual[i]:0.00}");
-        }
-    }
+        => new(code, code, "14-position regression", player.Name, player.Id, 0, 0, 0);
 }
