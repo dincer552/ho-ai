@@ -39,7 +39,7 @@ public sealed class RegionalRatingEngineFixed
                 formMultiplier);
 
             var before = new Dictionary<RatingSector, double>(sectors);
-            AddPositionContribution(sectors, p, k);
+            AddPositionContribution(sectors, p, k, cds);
             var crowding = PositionCrowding(p.Position, cds, ims, fws);
             if (crowding != 1.0)
             {
@@ -127,7 +127,7 @@ public sealed class RegionalRatingEngineFixed
         _ => 1.0
     };
 
-    private static void AddPositionContribution(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
+    private static void AddPositionContribution(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k, int centralDefenderCount)
     {
         switch (p.Position)
         {
@@ -195,7 +195,18 @@ public sealed class RegionalRatingEngineFixed
         };
         var midfield = p.Order switch { PlayerOrder.Offensive => k.Playmaking * .047, PlayerOrder.TowardsWing => k.Playmaking * .023, _ => k.Playmaking * .035 };
         Add(s, RatingSector.CentralDefence, central, k.FormMultiplier); AddSideOnly(s, p.Side, RatingSector.LeftDefence, RatingSector.RightDefence, side, k.FormMultiplier); Add(s, RatingSector.Midfield, midfield, k.FormMultiplier);
-        if (p.Order == PlayerOrder.TowardsWing && p.Side != PlayerSide.Center) AddSideOnly(s, p.Side, RatingSector.LeftAttack, RatingSector.RightAttack, k.Passing * .063, k.FormMultiplier);
+        if (p.Side != PlayerSide.Center)
+        {
+            if (p.Order == PlayerOrder.TowardsWing)
+                AddSideOnly(s, p.Side, RatingSector.LeftAttack, RatingSector.RightAttack, k.Passing * .063, k.FormMultiplier);
+            else if (p.Order == PlayerOrder.Normal && centralDefenderCount == 1)
+                // 2026-09-18 controlled 1-0-0 left-defender fixture (D. Nocon):
+                // Hattrick reports 1.25 side attack while the previous V5
+                // routing produced zero. Calibrate the normal single-side
+                // defender's passing contribution to that position-specific
+                // effect; experience remains handled by AddExperienceContribution.
+                AddSideOnly(s, p.Side, RatingSector.LeftAttack, RatingSector.RightAttack, k.Passing * .19144013042705718, k.FormMultiplier);
+        }
     }
 
     private static void AddWingBack(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkillsFixed k)
