@@ -35,10 +35,10 @@ public static class EmpiricalDefensiveSingletonRegression
             var player = new RegionalPlayer(c.Id, RegionalPosition.CentralDefender, c.Side, PlayerOrder.Normal,
                 0, c.Defending, c.Playmaking, 0, 0, 0, c.Form, 0, c.Experience, 7);
             var actual = engine.Calculate(new[] { player }, RatingContext.Default);
-            var values = new[] { actual.LeftDefence, actual.CentralDefence, actual.RightDefence, actual.Midfield, actual.LeftAttack, actual.CentralAttack, actual.RightAttack };
+            var values = new[] { actual.RawLeftDefence, actual.RawCentralDefence, actual.RawRightDefence, actual.RawMidfield, actual.RawLeftAttack, actual.RawCentralAttack, actual.RawRightAttack };
             var expected = new[] { c.LeftDefence, c.CentralDefence, c.RightDefence, c.Midfield, 0, 0, 0 };
             var maxError = values.Zip(expected, (a, e) => Math.Abs(a - e)).Max();
-            Console.WriteLine($"{c.Name}: V5={string.Join('/', values.Select(x => x.ToString("0.##")))} DB={string.Join('/', expected.Select(x => x.ToString("0.##")))} maxErr={maxError:0.##}");
+            Console.WriteLine($"{c.Name}: V5={string.Join('/', values.Select(x => x.ToString("0.000000")))} DB={string.Join('/', expected.Select(x => x.ToString("0.000000")))} maxErr={maxError:0.000000}");
             if (maxError > Tolerance) failures++;
         }
 
