@@ -24,6 +24,7 @@ public sealed class RegionalRatingEngineFinal
         baseline = Apply253EmpiricalCalibration(baseline, players);
         baseline = ApplyNoDefenderCoverageCalibration(baseline, players);
         baseline = Apply020EmpiricalCalibration(baseline, players);
+        baseline = ApplySingleNormalWingBackRegression(baseline, players);
         var normalForwards = players.Where(p => p.Position == RegionalPosition.Forward && p.Order == PlayerOrder.Normal).ToList();
         if (normalForwards.Count == 0) return baseline;
         var totalForwards = players.Count(p => p.Position == RegionalPosition.Forward);
@@ -188,6 +189,34 @@ public sealed class RegionalRatingEngineFinal
         }
 
         return rating;
+    }
+
+    private static RegionalRatingSnapshot ApplySingleNormalWingBackRegression(RegionalRatingSnapshot rating, IReadOnlyList<RegionalPlayer> players)
+    {
+        // 2026-09-18 controlled WB-L/Normal regression: 9 singleton observations
+        // from the supplied Hattrick screenshots. All observations are one
+        // normal wing-back with no other outfield players. The regression
+        // deliberately uses only player attributes already represented by V5:
+        // Defending/Form/Experience for defence, and Winger/Passing/Form/Experience
+        // for side attack. Midfield is left to the researched PM routing because
+        // the Hattrick observations are overwhelmingly at the 1.00 display floor.
+        var wbs = players.Where(p => p.Position == RegionalPosition.WingBack && p.Order == PlayerOrder.Normal).ToList();
+        if (wbs.Count != 1 || players.Any(p => p.Position != RegionalPosition.WingBack))
+            return rating;
+
+        var p = wbs[0];
+
+        var ld = Math.Max(1.0, .5042297504077295 + .32514661525512334 * p.Defending
+            + .029675683277464934 * p.Form - .0031343339973174725 * p.Experience);
+
+        var cd = Math.Max(1.0, .5430248080987872 + .07192123706752704 * p.Defending
+            + .022332851262654347 * p.Form + .021526309934654347 * p.Experience);
+
+        var att = Math.Max(1.0, .3423919640054436 + .12997007429109558 * p.Winger
+            - .02075337448990304 * p.Passing + .08598283980328555 * p.Form
+            + .03436852568797742 * p.Experience);
+
+        return ToSnapshot(ld, cd, 0, rating.RawMidfield, att, 0, 0);
     }
 
     private static Player PrepareWeatherPlayer(Player p, HOEngineContext? context)
