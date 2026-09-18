@@ -212,7 +212,7 @@ public sealed class RegionalRatingEngine
     {
         var position = slot.Code switch { "GK" => RegionalPosition.Goalkeeper, "DEF-L" or "DEF-R" or "DEF-CL" or "DEF-C" or "DEF-CR" => RegionalPosition.CentralDefender, "W-L" or "W-R" => RegionalPosition.Winger, "IM-L" or "IM-C" or "IM-R" => RegionalPosition.InnerMidfielder, "FW-L" or "FW-C" or "FW-R" => RegionalPosition.Forward, _ => RegionalPosition.InnerMidfielder };
         var side = slot.Code.EndsWith("-L", StringComparison.Ordinal) ? PlayerSide.Left : slot.Code.EndsWith("-R", StringComparison.Ordinal) ? PlayerSide.Right : PlayerSide.Center;
-        return new RegionalPlayer(p.Id, position, side, slot.Order, p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring, p.Form, p.Loyalty, p.Experience, p.Stamina);
+        return new RegionalPlayer(p.Id, position, side, slot.Order, p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring, p.Form, p.Loyalty, p.Experience, p.Stamina, slot.Code);
     }
     public static double Display(double raw) => Math.Clamp(Math.Round(raw, 2, MidpointRounding.AwayFromZero), 0, 20);
 }
@@ -224,7 +224,7 @@ public enum PlayerSide { Left, Center, Right }
 public enum MatchLocation { Away, Home, DerbyAway }
 public enum TeamAttitude { Normal, MatchOfTheSeason, PlayItCool, Auto }
 public enum TeamTactic { Normal, CounterAttack, LongShots, AttackMiddle, AttackWings, Creative, Pressing }
-public sealed record RegionalPlayer(int Id, RegionalPosition Position, PlayerSide Side, PlayerOrder Order, double Keeper, double Defending, double Playmaking, double Passing, double Winger, double Scoring, double Form, double Loyalty, double Experience, double Stamina);
+public sealed record RegionalPlayer(int Id, RegionalPosition Position, PlayerSide Side, PlayerOrder Order, double Keeper, double Defending, double Playmaking, double Passing, double Winger, double Scoring, double Form, double Loyalty, double Experience, double Stamina, string? SlotCode = null);
 public sealed record RatingContext(MatchLocation MatchLocation, TeamAttitude Attitude, TeamTactic Tactic)
 { public int MatchMinute { get; init; } public int GoalDifference { get; init; } public bool IgnoreLeadRetreat { get; init; } public static RatingContext Default => new(MatchLocation.Away, TeamAttitude.Normal, TeamTactic.Normal); }
 public sealed record RegionalRatingPair(RegionalRatingSnapshot Own, RegionalRatingSnapshot Opponent);
