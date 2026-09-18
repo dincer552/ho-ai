@@ -21,7 +21,7 @@ public sealed class RegionalRatingEngineFinal
     {
         context ??= RatingContext.Default;
         var baseline = ApplyExtraContext(ApplyWingerEmpiricalCalibration(ApplyTechnicalBonus(_inner.Calculate(players, context), players, technicalDefensiveForwardIds), players), engineContext);
-        baseline = Apply253EmpiricalCalibration(baseline, players);
+        baseline = Apply253EmpiricalCalibration(baseline, players);\n        baseline = ApplyNoDefenderCoverageCalibration(baseline, players);
         var normalForwards = players.Where(p => p.Position == RegionalPosition.Forward && p.Order == PlayerOrder.Normal).ToList();
         if (normalForwards.Count == 0) return baseline;
         var totalForwards = players.Count(p => p.Position == RegionalPosition.Forward);
@@ -116,6 +116,32 @@ public sealed class RegionalRatingEngineFinal
             rating.RawLeftAttack * 1.119969627942293,
             rating.RawCentralAttack * 1.3016528925619835,
             rating.RawRightAttack * 1.3018322082931535);
+    }
+
+    private static RegionalRatingSnapshot ApplyNoDefenderCoverageCalibration(RegionalRatingSnapshot rating, IReadOnlyList<RegionalPlayer> players)
+    {
+        // 2026-09-18 controlled 0-2-0 screenshot calibration. With zero
+        // defenders, Hattrick still assigns substantial defensive coverage
+        // through the goalkeeper and the two wide midfielders. The normal
+        // positional coefficients understate that emergency coverage.
+        // Keep this guard formation-independent: it is triggered by the
+        // actual selected XI having zero central defenders, not by a formation
+        // name. The factors are deliberately isolated here so later 0-def
+        // fixtures can replace them with data-derived coefficients.
+        var defenders = players.Count(p => p.Position is RegionalPosition.CentralDefender or RegionalPosition.WingBack);
+        if (defenders != 0) return rating;
+
+        var hasWideMidfield = players.Any(p => p.Position == RegionalPosition.Winger);
+        if (!hasWideMidfield) return rating;
+
+        return ToSnapshot(
+            rating.RawLeftDefence * 1.25,
+            rating.RawCentralDefence,
+            rating.RawRightDefence * 1.3571428571428572,
+            rating.RawMidfield,
+            rating.RawLeftAttack,
+            rating.RawCentralAttack,
+            rating.RawRightAttack);
     }
 
     private static Player PrepareWeatherPlayer(Player p, HOEngineContext? context)
