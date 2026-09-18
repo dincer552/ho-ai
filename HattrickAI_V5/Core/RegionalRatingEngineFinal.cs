@@ -178,9 +178,9 @@ public sealed class RegionalRatingEngineFinal
             // The existing zero-defender coverage layer runs first, so these
             // factors are applied to its output.
             return ToSnapshot(
-                rating.RawLeftDefence * 1.25,
+                rating.RawLeftDefence,
                 rating.RawCentralDefence * 1.125,
-                rating.RawRightDefence * 1.2941176470588236,
+                rating.RawRightDefence * 0.9545454545454545,
                 rating.RawMidfield * 1.25,
                 rating.RawLeftAttack * 0.9230769230769231,
                 0,
