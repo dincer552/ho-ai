@@ -13,8 +13,10 @@ public static class C25FormationAwareRatingPositionRegression
         Check("3-5-2 DEF-L", RatingPositionResolver.Resolve("3-5-2", "DEF-L"), RegionalPosition.CentralDefender, failures);
         Check("3-5-2 DEF-R", RatingPositionResolver.Resolve("3-5-2", "DEF-R"), RegionalPosition.CentralDefender, failures);
 
-        Check("4-4-2 DEF-L", RatingPositionResolver.Resolve("4-4-2", "DEF-L"), RegionalPosition.WingBack, failures);
-        Check("5-5-0 DEF-R", RatingPositionResolver.Resolve("5-5-0", "DEF-R"), RegionalPosition.WingBack, failures);
+        Check("4-4-2 WB-L", RatingPositionResolver.Resolve("4-4-2", "WB-L"), RegionalPosition.WingBack, failures);
+        Check("4-4-2 DEF-L", RatingPositionResolver.Resolve("4-4-2", "DEF-L"), RegionalPosition.CentralDefender, failures);
+        Check("5-5-0 WB-R", RatingPositionResolver.Resolve("5-5-0", "WB-R"), RegionalPosition.WingBack, failures);
+        Check("5-5-0 DEF-R", RatingPositionResolver.Resolve("5-5-0", "DEF-R"), RegionalPosition.CentralDefender, failures);
         Check("2-5-3 DEF-L", RatingPositionResolver.Resolve("2-5-3", "WB-L"), RegionalPosition.WingBack, failures);
         Check("2-5-3 DEF-R", RatingPositionResolver.Resolve("2-5-3", "WB-R"), RegionalPosition.WingBack, failures);
         Check("3-5-2 DEF-CL", RatingPositionResolver.Resolve("3-5-2", "DEF-CL"), RegionalPosition.CentralDefender, failures);
@@ -24,7 +26,7 @@ public static class C25FormationAwareRatingPositionRegression
         if (failures.Count == 0)
         {
             Console.WriteLine("=== C25 FORMATION-AWARE RATING POSITION REGRESSION ===");
-            Console.WriteLine("PASS: DEF-L/DEF-R are central defenders in 3-defender formations and wing-backs otherwise.");
+            Console.WriteLine("PASS: canonical WB-L/WB-R and DEF-L/DEF-R aliases remain explicitly separated.");
             return 0;
         }
 
