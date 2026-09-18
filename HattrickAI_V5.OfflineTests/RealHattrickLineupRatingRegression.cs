@@ -8,7 +8,8 @@ public static class RealHattrickLineupRatingRegression
     private static readonly string[] FixturePaths =
     {
         "TestJSON/RealHattrickMatch_769648184_343_2026-09-13.json",
-        "TestJSON/RealHattrickMatch_769648184_343_2026-09-13_v2.json"
+        "TestJSON/RealHattrickMatch_769648184_343_2026-09-13_v2.json",
+        "TestJSON/RealHattrickMatch_S4MSUNFC_352_2026-09-18.json"
     };
 
     public static int Run()
