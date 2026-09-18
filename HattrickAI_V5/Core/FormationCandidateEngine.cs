@@ -18,12 +18,12 @@ public sealed class FormationCandidateEngine : IFormationCandidateEngine
     [
         new("3-5-2", ["GK", "DEF-CL", "DEF-C", "DEF-CR", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-R"]),
         new("3-4-3", ["GK", "DEF-CL", "DEF-C", "DEF-CR", "W-L", "IM-L", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"]),
-        new("4-4-2", ["GK", "DEF-L", "DEF-CL", "DEF-CR", "DEF-R", "W-L", "IM-L", "IM-R", "W-R", "FW-L", "FW-R"]),
-        new("4-5-1", ["GK", "DEF-L", "DEF-CL", "DEF-CR", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-C"]),
+        new("4-4-2", ["GK", "WB-L", "DEF-CL", "DEF-CR", "WB-R", "W-L", "IM-L", "IM-R", "W-R", "FW-L", "FW-R"]),
+        new("4-5-1", ["GK", "WB-L", "DEF-CL", "DEF-CR", "WB-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-C"]),
         // 2-5-3 (2 bek): yalnızca sol/sağ bek; merkez stoper slotları boş.
-        new("2-5-3", ["GK", "DEF-L", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"]),
-        new("5-3-2", ["GK", "DEF-L", "DEF-CL", "DEF-C", "DEF-CR", "DEF-R", "IM-L", "IM-C", "IM-R", "FW-L", "FW-R"]),
-        new("5-5-0", ["GK", "DEF-L", "DEF-CL", "DEF-C", "DEF-CR", "DEF-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R"])
+        new("2-5-3", ["GK", "WB-L", "WB-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R", "FW-L", "FW-C", "FW-R"]),
+        new("5-3-2", ["GK", "WB-L", "DEF-CL", "DEF-C", "DEF-CR", "WB-R", "IM-L", "IM-C", "IM-R", "FW-L", "FW-R"]),
+        new("5-5-0", ["GK", "WB-L", "DEF-CL", "DEF-C", "DEF-CR", "WB-R", "W-L", "IM-L", "IM-C", "IM-R", "W-R"])
     ];
 
     public FormationCandidateSet Generate(MatchDataContext context, PlayerAnalysisResult players)
@@ -124,11 +124,11 @@ public sealed class FormationCandidateEngine : IFormationCandidateEngine
     private static int PositionOrder(string code) => code switch
     {
         "GK" => 0,
-        "DEF-L" => 10,
+        "WB-L" => 10,
         "DEF-CL" => 11,
         "DEF-C" => 12,
         "DEF-CR" => 13,
-        "DEF-R" => 14,
+        "WB-R" => 14,
         "W-L" => 20,
         "IM-L" => 21,
         "IM-C" => 22,
