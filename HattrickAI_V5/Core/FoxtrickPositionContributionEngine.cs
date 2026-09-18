@@ -95,6 +95,7 @@ public sealed class FoxtrickPositionContributionEngine
         return basePositionCode switch
         {
             "GK" => Get(contributions, "kp"),
+            "WB-L" or "WB-R" => Max(contributions, "wb", "wbd", "wbo", "wbtm"),
             "DEF-L" or "DEF-R" or "DEF-CL" or "DEF-C" or "DEF-CR" => Max(contributions, "cd", "cdo", "cdtw"),
             "W-L" or "W-R" => Max(contributions, "w", "wd", "wo", "wtm"),
             "IM-L" or "IM-C" or "IM-R" => Max(contributions, "im", "imd", "imo", "imtw"),
