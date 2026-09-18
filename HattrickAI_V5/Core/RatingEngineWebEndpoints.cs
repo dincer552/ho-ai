@@ -63,6 +63,28 @@ public static class RatingEngineWebEndpoints
             }
         });
 
+        // Direct V5 endpoint for arbitrary XI/slot selection. Formation is descriptive;
+        // the selected slot codes determine the positional calculation.
+        app.MapPost("/api/v5/rating-engine/custom", (CustomV5RatingRequest request) =>
+        {
+            try
+            {
+                CustomV5RatingValidation.Validate(request.Lineup, request.Players);
+                var result = new V5RatingEngine().Calculate(new RatingEngineRequest(
+                    request.Lineup, request.Players, request.Context, null, request.HOContext));
+                return Results.Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { message = "Özel V5 kadrosu hesaplanamadı.", detail = ex.Message },
+                    statusCode: StatusCodes.Status500InternalServerError);
+            }
+        });
+
         app.MapGet("/api/v5/rating-engine/selected", (HttpContext http) =>
         {
             var playersJson = http.Session.GetString("v5.rating.players");
@@ -114,3 +136,4 @@ public static class RatingEngineWebEndpoints
 }
 
 public sealed record RatingEngineSelectionRequest(string Engine);
+\npublic sealed record CustomV5RatingRequest(\n    Lineup Lineup,\n    IReadOnlyList<Player> Players,\n    RatingContext Context,\n    HOEngineContext? HOContext = null);\n\npublic static class CustomV5RatingValidation\n{\n    public static void Validate(Lineup lineup, IReadOnlyList<Player> players)\n    {\n        ArgumentNullException.ThrowIfNull(lineup);\n        ArgumentNullException.ThrowIfNull(players);\n        if (lineup.Slots.Count != 11)\n            throw new ArgumentException($"V5 custom XI exactly 11 slot ister; {lineup.Slots.Count} slot verildi.");\n        var activeIds = lineup.Slots.Select(x => x.PlayerId).Where(x => x > 0).ToArray();\n        if (activeIds.Length != 11 || activeIds.Distinct().Count() != 11)\n            throw new ArgumentException("V5 custom XI 11 farklı aktif oyuncu içermeli.");\n        var playerIds = players.Select(x => x.Id).ToHashSet();\n        var missing = activeIds.Where(x => !playerIds.Contains(x)).Distinct().ToArray();\n        if (missing.Length > 0)\n            throw new ArgumentException($"V5 custom XI oyuncuları DB'de bulunamadı: {string.Join(", ", missing)}");\n        var allowed = new HashSet<string>(StringComparer.Ordinal) { "GK", "DEF-L", "DEF-C", "DEF-CL", "DEF-CR", "DEF-R", "W-L", "W-R", "IM-L", "IM-C", "IM-R", "FW-L", "FW-C", "FW-R" };\n        var invalid = lineup.Slots.Select(x => x.Code).Where(x => !allowed.Contains(x)).Distinct(StringComparer.Ordinal).ToArray();\n        if (invalid.Length > 0)\n            throw new ArgumentException($"Geçersiz V5 pozisyon kodu: {string.Join(", ", invalid)}");\n    }\n}\n
