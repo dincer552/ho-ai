@@ -35,7 +35,7 @@ public sealed class RegionalRatingEngineFinal
     {
         var byId = players.ToDictionary(p => p.Id);
         var selected = lineup.Slots.Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId)).Select(s => (slot: s, player: PrepareWeatherPlayer(byId[s.PlayerId], engineContext))).ToList();
-        var mapped = selected.Select(s => ToRegionalPlayer(lineup.Formation, s.slot, s.player)).ToList();
+        var mapped = selected.Select(s => ToRegionalPlayer(lineup, s.slot, s.player)).ToList();
         var technicalDefensiveForwardIds = selected.Where(s => s.slot.Order == PlayerOrder.Defensive && s.player.Specialty == PlayerSpecialty.Technical && RatingPositionResolver.Resolve(lineup.Formation, s.slot.Code) == RegionalPosition.Forward).Select(s => s.player.Id).ToHashSet();
         return Calculate(mapped, context, engineContext, technicalDefensiveForwardIds);
     }
@@ -160,5 +160,5 @@ public sealed class RegionalRatingEngineFinal
     private static RegionalRatingSnapshot Rebuild(RegionalRatingSnapshot rating, Func<double,double> ld, Func<double,double> cd, Func<double,double> rd, Func<double,double> mid, Func<double,double> la, Func<double,double> ca, Func<double,double> ra) => ToSnapshot(ld(rating.RawLeftDefence), cd(rating.RawCentralDefence), rd(rating.RawRightDefence), mid(rating.RawMidfield), la(rating.RawLeftAttack), ca(rating.RawCentralAttack), ra(rating.RawRightAttack));
     private static RegionalRatingSnapshot ToSnapshot(double ld, double cd, double rd, double mid, double la, double ca, double ra) => new(ld, cd, rd, mid, la, ca, ra, QuarterDisplay(ld), QuarterDisplay(cd), QuarterDisplay(rd), QuarterDisplay(mid), QuarterDisplay(la), QuarterDisplay(ca), QuarterDisplay(ra));
     private static double QuarterDisplay(double raw) { if (!double.IsFinite(raw) || raw <= 0) return 0; var rounded = Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0; return Math.Clamp(Math.Max(1.0, rounded), 1.0, 20.0); }
-    private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p) { var position = RatingPositionResolver.Resolve(formation, slot.Code); var side = slot.Code.EndsWith("-L", StringComparison.Ordinal) ? PlayerSide.Left : slot.Code.EndsWith("-R", StringComparison.Ordinal) ? PlayerSide.Right : PlayerSide.Center; return new RegionalPlayer(p.Id, position, side, slot.Order, p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring, p.Form, p.Loyalty, p.Experience, p.Stamina); }
+    private static RegionalPlayer ToRegionalPlayer(Lineup lineup, Slot slot, Player p) { var position = RatingPositionResolver.Resolve(lineup, slot.Code); var side = slot.Code.EndsWith("-L", StringComparison.Ordinal) ? PlayerSide.Left : slot.Code.EndsWith("-R", StringComparison.Ordinal) ? PlayerSide.Right : PlayerSide.Center; return new RegionalPlayer(p.Id, position, side, slot.Order, p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring, p.Form, p.Loyalty, p.Experience, p.Stamina); }
 }
