@@ -10,21 +10,24 @@ public static class Stage5ExperienceLoyaltyRegression
         var fixedEngine = new RegionalRatingEngineFixed();
         var researchedEngine = new RegionalRatingEngine();
 
-        // Experience is player metadata for this V5 rating layer, not a direct
-        // sector-contribution coefficient. Verify that changing only Experience
-        // leaves every sector unchanged for all 14 canonical field slots.
+        // Hattrick applies Experience as a flat skill-contribution bonus.
+        // Verify the effect survives the complete 14-position contribution matrix.
         foreach (var slot in Slots())
         {
             var basePlayer = PlayerFor(slot, 1);
-            var experiencedPlayer = PlayerFor(slot, 20);
+            var experiencedPlayer = PlayerFor(slot, 7);
 
-            var fixedBase = fixedEngine.Calculate(new[] { basePlayer });
-            var fixedExperienced = fixedEngine.Calculate(new[] { experiencedPlayer });
-            CheckSame(fixedBase, fixedExperienced, $"Fixed {slot}", failures);
+            CheckExperienceEffect(
+                fixedEngine.Calculate(new[] { basePlayer }),
+                fixedEngine.Calculate(new[] { experiencedPlayer }),
+                $"Fixed {slot}",
+                failures);
 
-            var researchedBase = researchedEngine.Calculate(new[] { basePlayer });
-            var researchedExperienced = researchedEngine.Calculate(new[] { experiencedPlayer });
-            CheckSame(researchedBase, researchedExperienced, $"Research {slot}", failures);
+            CheckExperienceEffect(
+                researchedEngine.Calculate(new[] { basePlayer }),
+                researchedEngine.Calculate(new[] { experiencedPlayer }),
+                $"Research {slot}",
+                failures);
         }
 
         // Loyalty remains an independent player effect and must still work.
@@ -37,7 +40,7 @@ public static class Stage5ExperienceLoyaltyRegression
 
         if (failures.Count == 0)
         {
-            Console.WriteLine("PASS: Stage 5 loyalty preserved; experience removed from all 14 position contributions");
+            Console.WriteLine("PASS: Stage 5 loyalty preserved; experience bonus applied through the 14-position skill layer");
             return 0;
         }
 
@@ -71,21 +74,31 @@ public static class Stage5ExperienceLoyaltyRegression
             _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null)
         };
 
-        var order = PlayerOrder.Normal;
         return new RegionalPlayer(
-            slot.GetHashCode(), position, side, order,
+            slot.GetHashCode(), position, side, PlayerOrder.Normal,
             4, 10, 10, 8, 8, 10, 7, 0, experience, 7, slot);
     }
 
-    private static void CheckSame(RegionalRatingSnapshot a, RegionalRatingSnapshot b, string name, List<string> failures)
+    private static void CheckExperienceEffect(
+        RegionalRatingSnapshot baseline,
+        RegionalRatingSnapshot experienced,
+        string name,
+        List<string> failures)
     {
-        var av = Values(a);
-        var bv = Values(b);
-        for (var i = 0; i < av.Length; i++)
+        var a = Values(baseline);
+        var b = Values(experienced);
+        var changed = false;
+
+        for (var i = 0; i < a.Length; i++)
         {
-            if (Math.Abs(av[i] - bv[i]) > 1e-12)
-                failures.Add($"{name} sector {i} changed with experience: {av[i]:F12} -> {bv[i]:F12}");
+            if (b[i] < a[i] - 1e-12)
+                failures.Add($"{name} sector {i} decreased with experience: {a[i]:F12} -> {b[i]:F12}");
+            if (b[i] > a[i] + 1e-12)
+                changed = true;
         }
+
+        if (!changed)
+            failures.Add($"{name} has no rating-sector effect from Experience");
     }
 
     private static double[] Values(RegionalRatingSnapshot s) => new[]
