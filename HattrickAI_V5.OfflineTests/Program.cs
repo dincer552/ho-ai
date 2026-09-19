@@ -61,6 +61,8 @@ if (args.Length > 0 && string.Equals(args[0], "empirical-020", StringComparison.
     return Empirical020LineupRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "mid-diagnostic", StringComparison.OrdinalIgnoreCase))
     return MidfielderSingletonDiagnosticRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "user-im-screenshots", StringComparison.OrdinalIgnoreCase))
+    return UserProvidedMidfielderScreenshotRegression.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
