@@ -243,6 +243,50 @@ public static class RatingPositionMatrix
     {
         if (order == PlayerOrder.Normal)
         {
+            if (side == PlayerSide.Left)
+            {
+                // IM-L calibration from six user-supplied 0-1-0 Hattrick screenshots
+                // dated 2026-09-19. Only the displayed white rating values are
+                // ground truth; green delta values are intentionally excluded.
+                //
+                // The coefficients are a low-complexity regression against the
+                // supplied CHPP player skills. RegionalRatingEngineFinal applies
+                // the Hattrick quarter-step display quantization afterwards.
+                var leftDefence =
+                    .90744157
+                    + .11531365 * defending;
+                var centralDefence =
+                    .87023370
+                    + .03874539 * defending;
+
+                // The six screenshots all show the isolated IM-L midfield at
+                // the 1.00 display floor. Keep a monotonic playmaking relation
+                // so stronger players can still rise above the floor.
+                var midfield = .80000000 + .05000000 * playmaking;
+
+                // IM-L side attack regression: passing + visible form + experience.
+                var leftAttack =
+                    1.51628626
+                    - .03987276 * passing
+                    + .14625183 * playerForm
+                    - .02556850 * experience;
+
+                // The supplied IM-L screenshots all display CA=1.00. Keep the
+                // central-attack relation conservative and monotonic in passing
+                // and scoring instead of importing the IM-C calibration.
+                var centralAttack =
+                    .68000000
+                    + .02000000 * passing
+                    + .01000000 * scoring;
+
+                Add(s, RatingSector.LeftDefence, leftDefence, 1.0);
+                Add(s, RatingSector.CentralDefence, centralDefence, 1.0);
+                Add(s, RatingSector.Midfield, midfield, 1.0);
+                Add(s, RatingSector.LeftAttack, leftAttack, 1.0);
+                Add(s, RatingSector.CentralAttack, centralAttack, 1.0);
+                return;
+            }
+
             // Empirical normal-IM calibration from controlled 1-player
             // Hattrick observations. The formula is deliberately shared by
             // IM-L and IM-R; only the side-facing sectors are mirrored.
