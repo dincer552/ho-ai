@@ -113,7 +113,7 @@ public static class RatingPositionMatrix
             case "FW-L":
             case "FW-C":
             case "FW-R":
-                AddForward(sectors, p.Order, p.Side, playmaking, passing, winger, scoring, formMultiplier, experienceBonus);
+                AddForward(sectors, p.Order, p.Side, defending, playmaking, passing, winger, scoring, formMultiplier, experienceBonus);
                 return;
 
             default:
@@ -461,7 +461,7 @@ public static class RatingPositionMatrix
 
     private static void AddForward(
         Dictionary<RatingSector, double> s, PlayerOrder order, PlayerSide side,
-        double playmaking, double passing, double winger, double scoring,
+        double defending, double playmaking, double passing, double winger, double scoring,
         double form, double experienceBonus)
     {
         var own = side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack;
@@ -471,6 +471,7 @@ public static class RatingPositionMatrix
         // level for the contribution matrix. The documented forward matrix
         // uses the player's actual Scoring/Passing/Winger levels. Remove the
         // V5 experience normalization here before applying the coefficients.
+        defending = Math.Max(0.0, defending - experienceBonus);
         playmaking = Math.Max(0.0, playmaking - experienceBonus);
         passing = Math.Max(0.0, passing - experienceBonus);
         winger = Math.Max(0.0, winger - experienceBonus);
@@ -511,16 +512,61 @@ public static class RatingPositionMatrix
                 break;
 
             default:
-                // Normal forward calibration against the 2026-09-19 FW-L
-                // screenshot corpus. The relative weights follow Hattrick's
-                // documented normal-forward matrix: side attack uses
-                // Scoring/Winger/Passing at 22.4/19.0/12.2%; central attack
-                // uses Scoring + 36.9% of Passing. Form remains the production
-                // multiplier. The fitted scales are deliberately monotonic.
-                // Refit to the complete 8-player FW-L screenshot corpus.
-                // These are monotonic raw-skill coefficients after the common
-                // production form multiplier. Experience is intentionally not
-                // folded into the skill values here.
+                Add(s, RatingSector.Midfield, playmaking * .041, form);
+
+                if (side == PlayerSide.Center)
+                {
+                    // FW-C normal singleton calibration from the nine supplied
+                    // 0-0-1 Hattrick screenshots (2026-09-19). White values are
+                    // the targets; green deltas are ignored.
+                    //
+                    // The existing FW-L/FW-R calibration remains unchanged.
+                    // FW-C needs its own fit because the live singleton corpus
+                    // exposes a different center/side attack scale. Inputs are
+                    // raw skill levels after removing the production XP bonus.
+                    const double centerSideIntercept = .87733052;
+                    const double centerSidePassing = .02000000;
+                    const double centerSideScoring = .05867077;
+                    const double centerSideWinger = .04453311;
+                    const double centerSideDefending = -.02800839;
+                    const double centerSideExperience = .04224485;
+
+                    const double centerAttackIntercept = 1.01019929;
+                    const double centerAttackPassing = .02000000;
+                    const double centerAttackScoring = .20263139;
+                    const double centerAttackDefending = -.06061769;
+                    const double centerAttackExperience = .08313947;
+
+                    var centerSide =
+                        centerSideIntercept
+                        + passing * centerSidePassing * form
+                        + scoring * centerSideScoring * form
+                        + winger * centerSideWinger * form
+                        + defending * centerSideDefending
+                        + experienceBonus * centerSideExperience;
+
+                    var centerAttack =
+                        centerAttackIntercept
+                        + passing * centerAttackPassing * form
+                        + scoring * centerAttackScoring * form
+                        + defending * centerAttackDefending
+                        + experienceBonus * centerAttackExperience;
+
+                    // Neutralize the legacy left/right reference scales so the
+                    // center forward produces the same live Hattrick value on
+                    // both side attacks.
+                    var leftCenterSide = centerSide / 1.2727272727272727;
+                    var rightCenterSide = centerSide / 1.2258064516129032;
+
+                    Add(s, RatingSector.LeftAttack, leftCenterSide, form);
+                    Add(s, RatingSector.RightAttack, rightCenterSide, form);
+                    Add(s, RatingSector.CentralAttack, centerAttack, 1.0);
+                    break;
+                }
+
+                // Normal FW-L/FW-R calibration against the existing 8-player
+                // screenshot corpus. Keep this branch unchanged so the new
+                // FW-C fit cannot regress the already-passing side-forward test.
                 const double sideIntercept = .99522254;
                 const double sidePassing = .05215221;
                 const double sideScoring = .03750657;
@@ -529,8 +575,6 @@ public static class RatingPositionMatrix
                 const double centralIntercept = .99496221;
                 const double centralPassing = .05239461;
                 const double centralScoring = .18757562;
-
-                Add(s, RatingSector.Midfield, playmaking * .041, form);
 
                 var sideNormal =
                     sideIntercept / Math.Max(form, 1e-9)
@@ -542,24 +586,11 @@ public static class RatingPositionMatrix
                     + passing * centralPassing
                     + scoring * centralScoring;
 
-                // RegionalRatingEngineFixed applies the legacy reference
-                // attack calibrations after all player contributions. Compensate
-                // here so a singleton FW-L/FW-R remains mirrored exactly like
-                // Hattrick's 0-0-1 screenshots.
                 var leftSideNormal = sideNormal / 1.2727272727272727;
                 var rightSideNormal = sideNormal / 1.2258064516129032;
 
-                if (side == PlayerSide.Center)
-                {
-                    Add(s, RatingSector.LeftAttack, leftSideNormal, form);
-                    Add(s, RatingSector.RightAttack, rightSideNormal, form);
-                }
-                else
-                {
-                    Add(s, own, side == PlayerSide.Left ? leftSideNormal : rightSideNormal, form);
-                    Add(s, other, side == PlayerSide.Left ? rightSideNormal : leftSideNormal, form);
-                }
-
+                Add(s, own, side == PlayerSide.Left ? leftSideNormal : rightSideNormal, form);
+                Add(s, other, side == PlayerSide.Left ? rightSideNormal : leftSideNormal, form);
                 Add(s, RatingSector.CentralAttack, centralNormal, form);
                 break;
         }
