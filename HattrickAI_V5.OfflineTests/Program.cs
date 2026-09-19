@@ -61,6 +61,8 @@ if (args.Length > 0 && string.Equals(args[0], "empirical-020", StringComparison.
     return Empirical020LineupRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "mid-diagnostic", StringComparison.OrdinalIgnoreCase))
     return MidfielderSingletonDiagnosticRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "fw-left-screenshots", StringComparison.OrdinalIgnoreCase))
+    return ForwardLeftScreenshotRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "user-im-screenshots", StringComparison.OrdinalIgnoreCase))
     return UserProvidedMidfielderScreenshotRegression.Run();
 
