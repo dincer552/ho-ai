@@ -401,3 +401,66 @@ production formülüne alınacak.
 
 Her CA deneyi ayrı commit/test sonucu ile ilerleyecek. Deney kötüleşirse geri alınacak; yalnızca mevcut MAE'yi düşüren değil, yeni gözlemlerde de stabil kalan model production'a alınacak.
 
+
+
+## 15. CA'dan genellenen bölgesel rating calibration yöntemi — KANONİK
+
+CA-02'de bulunan veri/fixture hatası nedeniyle aynı yöntem diğer rating bölgelerine de uygulanacaktır. Amaç önce gerçek Hattrick ekranındaki katkıyı doğru okumak, sonra V5'i düzeltmektir. Önce model uydurulmayacak.
+
+### 15.1 Fixture kimliği doğrulama
+
+Her ekran kaydında PlayerID, pozisyon, sol/merkez/sağ taraf, behaviour, skill snapshot, ekrandaki 7 sektörün gerçek sırası, display rating, yeşil + katkısı ve testte değiştirilen tek parametre tutulacak. Oyuncu adı veya JSON sırası tek başına sektör sırası kabul edilmeyecek.
+
+### 15.2 Ekran → sektör eşleme
+
+Hattrick ekranındaki 7 bölge açıkça şu sıraya eşlenecek:
+
+Left Defence | Central Defence | Right Defence | Midfield | Left Attack | Central Attack | Right Attack
+
+Screenshot sırası ile fixture/JSON sütun sırası birebir karşılaştırılacak. Uyuşmazlık varsa fixture geçersiz sayılacak ve kalibrasyonda kullanılmayacak. CA'da bulunan sektör sırası hatasının tekrarını önlemek için bu kontrol tüm bölgelerde zorunludur.
+
+### 15.3 Tek değişken yöntemi
+
+Aynı pozisyon, behaviour ve diğer skill'ler mümkün olduğunca sabit tutulacak; tek değişken değiştirilecek: Passing, Winger, Scoring, Form, Experience, Stamina veya ilgili DEF/PM/GK katkısı. Fark açıklanamıyorsa yeni katsayı eklenmeyecek; önce fixture, pozisyon ve behaviour tekrar kontrol edilecek.
+
+### 15.4 HT gözlemi / V5 ayrımı
+
+Her fixture için üç değer ayrı tutulacak: HT gözlemi, mevcut V5 sonucu ve aday V5 modeli. HT–V5 farkı doğrudan yeni katsayı anlamına gelmez. Önce veri sırası, rol, behaviour, form/experience ve display quantization kontrol edilecek.
+
+### 15.5 Display quantization
+
+HT rating'i doğrudan sürekli ham değer gibi fit edilmeyecek. Ham gözlem, quarter-step display ve yeşil + katkısı ayrı tutulacak. V5 raw rating ile display rating de ayrı tutulacak.
+
+### 15.6 Kaynak öncelikli düşük dereceli model
+
+İlgili pozisyonun belgelenmiş skill contribution mekanikleri temel alınacak. Katmanlar sırayla test edilecek:
+
+Base contribution → Form → Experience → Loyalty → Stamina → Context → Display
+
+Kaynakta olmayan Passing×Scoring, Passing×Form, Experience×Form gibi çapraz terimler varsayılan olarak eklenmeyecek; ancak bağımsız fixture'lar açıkça gerektirirse ayrı deney olarak test edilecek.
+
+### 15.7 Orthogonal corpus
+
+Her bölge için mümkün olduğunca bağımsız çiftler oluşturulacak: aynı Form/EXP-farklı ana skill, aynı skill-farklı Form, aynı skill/Form-farklı Experience, aynı skill/Form/EXP-farklı Stamina, aynı oyuncu-farklı behaviour ve aynı oyuncu/behaviour-farklı taraf.
+
+### 15.8 Hold-out / leave-one-out
+
+Model yalnızca mevcut fixture'lara en iyi oturan model olarak kabul edilmeyecek. Fit, leave-one-out ve mümkünse yeni hold-out oyuncular ayrı raporlanacak. Yeni model eski veride iyileşirken yeni oyuncularda bozuluyorsa production'a alınmayacak.
+
+### 15.9 Bölge bazlı kapanış
+
+CD, MID, LD, RD, LA, CA ve RA bağımsız olarak kapanacak. Bir bölgenin katsayısı diğerine otomatik miras alınmayacak. Promotion için fixture kimliği, 7 sektör sırası, behaviour, mevcut corpus, bağımsız/hold-out gözlem, display quantization ve regression testi doğrulanmış olacak.
+
+### 15.10 Kanat çalışma sırası
+
+Son 9 kanat ekranında önce PlayerID/skill snapshot eşleşmesi, Winger pozisyonu ve behaviour, 7 sektör sırası ve yeşil + katkının ait olduğu sektör doğrulanacak. Sonra aynı skill/behaviour grupları eşleştirilip HT katkısı ile V5 sonucu tablo halinde karşılaştırılacak. Ancak bundan sonra Winger katsayısı/form/experience katmanında deney yapılacak ve sonuç bağımsız kanat oyuncularıyla hold-out testine sokulacak. Bu aşamada yeni Winger katsayısı production'a alınmış kabul edilmeyecek.
+
+### 15.11 Altın kural
+
+> Önce ekranı doğru oku → sonra fixture'ı doğrula → sonra kaynak mekaniğini uygula → sonra düşük dereceli model dene → sonra bağımsız corpus ile doğrula → en son production'a al.
+
+CA'da bulunan sektör sırası hatası tekrar oluşursa, o fixture'dan çıkarılan hiçbir katsayı güvenilir kabul edilmeyecek.
+
+## 16. Çalışma durumu
+
+CA-02 yöntemi diğer bölgelere yaygınlaştırıldı. Sıradaki calibration çalışmaları aynı kanonik workflow ile yürütülecek; özellikle kanat testlerinde mevcut 9 ekran önce fixture/sektör/pozisyon açısından doğrulanacak, ardından model kalibrasyonuna geçilecek.
