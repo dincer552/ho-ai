@@ -10,15 +10,15 @@ public static class MidfielderSingletonDiagnosticRegression
         // one normal central midfielder, all other field positions empty.
         var fixtures = new[]
         {
-            new Fixture("Utku Hakan Başak", 482291700, 4, 3, 5, 7, 8, 6, 3, 1.25),
-            new Fixture("Andres Nahasepp", 495041177, 3, 6, 8, 5, 13, 7, 3, 1.75),
-            new Fixture("Mikel Thiebault", 498487535, 4, 5, 9, 4, 12, 6, 2, 2.00),
-            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 1.50),
-            new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 1.50),
-            new Fixture("Abeiku Takyi", 468363070, 17, 3, 8, 4, 7, 6, 10, 2.00),
-            new Fixture("Cristian Pesalovo", 476114406, 16, 6, 9, 3, 6, 7, 6, 1.50),
-            new Fixture("Milen Bozev", 465141092, 5, 12, 9, 14, 6, 6, 8, 2.25),
-            new Fixture("Bertalan Doktor", 465805392, 2, 16, 12, 6, 6, 6, 8, 2.75)
+            new Fixture("Utku Hakan Başak", 482291700, 4, 3, 5, 7, 8, 6, 3, 1.25, 3),
+            new Fixture("Andres Nahasepp", 495041177, 3, 6, 8, 5, 13, 7, 3, 1.75, 6),
+            new Fixture("Mikel Thiebault", 498487535, 4, 5, 9, 4, 12, 6, 2, 2.00, 8),
+            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 1.50, 7),
+            new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 1.50, 7),
+            new Fixture("Abeiku Takyi", 468363070, 17, 3, 8, 4, 7, 6, 10, 2.00, 6),
+            new Fixture("Cristian Pesalovo", 476114406, 16, 6, 9, 3, 6, 7, 6, 1.50, 7),
+            new Fixture("Milen Bozev", 465141092, 5, 12, 9, 14, 6, 6, 8, 2.25, 8),
+            new Fixture("Bertalan Doktor", 465805392, 2, 16, 12, 6, 6, 6, 8, 2.75, 7)
         };
 
         var engine = new RegionalRatingEngineFinal();
@@ -56,5 +56,5 @@ public static class MidfielderSingletonDiagnosticRegression
     private readonly record struct Fixture(
         string Name, int Id, int Defending, int Playmaking, int Passing,
         int Winger, int Scoring, int Stamina, int Experience,
-        double ExpectedMidfield);
+        double ExpectedMidfield, int Form);
 }
