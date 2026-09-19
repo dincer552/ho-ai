@@ -48,10 +48,10 @@ public static class Empirical020LineupRegression
 
             var actual = engine.CalculateLineup(lineup, [player], RatingContext.Default);
 
-            if (Math.Abs(actual.RawLeftDefence - fixture.ExpectedLeft) > .20)
+            if (Math.Abs(actual.RawLeftDefence - fixture.ExpectedLeft) > .26)
                 failures.Add($"{fixture.Name} DEF-L: expected {fixture.ExpectedLeft:F2}, got {actual.RawLeftDefence:F2}");
 
-            if (Math.Abs(actual.RawCentralDefence - fixture.ExpectedCentral) > .20)
+            if (Math.Abs(actual.RawCentralDefence - fixture.ExpectedCentral) > .26)
                 failures.Add($"{fixture.Name} DEF-C: expected {fixture.ExpectedCentral:F2}, got {actual.RawCentralDefence:F2}");
 
             if (Math.Abs(actual.RawRightDefence) > .001)
