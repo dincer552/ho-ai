@@ -8,7 +8,7 @@ public static class MidfielderSingletonDiagnosticRegression
     {
         // Controlled live Hattrick 0-1-0 screenshots:
         // one normal central midfielder, all other field positions empty.
-        // The screenshots provide the complete 7-sector ground truth.
+        // The screenshots provide the complete 7-sector displayed ground truth.
         var fixtures = new[]
         {
             new Fixture("Utku Hakan Başak", 482291700, 4, 3, 5, 7, 8, 6, 3, 3, 1, 1.25, 1, 1.25, 1, 1, 1),
@@ -24,8 +24,10 @@ public static class MidfielderSingletonDiagnosticRegression
 
         var engine = new RegionalRatingEngineFinal();
         var abs = new double[7];
+        var failures = 0;
+        const double tolerance = 0.25;
 
-        Console.WriteLine("V5 normal IM-C 0-1-0 FULL 7-SECTOR diagnostic");
+        Console.WriteLine("V5 normal IM-C 0-1-0 FULL 7-SECTOR ground-truth regression");
         Console.WriteLine("Name | V5 LD CD RD MID LA CA RA | HT LD CD RD MID LA CA RA | Errors LD CD RD MID LA CA RA");
 
         foreach (var f in fixtures)
@@ -58,6 +60,8 @@ public static class MidfielderSingletonDiagnosticRegression
             {
                 e[i] = v[i] - h[i];
                 abs[i] += Math.Abs(e[i]);
+                if (Math.Abs(e[i]) > tolerance)
+                    failures++;
             }
 
             Console.WriteLine(
@@ -71,8 +75,10 @@ public static class MidfielderSingletonDiagnosticRegression
             $"MAE LD={abs[0] / fixtures.Length:F4} CD={abs[1] / fixtures.Length:F4} RD={abs[2] / fixtures.Length:F4} " +
             $"MID={abs[3] / fixtures.Length:F4} LA={abs[4] / fixtures.Length:F4} CA={abs[5] / fixtures.Length:F4} RA={abs[6] / fixtures.Length:F4}");
 
-        Console.WriteLine("DIAGNOSTIC ONLY: no sector is failed/changed by this run.");
-        return 0;
+        Console.WriteLine(failures == 0
+            ? "PASS: all 7 V5 sectors are within +/-0.25 of the 9 controlled Hattrick screenshots."
+            : $"FAIL: {failures} sector observations exceed tolerance +/-{tolerance:F2}.");
+        return failures == 0 ? 0 : 1;
     }
 
     private static string Fmt(double value) => $"{value:+0.00;-0.00;0.00}";
