@@ -1,4 +1,4 @@
-name: V5 User IM Screenshots
+name: V5 Winger + User Screenshot Regression
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  user-im:
+  winger-and-screenshots:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout V5
@@ -15,5 +15,7 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
-      - name: Run user-supplied IM screenshot regression
+      - name: Run permanent winger regression
+        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- empirical-winger
+      - name: Run user-supplied midfielder screenshot regression
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- user-im-screenshots
