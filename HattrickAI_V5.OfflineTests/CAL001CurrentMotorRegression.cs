@@ -10,7 +10,7 @@ public static class CAL001CurrentMotorRegression
         {
             new Player(479235895, "Enzo Bultot", 17, 4, 1, 2, 1, 4, 7, 6, 6),
             new Player(468363070, "Abeiku Takyi", 1, 17, 3, 8, 4, 7, 6, 5, 10),
-            new Player(458524225, "Dawid Nocoć", 0, 17, 3, 5, 4, 7, 5, 6, 12),
+            new Player(458524225, "Dawid Nocoń", 0, 17, 3, 5, 4, 7, 5, 6, 12),
             new Player(476114406, "Cristian Pesalovo", 1, 16, 6, 9, 3, 6, 7, 7, 6),
             new Player(492052456, "Felix Gustavsson", 1, 3, 3, 8, 17, 5, 7, 7, 4),
             new Player(465805392, "Bertalan Doktor", 1, 2, 16, 11, 6, 6, 6, 6, 8),
@@ -29,26 +29,35 @@ public static class CAL001CurrentMotorRegression
         };
 
         var lineup = new Lineup("CAL-001", "3-4-3", slots);
-        var actual = new RegionalRatingEngineFixed().CalculateLineup(lineup, players, RatingContext.Default);
+        var actual = new RegionalRatingEngineFinal().CalculateLineup(lineup, players, RatingContext.Default);
 
-        var expected = new[] { 10.759277332630, 18.580740815537, 11.541792293473, 8.849457149423, 11.225820495657, 13.045084317110, 10.793733307126 };
-        var displayed = new[] { actual.LeftDefence, actual.CentralDefence, actual.RightDefence, actual.Midfield, actual.LeftAttack, actual.CentralAttack, actual.RightAttack };
-        var raw = new[] { actual.RawLeftDefence, actual.RawCentralDefence, actual.RawRightDefence, actual.RawMidfield, actual.RawLeftAttack, actual.RawCentralAttack, actual.RawRightAttack };
+        // Real Hattrick UI values for this controlled 3-4-3 fixture.
         var groundTruth = new[] { 13.0, 12.75, 13.25, 7.0, 15.75, 13.75, 13.5 };
+        var displayed = new[]
+        {
+            actual.LeftDefence, actual.CentralDefence, actual.RightDefence,
+            actual.Midfield, actual.LeftAttack, actual.CentralAttack, actual.RightAttack
+        };
         var labels = new[] { "LD", "CD", "RD", "MID", "LA", "CA", "RA" };
+        const double tolerance = 0.26; // quarter-step display + one step of tolerance
 
+        var errors = displayed.Zip(groundTruth, (value, truth) => value - truth).ToArray();
         var failures = 0;
         for (var i = 0; i < labels.Length; i++)
         {
-            if (Math.Abs(raw[i] - expected[i]) > 1e-12) failures++;
-            Console.WriteLine($"CAL-001 {labels[i]}: raw={raw[i]:F12} display={displayed[i]:F2} gt={groundTruth[i]:F2} error={displayed[i] - groundTruth[i]:+0.00;-0.00;0.00}");
+            Console.WriteLine($"CAL-001 {labels[i]}: V5={displayed[i]:F2} Hattrick={groundTruth[i]:F2} error={errors[i]:+0.00;-0.00;0.00}");
+            if (Math.Abs(errors[i]) > tolerance)
+                failures++;
         }
 
-        var errors = displayed.Zip(groundTruth, (p, g) => p - g).ToArray();
-        Console.WriteLine($"CAL-001 MAE={errors.Select(Math.Abs).Average():F4} Bias={errors.Average():+0.0000;-0.0000;0.0000} RMSE={Math.Sqrt(errors.Select(x => x * x).Average()):F4}");
-        Console.WriteLine(failures == 0 ? "PASS: CAL-001 current V5 motor baseline" : $"FAIL: CAL-001 current V5 motor baseline ({failures} raw mismatches)");
+        Console.WriteLine($"CAL-001 MAE={errors.Select(Math.Abs).Average():F4}");
+        Console.WriteLine(failures == 0
+            ? "PASS: V5 matches the controlled Hattrick CAL-001 fixture."
+            : $"FAIL: V5 differs from Hattrick in {failures}/7 sectors.");
+
         return failures == 0 ? 0 : 1;
     }
 
-    private static Slot Slot(string code, Player player) => new(code, code, "CAL-001", player.Name, player.Id, 0, 0, 0, PlayerOrder.Normal);
+    private static Slot Slot(string code, Player player) =>
+        new(code, code, "CAL-001", player.Name, player.Id, 0, 0, 0, PlayerOrder.Normal);
 }
