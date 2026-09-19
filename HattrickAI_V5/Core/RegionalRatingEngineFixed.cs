@@ -217,11 +217,14 @@ public sealed class RegionalRatingEngineFixed
                 break;
 
             case "IM-L":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.LeftDefence, .345);
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.CentralAttack, .450);
-                AddExp(RatingSector.LeftAttack, .375);
+                if (p.Order != PlayerOrder.Normal)
+                {
+                    AddExp(RatingSector.CentralDefence, .480);
+                    AddExp(RatingSector.LeftDefence, .345);
+                    AddExp(RatingSector.Midfield, .730);
+                    AddExp(RatingSector.CentralAttack, .450);
+                    AddExp(RatingSector.LeftAttack, .375);
+                }
                 break;
 
             case "IM-C":
@@ -235,11 +238,14 @@ public sealed class RegionalRatingEngineFixed
                 break;
 
             case "IM-R":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.RightDefence, .345);
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.CentralAttack, .450);
-                AddExp(RatingSector.RightAttack, .375);
+                if (p.Order != PlayerOrder.Normal)
+                {
+                    AddExp(RatingSector.CentralDefence, .480);
+                    AddExp(RatingSector.RightDefence, .345);
+                    AddExp(RatingSector.Midfield, .730);
+                    AddExp(RatingSector.CentralAttack, .450);
+                    AddExp(RatingSector.RightAttack, .375);
+                }
                 break;
 
             case "FW-L":
