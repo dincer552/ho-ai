@@ -527,14 +527,22 @@ public static class RatingPositionMatrix
                 var centralNormal =
                     (scoring + passing * .369) * centralScale;
 
+                // RegionalRatingEngineFixed applies the legacy reference
+                // attack calibrations after all player contributions. Compensate
+                // here so a singleton FW-L/FW-R remains mirrored exactly like
+                // Hattrick's 0-0-1 screenshots.
+                var leftSideNormal = sideNormal / 1.2727272727272727;
+                var rightSideNormal = sideNormal / 1.2258064516129032;
+
                 if (side == PlayerSide.Center)
                 {
-                    AddBothSides(s, RatingSector.LeftAttack, RatingSector.RightAttack, sideNormal, form);
+                    Add(s, RatingSector.LeftAttack, leftSideNormal, form);
+                    Add(s, RatingSector.RightAttack, rightSideNormal, form);
                 }
                 else
                 {
-                    Add(s, own, sideNormal, form);
-                    Add(s, other, sideNormal, form);
+                    Add(s, own, side == PlayerSide.Left ? leftSideNormal : rightSideNormal, form);
+                    Add(s, other, side == PlayerSide.Left ? rightSideNormal : leftSideNormal, form);
                 }
 
                 Add(s, RatingSector.CentralAttack, centralNormal, form);
