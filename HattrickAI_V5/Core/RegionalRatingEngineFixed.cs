@@ -228,8 +228,10 @@ public sealed class RegionalRatingEngineFixed
                 break;
 
             case "IM-C":
-                // Normal IM MID now contains its calibrated experience term
-                // directly in RatingPositionMatrix; do not add it twice.
+                // Normal IM-C CA is calibrated as a standalone skill/form
+                // relation in RatingPositionMatrix. Do not add the generic
+                // experience CA bonus here; doing so would re-introduce a
+                // second experience term into the calibrated CA sector.
                 if (p.Order != PlayerOrder.Normal)
                 {
                     AddExp(RatingSector.CentralDefence, .480);
