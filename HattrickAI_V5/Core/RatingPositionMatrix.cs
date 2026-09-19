@@ -100,7 +100,7 @@ public static class RatingPositionMatrix
 
             case "W-L":
             case "W-R":
-                AddWinger(sectors, p.Order, p.Side, defending, playmaking, passing, winger, formMultiplier);
+                AddWinger(sectors, p.Order, p.Side, defending, playmaking, passing, winger, p.Experience, p.Form, formMultiplier);
                 return;
 
             case "IM-L":
@@ -278,8 +278,36 @@ public static class RatingPositionMatrix
 
     private static void AddWinger(
         Dictionary<RatingSector, double> s, PlayerOrder order, PlayerSide side,
-        double defending, double playmaking, double passing, double winger, double form)
+        double defending, double playmaking, double passing, double winger,
+        double experience, double playerForm, double form)
     {
+        if (order == PlayerOrder.Normal)
+        {
+            // Empirical normal-wing calibration from controlled 0-1-0 Hattrick
+            // observations. The same matrix is mirrored for W-L and W-R.
+            var exp = EmpiricalExperienceBonus(experience);
+            var ff = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
+
+            var centralDef = .03645194 * defending + .03975943 * exp
+                - .00219966 * ff + .82810804;
+            var sideDef = .10634512 * defending - .00897458 * exp
+                + .34313663 * ff + .58486461;
+            var midfield = .06098742 * playmaking + .10860714 * exp
+                + .11456700 * ff + .54980609;
+            var sideAttack = .05540904 * passing + .23201786 * winger
+                + .18790426 * exp + 2.07246483 * ff - 1.25848288;
+
+            Add(s, RatingSector.CentralDefence, centralDef, 1.0);
+            Add(s, side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, sideDef, 1.0);
+            Add(s, RatingSector.Midfield, midfield, 1.0);
+            Add(s, side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack, sideAttack, 1.0);
+
+            // Central attack remains on the researched contribution matrix;
+            // single-player team ratings are floored to 1.00 by the display.
+            Add(s, RatingSector.CentralAttack, Math.Max(0.0, (passing - 1.0) * .018), form);
+            return;
+        }
+
         var v = order switch
         {
             PlayerOrder.Defensive => new WingerMatrix(.050, .148, .054, .185, .044, .009),
@@ -294,6 +322,16 @@ public static class RatingPositionMatrix
         Add(s, side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack,
             passing * v.SidePassing + winger * v.SideWinger, form);
         Add(s, RatingSector.CentralAttack, passing * v.CenterPassing, form);
+    }
+
+    private static double EmpiricalExperienceBonus(double experience)
+    {
+        var values = new[]
+        {
+            0.00, 0.00, .40, .64, .80, .93, 1.04, 1.13, 1.20, 1.27, 1.33,
+            1.39, 1.44, 1.49, 1.53, 1.57, 1.61, 1.64, 1.67, 1.71, 1.73
+        };
+        return values[Math.Clamp((int)Math.Round(experience), 1, 20)];
     }
 
     private static void AddForward(
