@@ -275,26 +275,36 @@ public static class RatingPositionMatrix
                 - .04206833 * defending * exp
                 + 1.07246761 * ff * ff;
 
-            // MID regression retained from the previously validated
-            // 9-player controlled Hattrick sample.
+            // MID regression refit from the latest 9 full-sector
+            // Hattrick 0-1-0 screenshots. The observed rating is the
+            // quarter-step displayed team rating, so the regression is
+            // calibrated to the underlying displayed-sector targets.
             var midfieldFinal =
-                -13.0810401
-                - .396765335 * playmaking
-                - .0222777611 * playmaking * playmaking
-                + 25.3321660 * exp
-                + 13.8886108 * ff
-                + 1.04021453 * playmaking * ff
-                - 27.8081439 * exp * ff;
+                1.80011637
+                - .64684156 * playmaking
+                - .00641282 * playmaking * playmaking
+                + 1.90387540 * exp
+                - 1.29157070 * ff
+                + .87835277 * playmaking * ff
+                - 1.95958520 * exp * ff;
             var midfield = Math.Max(0.0, midfieldFinal) / .8285714285714286;
 
-            // Attack regression. The left/right IM-C contribution is shared
-            // to preserve the canonical symmetry of the central slot.
-            var sideAttack =
-                1.00027404
-                - .12385664 * passing
-                + .28787938 * exp
-                + .17997926 * ff
-                + .09897982 * passing * ff;
+            // Left/right attack regression from the same 9 screenshots.
+            // The two side models are kept separate because the live
+            // observations include a one-quarter-step L/R difference.
+            var leftAttack =
+                .67592401
+                - .05324400 * passing
+                + .35697574 * exp
+                + .50677168 * ff
+                + .01528013 * passing * ff;
+
+            var rightAttack =
+                1.32462407
+                - .19446928 * passing
+                + .21878301 * exp
+                - .14681316 * ff
+                + .18267951 * passing * ff;
 
             // Central attack regression from the same 9 controlled fixtures.
             var centralAttack =
@@ -312,8 +322,15 @@ public static class RatingPositionMatrix
                 sideDefence, 1.0);
 
             Add(s, RatingSector.Midfield, midfield, 1.0);
-            Add(s, side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack,
-                sideAttack, 1.0);
+            if (side == PlayerSide.Left)
+                Add(s, RatingSector.LeftAttack, leftAttack, 1.0);
+            else if (side == PlayerSide.Right)
+                Add(s, RatingSector.RightAttack, rightAttack, 1.0);
+            else
+            {
+                Add(s, RatingSector.LeftAttack, leftAttack, 1.0);
+                Add(s, RatingSector.RightAttack, rightAttack, 1.0);
+            }
             Add(s, RatingSector.CentralAttack, centralAttack, 1.0);
             return;
         }
