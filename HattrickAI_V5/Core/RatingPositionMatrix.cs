@@ -128,11 +128,11 @@ public static class RatingPositionMatrix
         // 1-0-0 observations. The observed sector values are the ground truth
         // for this canonical slot; other defender orders retain the researched
         // contribution matrix until their own calibration set is available.
-        if (slot == "DEF-CL" && order == PlayerOrder.Normal)
+        if ((slot == "DEF-CL" || slot == "DEF-CR") && order == PlayerOrder.Normal)
         {
             Add(s, RatingSector.CentralDefence,
                 .19759418 * defending + .73256248, 1.0);
-            Add(s, RatingSector.LeftDefence,
+            Add(s, slot == "DEF-CL" ? RatingSector.LeftDefence : RatingSector.RightDefence,
                 .16906005 * defending + .74086162, 1.0);
         }
         else
