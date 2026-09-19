@@ -193,14 +193,29 @@ public sealed class RegionalRatingEngineFixed
         IReadOnlyList<Player> players,
         RatingContext? context = null)
     {
-        var byId = players.ToDictionary(p => p.Id);
-        var mapped = lineup.Slots
-            .Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId))
-            .Select(s => ToRegionalPlayer(lineup.Formation, s, byId[s.PlayerId]))
+        ArgumentNullException.ThrowIfNull(lineup);
+        ArgumentNullException.ThrowIfNull(players);
+
+        var byId = players
+            .Where(p => p is not null)
+            .GroupBy(p => p.Id)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var sourceSlots = lineup.Slots ?? Array.Empty<Slot>();
+        var mapped = sourceSlots
+            .Where(s => s is not null && s.PlayerId > 0 && !string.IsNullOrWhiteSpace(s.Code) && byId.ContainsKey(s.PlayerId))
+            .Select(s => ToRegionalPlayer(lineup.Formation ?? string.Empty, s, byId[s.PlayerId]))
             .ToList();
 
-        var names = players.ToDictionary(p => p.Id, p => p.Name);
-        return CalculateCore(mapped, context, lineup.TeamName, lineup.Formation, names).Trace!;
+        if (mapped.Count == 0)
+            throw new InvalidOperationException("V5 rating trace için geçerli oyuncu/pozisyon eşleşmesi bulunamadı.");
+
+        var names = players
+            .Where(p => p is not null)
+            .GroupBy(p => p.Id)
+            .ToDictionary(g => g.Key, g => g.First().Name ?? string.Empty);
+
+        return CalculateCore(mapped, context, lineup.TeamName ?? string.Empty, lineup.Formation ?? string.Empty, names).Trace!;
     }
 
     private static double ReferenceCalibrationFor(RatingSector sector)
