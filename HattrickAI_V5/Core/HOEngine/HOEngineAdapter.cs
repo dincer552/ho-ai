@@ -175,7 +175,7 @@ public sealed class HOEngineAdapter : IRatingEngine
     private static string GetRoleBucket(Slot slot) => slot.Code switch
     {
         "GK" or "GK-C" => "GK",
-        "DEF-L" => "DEF-L", "DEF-R" => "DEF-R", "DEF-C" or "DEF-CL" or "DEF-CR" => "DEF-C",
+        "DEF-L" or "WB-L" => "DEF-L", "DEF-R" or "WB-R" => "DEF-R", "DEF-C" or "DEF-CL" or "DEF-CR" => "DEF-C",
         "IM-L" => "IM-L", "IM-R" => "IM-R", "IM-C" => "IM-C",
         "W-L" => "W-L", "W-R" => "W-R",
         "FW-L" => "FW-L", "FW-R" => "FW-R", "FW-C" => "FW-C",
