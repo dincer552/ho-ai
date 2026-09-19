@@ -173,9 +173,8 @@ public sealed class RegionalRatingEngineFixed
                 break;
 
             case "DEF-C":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.LeftDefence, .345);
-                AddExp(RatingSector.RightDefence, .345);
+                // Normal DEF-C defence is already empirically calibrated in
+                // RatingPositionMatrix; keep experience only for midfield.
                 AddExp(RatingSector.Midfield, .730);
                 break;
 
