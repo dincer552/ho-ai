@@ -262,14 +262,14 @@ public static class RatingPositionMatrix
                 // The six screenshots all show the isolated IM-L midfield at
                 // the 1.00 display floor. Keep a monotonic playmaking relation
                 // so stronger players can still rise above the floor.
-                var midfieldImL = .80000000 + .05000000 * playmaking;
+                var midfieldImL = 1.20689655 * (.80000000 + .05000000 * playmaking);
 
                 // IM-L side attack regression: passing + visible form + experience.
                 var leftAttackImL =
-                    1.43654074
-                    - .03987276 * passing
-                    + .14625183 * playerForm
-                    - .02556850 * experience;
+                    1.12871058
+                    - .03132860 * passing
+                    + .11491215 * playerForm
+                    - .02008954 * experience;
 
                 // The supplied IM-L screenshots all display CA=1.00. Keep the
                 // central-attack relation conservative and monotonic in passing
