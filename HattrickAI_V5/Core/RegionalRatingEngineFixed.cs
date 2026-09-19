@@ -60,12 +60,18 @@ public sealed class RegionalRatingEngineFixed
                 SkillRating(p.Scoring) + loyalty + experienceBonus,
                 formMultiplier);
 
-            // IMPORTANT: crowding belongs to the player's own central lineup sector,
-            // not to the rating sector being accumulated. HO! applies the same
-            // position crowding factor to every rating-sector contribution of that
-            // player. Applying crowding after adding into the shared sector would
-            // compound the penalty and incorrectly penalize unrelated positions.
+            // Schum/HO! ordering is critical:
+            //   1) skill + loyalty
+            //   2) form
+            //   3) contribution coefficient
+            //   4) central-position crowding
+            //   5) experience is added AFTER crowding
+            //
+            // The old V5 path folded ExperienceBonus into every effective skill
+            // before crowding, which incorrectly reduced experience whenever a
+            // central line had 2/3 players. That is the main crowding bug.
             var direct = Empty();
+            var skillOnly = Empty();
             string route = RatingCalculationFormulaCatalog.RouteFor(RatingPositionMatrix.CanonicalSlot(p), p.Order, p.Side);
 
             RatingPositionMatrix.AddContribution(
@@ -77,11 +83,31 @@ public sealed class RegionalRatingEngineFixed
                     direct = delta.ToDictionary(x => x.Key, x => x.Value);
                 });
 
+            var skillK = new EffectiveSkillsFixed(
+                SkillRating(p.Keeper) + loyalty,
+                SkillRating(p.Defending) + loyalty,
+                SkillRating(p.Playmaking) + loyalty,
+                SkillRating(p.Passing) + loyalty,
+                SkillRating(p.Winger) + loyalty,
+                SkillRating(p.Scoring) + loyalty,
+                formMultiplier);
+
+            RatingPositionMatrix.AddContribution(
+                skillOnly, p, skillK.Keeper, skillK.Defending, skillK.Playmaking,
+                skillK.Passing, skillK.Winger, skillK.Scoring, skillK.FormMultiplier, 0.0);
+
+            var experienceContributions = direct.ToDictionary(
+                x => x.Key,
+                x => x.Value - skillOnly[x.Key]);
+
             var slot = RatingPositionMatrix.CanonicalSlot(p);
             var crowding = PositionCrowding(slot, centralDefenders, centralMidfielders, forwards);
-            var crowdingAdjusted = direct.ToDictionary(
+
+            // Only skill contribution is crowded. Experience is a post-crowding
+            // flat contribution and therefore remains fully intact.
+            var crowdingAdjusted = skillOnly.ToDictionary(
                 x => x.Key,
-                x => x.Value * crowding);
+                x => x.Value * crowding + experienceContributions[x.Key]);
 
             foreach (var contribution in crowdingAdjusted)
                 sectors[contribution.Key] += contribution.Value;
@@ -123,6 +149,12 @@ public sealed class RegionalRatingEngineFixed
                 experienceBonus,
                 crowding,
                 direct
+                    .Where(x => Math.Abs(x.Value) > 1e-12)
+                    .ToDictionary(x => x.Key.ToString(), x => x.Value, StringComparer.Ordinal),
+                skillOnly
+                    .Where(x => Math.Abs(x.Value) > 1e-12)
+                    .ToDictionary(x => x.Key.ToString(), x => x.Value, StringComparer.Ordinal),
+                experienceContributions
                     .Where(x => Math.Abs(x.Value) > 1e-12)
                     .ToDictionary(x => x.Key.ToString(), x => x.Value, StringComparer.Ordinal),
                 crowdingAdjusted
