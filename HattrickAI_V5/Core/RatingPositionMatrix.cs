@@ -252,20 +252,20 @@ public static class RatingPositionMatrix
                 // The coefficients are a low-complexity regression against the
                 // supplied CHPP player skills. RegionalRatingEngineFinal applies
                 // the Hattrick quarter-step display quantization afterwards.
-                var leftDefence =
+                var leftDefenceImL =
                     .90744157
                     + .11531365 * defending;
-                var centralDefence =
+                var centralDefenceImL =
                     .87023370
                     + .03874539 * defending;
 
                 // The six screenshots all show the isolated IM-L midfield at
                 // the 1.00 display floor. Keep a monotonic playmaking relation
                 // so stronger players can still rise above the floor.
-                var midfield = .80000000 + .05000000 * playmaking;
+                var midfieldImL = .80000000 + .05000000 * playmaking;
 
                 // IM-L side attack regression: passing + visible form + experience.
-                var leftAttack =
+                var leftAttackImL =
                     1.51628626
                     - .03987276 * passing
                     + .14625183 * playerForm
@@ -274,16 +274,16 @@ public static class RatingPositionMatrix
                 // The supplied IM-L screenshots all display CA=1.00. Keep the
                 // central-attack relation conservative and monotonic in passing
                 // and scoring instead of importing the IM-C calibration.
-                var centralAttack =
+                var centralAttackImL =
                     .68000000
                     + .02000000 * passing
                     + .01000000 * scoring;
 
-                Add(s, RatingSector.LeftDefence, leftDefence, 1.0);
-                Add(s, RatingSector.CentralDefence, centralDefence, 1.0);
-                Add(s, RatingSector.Midfield, midfield, 1.0);
-                Add(s, RatingSector.LeftAttack, leftAttack, 1.0);
-                Add(s, RatingSector.CentralAttack, centralAttack, 1.0);
+                Add(s, RatingSector.LeftDefence, leftDefenceImL, 1.0);
+                Add(s, RatingSector.CentralDefence, centralDefenceImL, 1.0);
+                Add(s, RatingSector.Midfield, midfieldImL, 1.0);
+                Add(s, RatingSector.LeftAttack, leftAttackImL, 1.0);
+                Add(s, RatingSector.CentralAttack, centralAttackImL, 1.0);
                 return;
             }
 
