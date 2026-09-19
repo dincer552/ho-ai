@@ -185,19 +185,35 @@ public sealed class RegionalRatingEngineFixed
                 break;
 
             case "W-L":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.LeftDefence, .345);
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.CentralAttack, .450);
-                AddExp(RatingSector.LeftAttack, .375);
+                if (p.Order == PlayerOrder.Normal)
+                {
+                    // Normal winger defence/midfield/side-attack are already
+                    // empirically calibrated with experience in the matrix.
+                    AddExp(RatingSector.CentralAttack, .450);
+                }
+                else
+                {
+                    AddExp(RatingSector.CentralDefence, .480);
+                    AddExp(RatingSector.LeftDefence, .345);
+                    AddExp(RatingSector.Midfield, .730);
+                    AddExp(RatingSector.CentralAttack, .450);
+                    AddExp(RatingSector.LeftAttack, .375);
+                }
                 break;
 
             case "W-R":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.RightDefence, .345);
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.CentralAttack, .450);
-                AddExp(RatingSector.RightAttack, .375);
+                if (p.Order == PlayerOrder.Normal)
+                {
+                    AddExp(RatingSector.CentralAttack, .450);
+                }
+                else
+                {
+                    AddExp(RatingSector.CentralDefence, .480);
+                    AddExp(RatingSector.RightDefence, .345);
+                    AddExp(RatingSector.Midfield, .730);
+                    AddExp(RatingSector.CentralAttack, .450);
+                    AddExp(RatingSector.RightAttack, .375);
+                }
                 break;
 
             case "IM-L":
