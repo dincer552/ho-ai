@@ -18,4 +18,5 @@ jobs:
       - name: Run permanent winger regression
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- empirical-winger
       - name: Run user-supplied midfielder screenshot regression
+        if: ${{ always() }}
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- user-im-screenshots
