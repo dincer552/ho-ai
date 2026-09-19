@@ -311,6 +311,39 @@ Son kontrollü 0-1-0 normal IM-C corpusunda 11 benzersiz oyuncu bulunmaktadır. 
 Mevcut üretim CA formülü çok sayıda yüksek dereceli etkileşim içeriyor:
 `Passing×Scoring`, `Passing×Form`, `Scoring×Form`, `Experience×Form` vb. Bu yapı 9 eski gözlem üzerinde iyi görünse de Patrik/Münir gibi yeni gözlemlerde aşırı ekstrapolasyon yapıyor.
 
+### 14.1.1 — 2026-09-19 gerçek bulgu: corpus sektörleri karışmış
+
+Yeni yüklenen 0-1-0 ekranları tekrar okununca önceki fixture'ların bir bölümünde görünür 7 sektör ile fixture sütunlarının karıştığı bulundu. Örneğin:
+- Utku: ekranda CD=1.00, MID=1.00, CA=1.25.
+- Andres: CD=1.00, MID=1.25, CA=1.75.
+- Mikel: CD=1.25, MID=1.25, CA=2.00.
+- Sergen: CD=1.25, MID=1.50, CA=1.25.
+- Patrik: CD=1.25, MID=1.50, CA=1.75.
+- Münir: CD=1.25, MID=1.25, CA=1.25.
+
+Bu nedenle önceki CA polynomiali güvenilir bir ground-truth corpusuna değil, kısmen karışmış sektör değerlerine fit edilmişti. Patrik/Münir'deki ters davranışın ana nedeni bu veri kirliliğidir.
+
+Ayrıca production akışında normal IM-C için CA'ya hem kalibre edilmiş CA terimi içinde Experience hem de `AddExperienceContribution` üzerinden ikinci bir Experience katkısı uygulanıyordu. Bu ikinci CA katkısı kaldırıldı.
+
+### 14.1.2 — CA-02 sonucu
+
+Doğrulanmış yedi 0-1-0 Normal IM-C ekranı üzerinde yüksek dereceli polynomial kaldırıldı. Yeni CA modeli yalnızca normalize Passing, Scoring ve görünür Form kullanıyor:
+
+`CA_raw = 0.42767567 + 0.09905346·Passing + 0.02230971·Scoring + 0.46394146·FormFactor`
+
+Experience şimdilik modele dahil edilmedi; bağımsız Experience corpusu olmadan tekrar eklenmeyecek.
+
+Doğrulanmış yedi ekranın quarter-step display değerlerinde bu model:
+- Utku 1.25 → 1.25
+- Andres 1.75 → 1.75
+- Mikel 2.00 → 2.00
+- Sergen 1.25 → 1.25
+- Pesalovo 1.75 → 1.75
+- Patrik 1.75 → 1.75
+- Münir 1.25 → 1.25
+
+Bu sonuç production formülünün ilk CA-02 adımıdır; daha geniş ve bağımsız corpus ile yeniden doğrulanmalıdır.
+
 ### 14.2 Kaynak mekaniği
 
 Hattrick Wiki'nin güncel Inner Midfielder tanımında normal IM için:
