@@ -57,8 +57,8 @@ public sealed class RegionalRatingEngine
     private static RegionalRatingSnapshot ToSnapshot(Dictionary<RatingSector, double> s) => new(
         s[RatingSector.LeftDefence], s[RatingSector.CentralDefence], s[RatingSector.RightDefence], s[RatingSector.Midfield],
         s[RatingSector.LeftAttack], s[RatingSector.CentralAttack], s[RatingSector.RightAttack],
-        Display(s[RatingSector.LeftDefence]), Display(s[RatingSector.CentralDefence]), Display(s[RatingSector.RightDefence]),
-        Display(s[RatingSector.Midfield]), Display(s[RatingSector.LeftAttack]), Display(s[RatingSector.CentralAttack]), Display(s[RatingSector.RightAttack]));
+        s[RatingSector.LeftDefence], s[RatingSector.CentralDefence], s[RatingSector.RightDefence],
+        s[RatingSector.Midfield], s[RatingSector.LeftAttack], s[RatingSector.CentralAttack], s[RatingSector.RightAttack]);
 
     private static void AddPositionContribution(Dictionary<RatingSector, double> s, RegionalPlayer p, EffectiveSkills k,
         int centralDefenders, int centralMidfielders)
@@ -214,7 +214,9 @@ public sealed class RegionalRatingEngine
         var side = slot.Code.EndsWith("-L", StringComparison.Ordinal) ? PlayerSide.Left : slot.Code.EndsWith("-R", StringComparison.Ordinal) ? PlayerSide.Right : PlayerSide.Center;
         return new RegionalPlayer(p.Id, position, side, slot.Order, p.Keeper, p.Defending, p.Playmaking, p.Passing, p.Winger, p.Scoring, p.Form, p.Loyalty, p.Experience, p.Stamina, slot.Code);
     }
-    public static double Display(double raw) => Math.Clamp(Math.Round(raw, 2, MidpointRounding.AwayFromZero), 0, 20);
+    // Engine output is always raw. Any Hattrick/UI display conversion must be
+    // performed explicitly by a display-layer converter, never here.
+    public static double Display(double raw) => raw;
 }
 
 public enum RatingSector { LeftDefence, CentralDefence, RightDefence, Midfield, LeftAttack, CentralAttack, RightAttack }
