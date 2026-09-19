@@ -92,6 +92,16 @@ public static class Stage6OvercrowdingRegression
         CheckPlayerCrowding(mixed, 40, "W-1", 1.000, failures);
         CheckPlayerCrowding(mixed, 41, "W-2", 1.000, failures);
 
+        // The final sector subtotal must be exactly the sum of already-crowded
+        // per-player contributions. This catches the old bug where the whole
+        // accumulated sector was multiplied again for every new player.
+        foreach (var sector in mixed.Sectors)
+        {
+            var sum = sector.PlayerContributions.Values.Sum();
+            if (Math.Abs(sum - sector.MatrixSubtotal) > 1e-10)
+                failures.Add($"{sector.Sector}: subtotal {sector.MatrixSubtotal:F10} != player contribution sum {sum:F10}");
+        }
+
         if (failures.Count == 0)
         {
             Console.WriteLine("PASS: Stage 6 exact HO! overcrowding model; no cross-position contamination or cumulative compounding");
