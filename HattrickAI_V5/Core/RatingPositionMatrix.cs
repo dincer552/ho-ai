@@ -76,9 +76,19 @@ public static class RatingPositionMatrix
         double winger,
         double scoring,
         double formMultiplier,
-        double experienceBonus = 0.0)
+        double experienceBonus = 0.0,
+        Action<RegionalPlayer, string, IReadOnlyDictionary<RatingSector, double>>? trace = null)
     {
         var slot = CanonicalSlot(p);
+        var beforeTrace = new Dictionary<RatingSector, double>(sectors);
+
+        void FinishTrace()
+        {
+            if (trace is null) return;
+            var delta = Enum.GetValues<RatingSector>()
+                .ToDictionary(x => x, x => sectors[x] - beforeTrace[x]);
+            trace(p, RatingCalculationFormulaCatalog.RouteFor(slot, p.Order, p.Side), delta);
+        }
 
         switch (slot)
         {
@@ -86,37 +96,37 @@ public static class RatingPositionMatrix
                 Add(sectors, RatingSector.CentralDefence, keeper * .165 + defending * .079, formMultiplier);
                 AddBothSides(sectors, RatingSector.LeftDefence, RatingSector.RightDefence,
                     keeper * .183 + defending * .082, formMultiplier);
+                FinishTrace();
                 return;
-
-            case "WB-L":
+case "WB-L":
             case "WB-R":
                 AddWingBack(sectors, p.Order, p.Side, defending, playmaking, winger, formMultiplier);
+                FinishTrace();
                 return;
-
-            case "DEF-CL":
+case "DEF-CL":
             case "DEF-C":
             case "DEF-CR":
                 AddCentralDefender(sectors, slot, p.Order, defending, playmaking, passing, formMultiplier);
+                FinishTrace();
                 return;
-
-            case "W-L":
+case "W-L":
             case "W-R":
                 AddWinger(sectors, p.Order, p.Side, defending, playmaking, passing, winger, p.Form, formMultiplier);
+                FinishTrace();
                 return;
-
-            case "IM-L":
+case "IM-L":
             case "IM-C":
             case "IM-R":
                 AddInnerMidfielder(sectors, p.Order, p.Side, defending, playmaking, passing, winger, scoring, p.Form, formMultiplier);
+                FinishTrace();
                 return;
-
-            case "FW-L":
+case "FW-L":
             case "FW-C":
             case "FW-R":
                 AddForward(sectors, p.Order, p.Side, defending, playmaking, passing, winger, scoring, formMultiplier, experienceBonus);
+                FinishTrace();
                 return;
-
-            default:
+default:
                 throw new InvalidOperationException($"Unsupported V5 rating slot: {slot}");
         }
     }
