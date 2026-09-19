@@ -293,3 +293,78 @@ Bu özellik ancak şu zincir gerçek CHPP üzerinde doğrulanınca TAMAMLANDI sa
 `Analiz → Önizleme → Kullanıcı onayı → CHPP matchOrders write → başarı cevabı → read-back → Hattrick'teki gerçek XI + yedek + taktik eşleşmesi`
 
 CHPP write yetkisi/uygulama onayı mevcut değilse kod tarafı hazırlanabilir ancak özellik production'da aktif olarak TAMAMLANDI sayılmayacak.
+
+
+## 14. Normal IM-C Central Attack (CA) — 2026-09-19 Calibration Investigation
+
+Bu bölüm CA regresyonunun kontrollü şekilde düzeltilmesi için kanonik çalışma notudur. Üretim formülü, gerçek Hattrick gözlemi ve kaynak mekaniği birbirine karıştırılmayacaktır.
+
+### 14.1 Mevcut hata
+
+Son kontrollü 0-1-0 normal IM-C corpusunda 11 benzersiz oyuncu bulunmaktadır. Son commit `8919d13` sonrası regression başarısızdır.
+
+Öne çıkan sapmalar:
+- Patrik Zarins: V5 CA `0.86` / Hattrick `1.75`
+- Münir Balkın: V5 CA `3.04` / Hattrick `1.25`
+- CA MAE: `0.2655`
+
+Mevcut üretim CA formülü çok sayıda yüksek dereceli etkileşim içeriyor:
+`Passing×Scoring`, `Passing×Form`, `Scoring×Form`, `Experience×Form` vb. Bu yapı 9 eski gözlem üzerinde iyi görünse de Patrik/Münir gibi yeni gözlemlerde aşırı ekstrapolasyon yapıyor.
+
+### 14.2 Kaynak mekaniği
+
+Hattrick Wiki'nin güncel Inner Midfielder tanımında normal IM için:
+- Defending → side defence: %18.9
+- Defending → central defence: %40
+- Playmaking → midfield: %100
+- Passing → side attack: %26
+- Passing → central attack: %32.5
+- Scoring → central attack: %22
+
+Dolayısıyla CA'nın temel yapısı Passing + Scoring olmalıdır. Kaynak, bizim gizli engine katsayılarımızı veya mevcut V5 empirik polynomialini doğrulamıyor.
+
+### 14.3 Veri kontrolü
+
+Patrik ve Münir'in CHPP snapshot verileri corpus ile uyuşuyor:
+- Patrik: Passing 8, Scoring 12, Stamina 6, Form 7, Experience 2.
+- Münir: Passing 5, Scoring 3, Stamina 3, Form 6, Experience 2.
+
+Bu nedenle ilk bulgu bir CHPP oyuncu-verisi okuma hatası değildir.
+
+### 14.4 Deney sırası
+
+**CA-01 — Veri/rol doğrulama**
+1. 0-1-0 ekranlarının gerçekten Normal IM-C olduğunun doğrulanması.
+2. Davranış (Normal / Offensive / Defensive / Towards Wing) ayrıca corpus alanı yapılacak.
+3. Screenshot rating değerleri quarter-step olarak tekrar kontrol edilecek.
+4. Bu adım tamamlanmadan yeni yüksek dereceli katsayı uydurulmayacak.
+
+**CA-02 — Polynomial sadeleştirme**
+- Mevcut yüksek dereceli CA polynomiali kaldırılacak.
+- Önce düşük dereceli, sınırlı parametreli model denenecek.
+- `Passing×Scoring` gibi güçlü çapraz terimler ancak yeni bağımsız gözlemler desteklerse geri alınacak.
+- Train-fit yerine leave-one-out / hold-out kontrolü kullanılacak.
+
+**CA-03 — Kaynak öncelikli model**
+- Normal IM-C CA'nın temel yapısı Wiki'deki %32.5 Passing + %22 Scoring ilişkisine bağlanacak.
+- Experience, form/stamina ve display quantization ayrı katmanlar olarak test edilecek.
+- Resmî kaynakta olmayan mutlak katsayılar yalnızca kontrollü fixture ile kalibre edilecek.
+
+**CA-04 — Yeni orthogonal corpus**
+Aynı 0-1-0 Normal IM-C düzeninde özellikle:
+- aynı Form/EXP, farklı Passing/Scoring,
+- aynı Passing/Scoring, farklı Form,
+- aynı Passing/Scoring/Form, farklı Experience
+çiftleri toplanacak.
+
+**CA-05 — Production promotion**
+Bir CA modeli ancak:
+- mevcut tüm corpusu geçerse,
+- yeni corpus üzerinde de genelleme gösterirse,
+- Patrik/Münir gibi uç gözlemlerde patlamazsa
+production formülüne alınacak.
+
+### 14.5 Çalışma kuralı
+
+Her CA deneyi ayrı commit/test sonucu ile ilerleyecek. Deney kötüleşirse geri alınacak; yalnızca mevcut MAE'yi düşüren değil, yeni gözlemlerde de stabil kalan model production'a alınacak.
+
