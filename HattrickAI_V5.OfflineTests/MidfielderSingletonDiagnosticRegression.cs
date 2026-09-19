@@ -78,7 +78,7 @@ public static class MidfielderSingletonDiagnosticRegression
             $"MID={abs[3] / fixtures.Length:F4} LA={abs[4] / fixtures.Length:F4} CA={abs[5] / fixtures.Length:F4} RA={abs[6] / fixtures.Length:F4}");
 
         Console.WriteLine(failures == 0
-            ? "PASS: all 7 V5 sectors are within +/-0.25 of the 9 controlled Hattrick screenshots."
+            ? "PASS: all 7 V5 sectors are within +/-0.25 of the 11 controlled Hattrick screenshots."
             : $"FAIL: {failures} sector observations exceed tolerance +/-{tolerance:F2}.");
         return failures == 0 ? 0 : 1;
     }
