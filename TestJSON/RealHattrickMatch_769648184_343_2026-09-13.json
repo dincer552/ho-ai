@@ -4,7 +4,7 @@
   "source": "Hattrick UI screenshot + CHPP team export",
   "match": {"matchId": 769648184,"teamId": 1080139,"teamName": "S4MSUNFC","formation": "3-4-3","tactic": "Normal"},
   "hattrickRating": {"leftDefence": 13.0,"centralDefence": 12.75,"rightDefence": 13.25,"midfield": 7.0,"leftAttack": 15.75,"centralAttack": 13.75,"rightAttack": 13.5},
-  "engineBaseline": {"V5": [10.607123287630,18.225071291537,11.389638248473,8.849457149423,11.225820495657,13.045084317110,10.793733307126],"HO": [8.68839942,14.2271002,9.69051866,5.44673275,9.1645407,12.05888469,9.09550333],"HattrickDash": [13.46666667,13.46666667,13.46666667,12.525,11.63333333,11.63333333,11.63333333],"Foxtrick": [10.607123287630,18.225071291537,11.389638248473,8.849457149423,11.225820495657,13.045084317110,10.793733307126]},
+  "engineBaseline": {"V5": [10.61,18.23,11.39,8.85,11.23,13.05,10.79],"HO": [8.68839942,14.2271002,9.69051866,5.44673275,9.1645407,12.05888469,9.09550333],"HattrickDash": [13.46666667,13.46666667,13.46666667,12.525,11.63333333,11.63333333,11.63333333],"Foxtrick": [10.61,18.23,11.39,8.85,11.23,13.05,10.79]},
   "players": [
     {"id": 479235895,"name":"Enzo Bultot","keeper":17,"defending":4,"playmaking":1,"passing":2,"winger":1,"scoring":4,"stamina":7,"form":6,"experience":6,"loyalty":0,"injuryLevel":-1,"specialty":0,"setPiecesSkill":0},
     {"id": 468363070,"name":"Abeiku Takyi","keeper":1,"defending":17,"playmaking":3,"passing":8,"winger":4,"scoring":7,"stamina":6,"form":5,"experience":10,"loyalty":0,"injuryLevel":-1,"specialty":0,"setPiecesSkill":0},
