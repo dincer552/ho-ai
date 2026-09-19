@@ -249,15 +249,15 @@ public static class RatingPositionMatrix
             var ff = .378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
             var exp = EmpiricalExperienceBonus(p.Experience);
 
-            var centralDefence = .49482463
-                + .04570901 * defending
-                + .04878888 * exp
-                + .44828559 * ff
-                - .19789164 * defending * ff;
-
-            var sideDefence = .78296361
+            var centralDefence = .78296361
                 + .06425274 * defending
                 + .14339652 * ff;
+
+            var sideDefence = 3.06565682
+                - .71777493 * defending
+                - .19789164 * exp
+                - 2.23943772 * ff
+                + .84149676 * defending * ff;
 
             var midfieldFinal = .31367924
                 + .49795548 * playmaking
