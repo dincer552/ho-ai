@@ -23,13 +23,14 @@ public sealed class RegionalRatingEngine
         {
             var formMultiplier = FormFactor(p.Form) / BaselineFormFactor;
             var loyalty = LoyaltyEffect(p.Loyalty);
+            var experienceBonus = ExperienceBonus(p.Experience);
             var k = new EffectiveSkills(
-                p.Keeper + loyalty,
-                p.Defending + loyalty,
-                p.Playmaking + loyalty,
-                p.Passing + loyalty,
-                p.Winger + loyalty,
-                p.Scoring + loyalty,
+                p.Keeper + loyalty + experienceBonus,
+                p.Defending + loyalty + experienceBonus,
+                p.Playmaking + loyalty + experienceBonus,
+                p.Passing + loyalty + experienceBonus,
+                p.Winger + loyalty + experienceBonus,
+                p.Scoring + loyalty + experienceBonus,
                 formMultiplier);
             AddPositionContribution(sectors, p, k, centralDefenders, centralMidfielders);
         }
@@ -192,6 +193,11 @@ public sealed class RegionalRatingEngine
     }
 
     private static double LoyaltyEffect(double loyalty) => loyalty <= 0 ? 0 : Math.Clamp(loyalty * .05, 0.0, 1.0);
+    private static double ExperienceBonus(double experience)
+    {
+        var values = new[] { 0.00,0.00,.40,.64,.80,.93,1.04,1.13,1.20,1.27,1.33,1.39,1.44,1.49,1.53,1.57,1.61,1.64,1.67,1.71,1.73 };
+        return values[Math.Clamp((int)Math.Round(experience), 1, 20)];
+    }
     private static void AddBothSides(Dictionary<RatingSector, double> s, RatingSector left, RatingSector right, double value, double formMultiplier = 1.0) { s[left] += value * formMultiplier; s[right] += value * formMultiplier; }
     private static void AddSideOnly(Dictionary<RatingSector, double> s, PlayerSide side, RatingSector left, RatingSector right, double value, double formMultiplier = 1.0) { value *= formMultiplier; if (side == PlayerSide.Left) s[left] += value; else if (side == PlayerSide.Right) s[right] += value; else AddBothSides(s, left, right, value); }
     private static void Add(Dictionary<RatingSector, double> s, RatingSector sector, double value, double formMultiplier = 1.0) { s[sector] += value * formMultiplier; }
