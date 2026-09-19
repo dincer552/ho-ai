@@ -308,21 +308,21 @@ public static class RatingPositionMatrix
             // Central IM has no field-side bias: LD/RD share the same
             // defending-driven contribution.
             var centralDefence =
-                .75566434
-                + .06363900 * defending
-                + 1.30004873 * imCFormFactor;
+                .43837692
+                + .06418087 * defending
+                + .58468111 * imCFormFactor;
 
             var sideDefence =
-                .92836006
-                + .01959188 * defending
-                + .02775777 * imCFormFactor;
+                .92171186
+                + .01960455 * defending
+                + .01232717 * imCFormFactor;
 
             // MID is playmaking-driven; the form term is retained because
             // the supplied Hattrick screenshots show a measurable form effect.
             var midfieldFinal =
-                .71045086
-                + .10125627 * playmaking
-                + .71971745 * imCFormFactor;
+                .55041714
+                + .10480606 * playmaking
+                + .28726477 * imCFormFactor;
             var midfield = Math.Max(0.0, midfieldFinal) / .8285714285714286;
 
             // The six current screenshots display the side-attack sector at
@@ -336,10 +336,10 @@ public static class RatingPositionMatrix
             // form correction; experience is already represented in effective
             // skill normalization and is not added as a separate sector bonus.
             var centralAttack =
-                .68045821
-                + .07019686 * passing
-                + .02872443 * scoring
-                + 1.52811418 * imCFormFactor;
+                .30879015
+                + .07563828 * passing
+                + .02836967 * scoring
+                + .64904194 * imCFormFactor;
 
             Add(s, RatingSector.CentralDefence, centralDefence, 1.0);
             if (side == PlayerSide.Left)
