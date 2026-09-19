@@ -97,21 +97,7 @@ public sealed class AnalysisService
         var location = next.HomeId == teamId ? "Ev sahibi" : "Deplasman";
         var title = $"{next.Date.ToLocalTime():dd.MM.yyyy HH:mm} • {opponentName} • {location}";
 
-        var sessionId = _http.HttpContext?.Session.Id;
-        if (!string.IsNullOrWhiteSpace(sessionId))
-        {
-            var bench = BenchSelectionState.Build(ownPlayers, finalLineup.Slots);
-            var runId = MotorRunLogContext.CurrentRunId;
-            if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.SetBench(runId, bench);
-            var http = _http.HttpContext!;
-            http.Session.SetString("v5.rating.players", JsonSerializer.Serialize(ownPlayers));
-            http.Session.SetString("v5.rating.lineup", JsonSerializer.Serialize(finalLineup));
-            http.Session.SetString("v5.rating.context", JsonSerializer.Serialize(ratingContext));
-            http.Session.SetString("v5.rating.canonical", JsonSerializer.Serialize(finalRating));
-            http.Session.SetString("v5.rating.selected", selectedRatingEngine.ToString());
-        }
-
-        return new Analysis(build, teamName, opponentName, title, finalLineup, opponentLineup, finalRating, opponentHistoricalRating, appliedQuestionnaire)
+        var analysis = new Analysis(build, teamName, opponentName, title, finalLineup, opponentLineup, finalRating, opponentHistoricalRating, appliedQuestionnaire)
         {
             M7Scenario = pipeline.M7,
             M72Scenario = pipeline.M72,
@@ -120,6 +106,29 @@ public sealed class AnalysisService
             M10Decision = pipeline.M10,
             MotorPipeline = pipeline
         };
+
+        var sessionId = _http.HttpContext?.Session.Id;
+        if (!string.IsNullOrWhiteSpace(sessionId))
+        {
+            var bench = BenchSelectionState.Build(ownPlayers, finalLineup.Slots);
+            var runId = MotorRunLogContext.CurrentRunId;
+            if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.SetBench(runId, bench);
+            var http = _http.HttpContext!;
+            var finalTactic = Enum.TryParse<TeamTactic>(analysis.SelectedTactic, true, out var parsedTactic)
+                ? parsedTactic
+                : TeamTactic.Normal;
+            var traceContext = ratingContext with { Tactic = finalTactic };
+
+            http.Session.SetString("v5.rating.players", JsonSerializer.Serialize(ownPlayers));
+            http.Session.SetString("v5.rating.lineup", JsonSerializer.Serialize(finalLineup));
+            http.Session.SetString("v5.rating.context", JsonSerializer.Serialize(traceContext));
+            http.Session.SetString("v5.rating.canonical", JsonSerializer.Serialize(finalRating));
+            http.Session.SetString("v5.rating.selected", selectedRatingEngine.ToString());
+            http.Session.SetString("v5.rating.engine", selectedRatingEngine.ToString());
+            http.Session.SetString("v5.rating.confidence", selfConfidence.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return analysis;
     }
 
     private static bool IsCompetitiveMatchType(int type) => type is 1 or 2 or 7 or 10 or 11;
