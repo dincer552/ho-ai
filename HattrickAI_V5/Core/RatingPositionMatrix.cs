@@ -249,20 +249,34 @@ public static class RatingPositionMatrix
             var ff = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
             var exp = EmpiricalExperienceBonus(experience);
 
-            var centralDefence = .78296361
-                + .06425274 * defending
-                + .14339652 * ff;
-
-            var sideDefence = 3.06565682
-                - .71777493 * defending
-                - .19789164 * exp
-                - 2.23943772 * ff
-                + .84149676 * defending * ff;
-
             // Refit from the 9 controlled live Hattrick 0-1-0 IM-C
-            // observations. Inputs are already normalized by SkillRating().
-            // This replaces the previous provisional MID fit; the regression
-            // is intentionally kept on the canonical normal-IM contribution.
+            // observations. Inputs are normalized by SkillRating().
+            //
+            // Defence regression: Defending + experience + form terms.
+            // The left/right defensive contribution is intentionally shared
+            // because a central IM has no field-side bias.
+            var centralDefence =
+                .54075966
+                - 1.19179503 * defending
+                + 7.50869621 * exp
+                - .98523049 * ff
+                + 1.12415605 * defending * ff
+                - 8.37736646 * exp * ff
+                + .14528725 * defending * exp
+                + 2.78479513 * ff * ff;
+
+            var sideDefence =
+                .94845587
+                - .18220788 * defending
+                + 1.84170705 * exp
+                - 1.34650600 * ff
+                + .25017938 * defending * ff
+                - 1.42313090 * exp * ff
+                - .04206833 * defending * exp
+                + 1.07246761 * ff * ff;
+
+            // MID regression retained from the previously validated
+            // 9-player controlled Hattrick sample.
             var midfieldFinal =
                 -13.0810401
                 - .396765335 * playmaking
@@ -273,20 +287,25 @@ public static class RatingPositionMatrix
                 - 27.8081439 * exp * ff;
             var midfield = Math.Max(0.0, midfieldFinal) / .8285714285714286;
 
-            var sideAttackFinal = 5.99538048
-                - .61642665 * passing
-                + .22318205 * exp
-                - 5.72285483 * ff
-                + .71990907 * passing * ff;
-            var sideAttack = sideAttackFinal /
-                (side == PlayerSide.Left ? 1.2727272727272727 : 1.2258064516129032);
+            // Attack regression. The left/right IM-C contribution is shared
+            // to preserve the canonical symmetry of the central slot.
+            var sideAttack =
+                1.00027404
+                - .12385664 * passing
+                + .28787938 * exp
+                + .17997926 * ff
+                + .09897982 * passing * ff;
 
-            var centralAttack = .60113680
-                + .50932770 * passing
-                - .69748765 * scoring
-                + .24256673 * exp
-                - .49128126 * passing * ff
-                + .80635547 * scoring * ff;
+            // Central attack regression from the same 9 controlled fixtures.
+            var centralAttack =
+                1.83692983
+                + .24767661 * passing
+                - .54858410 * scoring
+                - .13220492 * exp
+                + 3.80615670 * ff
+                - .59370359 * passing * ff
+                - .36917834 * scoring * ff
+                + .09689352 * passing * scoring;
 
             Add(s, RatingSector.CentralDefence, centralDefence, 1.0);
             Add(s, side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence,
