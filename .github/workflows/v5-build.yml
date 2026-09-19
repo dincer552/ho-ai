@@ -33,6 +33,16 @@ jobs:
         run: |
           set -Eeuo pipefail
           dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- trainer
+      - name: V5 user IM-L Hattrick screenshot regression
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- user-im-screenshots
+      - name: V5 normal IM full-sector regression
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- mid-diagnostic
       - name: CHPP WRITE-03 validation regression
         shell: bash
         run: |
