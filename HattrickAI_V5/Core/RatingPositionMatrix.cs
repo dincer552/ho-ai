@@ -250,7 +250,7 @@ public static class RatingPositionMatrix
                 // effective skill = max(0, raw skill - 1) + ExperienceBonus + Loyalty.
                 // The fit is deliberately low-complexity and monotonic in the
                 // documented driving skill for each sector.
-                var ff = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
+                var imLFormFactor = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
 
                 var leftDefenceImL =
                     .86876582
@@ -258,7 +258,7 @@ public static class RatingPositionMatrix
                 var centralDefenceImL =
                     .53590643
                     + .05304477 * defending
-                    + .56421781 * ff;
+                    + .56421781 * imLFormFactor;
 
                 // Midfield is driven primarily by Playmaking. Form is retained
                 // as the empirical scale correction needed to match the isolated
@@ -266,7 +266,7 @@ public static class RatingPositionMatrix
                 var midfieldImL =
                     -2.16159200
                     + .13612135 * playmaking
-                    + 3.15768100 * ff;
+                    + 3.15768100 * imLFormFactor;
 
                 // Normal IM side attack is driven by Passing. The positive passing
                 // coefficient is required by both the documented contribution
@@ -274,14 +274,14 @@ public static class RatingPositionMatrix
                 var leftAttackImL =
                     .75038771
                     + .04099550 * passing
-                    + .19044908 * ff;
+                    + .19044908 * imLFormFactor;
 
                 // Normal IM central attack is driven by Passing + Scoring.
                 var centralAttackImL =
                     .23940566
                     + .05047427 * passing
                     + .04472221 * scoring
-                    + .69342408 * ff;
+                    + .69342408 * imLFormFactor;
 
                 Add(s, RatingSector.LeftDefence, leftDefenceImL, 1.0);
                 Add(s, RatingSector.CentralDefence, centralDefenceImL, 1.0);
