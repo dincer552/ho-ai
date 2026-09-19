@@ -6,45 +6,57 @@ public static class Empirical020LineupRegression
 {
     public static int Run()
     {
-        // This regression used to lock shape-specific 2-0-0 multipliers.
-        // The 14-position rewrite intentionally removes those multipliers and
-        // verifies the actual WB/CD slot distinction instead.
-        var player = new Player(
-            1001, "Defender fixture",
-            Keeper: 1, Defending: 17, Playmaking: 3, Passing: 5,
-            Winger: 4, Scoring: 7, Stamina: 9, Form: 7, Experience: 5);
+        // Controlled live Hattrick observations: one normal DEF-CL in 1-0-0.
+        // The values below are the sector ratings visible in the Hattrick
+        // lineup screen and are used as the empirical DEF-CL ground truth.
+        var fixtures = new[]
+        {
+            new Fixture("Milen Bozev", 5, 12, 9, 14, 6, 8, 8, 1.75, 1.75),
+            new Fixture("Abeiku Takyi", 17, 3, 8, 4, 6, 6, 10, 3.50, 4.00),
+            new Fixture("Nelson Ferrante", 4, 6, 9, 3, 6, 7, 2, 1.50, 1.50),
+            new Fixture("Dawid Nocoń", 17, 3, 5, 4, 5, 7, 12, 3.75, 4.25),
+            new Fixture("Manuel Gobiet", 9, 11, 9, 15, 6, 8, 7, 2.25, 2.50),
+            new Fixture("Nándor Dobóvári", 3, 5, 8, 17, 7, 7, 3, 1.25, 1.25),
+            new Fixture("Francisco Manuel", 2, 15, 9, 1, 4, 4, 10, 1.00, 1.25),
+            new Fixture("Zübeyir Balaban", 6, 6, 4, 5, 5, 5, 2, 1.75, 1.75),
+            new Fixture("Sergen Gözay", 6, 5, 4, 5, 4, 7, 2, 1.50, 1.75),
+            new Fixture("Mikel Thiebault", 4, 5, 9, 4, 6, 8, 2, 1.50, 1.75)
+        };
 
         var engine = new RegionalRatingEngineFixed();
-
-        var wingBack = new Lineup("WB", "2-0-0",
-        [
-            Slot("WB-L", player)
-        ]);
-
-        var centralDefender = new Lineup("CD", "2-0-0",
-        [
-            Slot("DEF-L", player)
-        ]);
-
-        var wb = engine.CalculateLineup(wingBack, [player], RatingContext.Default);
-        var cd = engine.CalculateLineup(centralDefender, [player], RatingContext.Default);
-
-        var expectedWbRatio = .268 / .083;
-        var expectedCdRatio = .077 / .186;
-
-        var wbRatio = wb.RawLeftDefence / wb.RawCentralDefence;
-        var cdRatio = cd.RawLeftDefence / cd.RawCentralDefence;
-
         var failures = new List<string>();
 
-        if (Math.Abs(wbRatio - expectedWbRatio) > 1e-9)
-            failures.Add($"WB-L contribution ratio drift: expected {expectedWbRatio:R}, got {wbRatio:R}");
+        foreach (var fixture in fixtures)
+        {
+            var player = new Player(
+                1000 + Array.IndexOf(fixtures, fixture),
+                fixture.Name,
+                Keeper: 0,
+                Defending: fixture.Defending,
+                Playmaking: fixture.Playmaking,
+                Passing: fixture.Passing,
+                Winger: fixture.Winger,
+                Scoring: 0,
+                Stamina: fixture.Stamina,
+                Form: fixture.Form,
+                Experience: fixture.Experience);
 
-        if (Math.Abs(cdRatio - expectedCdRatio) > 1e-9)
-            failures.Add($"DEF-L contribution ratio drift: expected {expectedCdRatio:R}, got {cdRatio:R}");
+            var lineup = new Lineup("DEF-CL", "1-0-0",
+            [
+                new Slot("DEF-CL", "DEF-CL", "14-position regression", player.Name, player.Id, 0, 0, 0)
+            ]);
 
-        if (Math.Abs(wb.RawLeftDefence - cd.RawLeftDefence) < 0.1)
-            failures.Add("WB-L and DEF-L collapsed to the same defensive contribution.");
+            var actual = engine.CalculateLineup(lineup, [player], RatingContext.Default);
+
+            if (Math.Abs(actual.RawLeftDefence - fixture.ExpectedLeft) > .20)
+                failures.Add($"{fixture.Name} DEF-L: expected {fixture.ExpectedLeft:F2}, got {actual.RawLeftDefence:F2}");
+
+            if (Math.Abs(actual.RawCentralDefence - fixture.ExpectedCentral) > .20)
+                failures.Add($"{fixture.Name} DEF-C: expected {fixture.ExpectedCentral:F2}, got {actual.RawCentralDefence:F2}");
+
+            if (Math.Abs(actual.RawRightDefence) > .001)
+                failures.Add($"{fixture.Name} DEF-R must remain 0, got {actual.RawRightDefence:F3}");
+        }
 
         if (failures.Count > 0)
         {
@@ -53,11 +65,19 @@ public static class Empirical020LineupRegression
             return 1;
         }
 
-        Console.WriteLine("PASS: 2-0-0 explicitly distinguishes WB-L from DEF-L.");
-        Console.WriteLine($"WB-L ratio={wbRatio:R} | DEF-L ratio={cdRatio:R}");
+        Console.WriteLine("PASS: 10 controlled DEF-CL fixtures match the empirical calibration.");
         return 0;
     }
 
-    private static Slot Slot(string code, Player player)
-        => new(code, code, "14-position regression", player.Name, player.Id, 0, 0, 0);
+    private readonly record struct Fixture(
+        string Name,
+        double Defending,
+        double Playmaking,
+        double Passing,
+        double Winger,
+        double Stamina,
+        double Form,
+        double Experience,
+        double ExpectedLeft,
+        double ExpectedCentral);
 }
