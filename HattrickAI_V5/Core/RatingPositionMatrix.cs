@@ -293,18 +293,18 @@ public static class RatingPositionMatrix
             // The two side models are kept separate because the live
             // observations include a one-quarter-step L/R difference.
             var leftAttack =
-                .67592401
-                - .05324400 * passing
-                + .35697574 * exp
-                + .50677168 * ff
-                + .01528013 * passing * ff;
+                .53108315
+                - .04183457 * passing
+                + .28048094 * exp
+                + .39817775 * ff
+                + .01200582 * passing * ff;
 
             var rightAttack =
-                1.32462407
-                - .19446928 * passing
-                + .21878301 * exp
-                - .14681316 * ff
-                + .18267951 * passing * ff;
+                1.08061438
+                - .15864599 * passing
+                + .17848088 * exp
+                - .11976863 * ff
+                + .14902802 * passing * ff;
 
             // Central attack regression from the same 9 controlled fixtures.
             var centralAttack =
@@ -318,8 +318,15 @@ public static class RatingPositionMatrix
                 + .09689352 * passing * scoring;
 
             Add(s, RatingSector.CentralDefence, centralDefence, 1.0);
-            Add(s, side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence,
-                sideDefence, 1.0);
+            if (side == PlayerSide.Left)
+                Add(s, RatingSector.LeftDefence, sideDefence, 1.0);
+            else if (side == PlayerSide.Right)
+                Add(s, RatingSector.RightDefence, sideDefence, 1.0);
+            else
+            {
+                Add(s, RatingSector.LeftDefence, sideDefence, 1.0);
+                Add(s, RatingSector.RightDefence, sideDefence, 1.0);
+            }
 
             Add(s, RatingSector.Midfield, midfield, 1.0);
             if (side == PlayerSide.Left)
