@@ -130,9 +130,12 @@ app.MapGet("/api/v5/rating-calculation-details", (HttpContext http) =>
     try
     {
         var players = JsonSerializer.Deserialize<List<Player>>(playersJson) ?? [];
-        var lineup = JsonSerializer.Deserialize<Lineup>(lineupJson);
+        var storedLineup = JsonSerializer.Deserialize<StoredLineup>(lineupJson);
+        var lineup = storedLineup is null
+            ? null
+            : new Lineup(storedLineup.TeamName, storedLineup.Formation, storedLineup.Slots);
         var context = JsonSerializer.Deserialize<RatingContext>(contextJson);
-        if (lineup is null || context is null || players.Count == 0)
+        if (lineup is null || context is null || players.Count == 0 || lineup.Slots.Count == 0)
             return Results.BadRequest(new { message = "Kaydedilmiş rating hesaplama verisi eksik." });
 
         var confidence = int.TryParse(
@@ -311,3 +314,4 @@ RatingEngineWebEndpoints.Map(app);
 app.Run();
 
 public sealed record QuestionnaireRequest(string CoachStyle, string TeamSpirit, string MatchImportance);
+public sealed record StoredLineup(string TeamName, string Formation, IReadOnlyList<Slot> Slots);
