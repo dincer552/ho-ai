@@ -242,38 +242,46 @@ public static class RatingPositionMatrix
         {
             if (side == PlayerSide.Left)
             {
-                // IM-L calibration from six user-supplied 0-1-0 Hattrick screenshots
-                // dated 2026-09-19. Only the displayed white rating values are
-                // ground truth; green delta values are intentionally excluded.
+                // IM-L calibration from the six current user-supplied 0-1-0
+                // Hattrick screenshots dated 2026-09-19. White values only are
+                // ground truth; green delta values are never calibration targets.
                 //
-                // The coefficients are a low-complexity regression against the
-                // supplied CHPP player skills. RegionalRatingEngineFinal applies
-                // the Hattrick quarter-step display quantization afterwards.
+                // Inputs are already normalized by the production skill layer:
+                // effective skill = max(0, raw skill - 1) + ExperienceBonus + Loyalty.
+                // The fit is deliberately low-complexity and monotonic in the
+                // documented driving skill for each sector.
+                var ff = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
+
                 var leftDefenceImL =
-                    .90744157
-                    + .11531365 * defending;
+                    .86876582
+                    + .05128852 * defending;
                 var centralDefenceImL =
-                    .87023370
-                    + .03874539 * defending;
+                    .53590643
+                    + .05304477 * defending
+                    + .56421781 * ff;
 
-                // The six screenshots all show the isolated IM-L midfield at
-                // the 1.00 display floor. Keep a monotonic playmaking relation
-                // so stronger players can still rise above the floor.
-                var midfieldImL = 1.20689655 * (.80000000 + .05000000 * playmaking);
+                // Midfield is driven primarily by Playmaking. Form is retained
+                // as the empirical scale correction needed to match the isolated
+                // Hattrick 0-1-0 screenshots within the quarter-step display band.
+                var midfieldImL =
+                    -2.16159200
+                    + .13612135 * playmaking
+                    + 3.15768100 * ff;
 
-                // IM-L side attack regression: passing + visible form.
+                // Normal IM side attack is driven by Passing. The positive passing
+                // coefficient is required by both the documented contribution
+                // model and the supplied Hattrick screenshots.
                 var leftAttackImL =
-                    1.12871058
-                    - .03132860 * passing
-                    + .11491215 * playerForm;
+                    .75038771
+                    + .04099550 * passing
+                    + .19044908 * ff;
 
-                // The supplied IM-L screenshots all display CA=1.00. Keep the
-                // central-attack relation conservative and monotonic in passing
-                // and scoring instead of importing the IM-C calibration.
+                // Normal IM central attack is driven by Passing + Scoring.
                 var centralAttackImL =
-                    .68000000
-                    + .02000000 * passing
-                    + .01000000 * scoring;
+                    .23940566
+                    + .05047427 * passing
+                    + .04472221 * scoring
+                    + .69342408 * ff;
 
                 Add(s, RatingSector.LeftDefence, leftDefenceImL, 1.0);
                 Add(s, RatingSector.CentralDefence, centralDefenceImL, 1.0);
