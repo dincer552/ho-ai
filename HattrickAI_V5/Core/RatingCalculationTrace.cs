@@ -21,6 +21,8 @@ public sealed record PlayerRatingCalculationTrace(
     double ExperienceBonus,
     double CrowdingMultiplier,
     IReadOnlyDictionary<string, double> DirectContributions,
+    IReadOnlyDictionary<string, double> SkillContributionsBeforeExperience,
+    IReadOnlyDictionary<string, double> ExperienceContributions,
     IReadOnlyDictionary<string, double> CrowdingAdjustedContributions);
 
 public sealed record RatingSectorCalculationTrace(
