@@ -6,9 +6,8 @@ namespace HattrickAI.V5.Core;
 
 /// <summary>
 /// V5 regional rating engine. Skill contribution is calculated from the
-/// canonical 14 Hattrick field slots independently; context, experience,
-/// loyalty, stamina and central-position crowding are applied as separate
-/// layers afterwards.
+/// canonical 14 Hattrick field slots independently; context, loyalty,
+/// stamina and central-position crowding are applied as separate layers afterwards.
 /// </summary>
 public sealed class RegionalRatingEngineFixed
 {
@@ -53,7 +52,6 @@ public sealed class RegionalRatingEngineFixed
                     sectors[sector] = before[sector] + (sectors[sector] - before[sector]) * crowding;
             }
 
-            AddExperienceContribution(sectors, p);
         }
 
         ApplyContext(sectors, context);
@@ -134,150 +132,6 @@ public sealed class RegionalRatingEngineFixed
         _ => 1.0
     };
 
-    private static void AddExperienceContribution(Dictionary<RatingSector, double> s, RegionalPlayer p)
-    {
-        var exp = ExperienceBonus(p.Experience);
-        if (exp <= 0) return;
-
-        var scale = exp / 1.73;
-        void AddExp(RatingSector sector, double weight) => s[sector] += scale * weight;
-
-        switch (RatingPositionMatrix.CanonicalSlot(p))
-        {
-            case "GK":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.LeftDefence, .345);
-                AddExp(RatingSector.RightDefence, .345);
-                break;
-
-            case "WB-L":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.LeftDefence, .345);
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.LeftAttack, .375);
-                break;
-
-            case "WB-R":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.RightDefence, .345);
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.RightAttack, .375);
-                break;
-
-            case "DEF-CL":
-                // Normal DEF-CL defence is already empirically calibrated from
-                // the controlled Hattrick sample in RatingPositionMatrix.
-                // Keep experience here only for midfield so it is not counted
-                // twice in the calibrated defence sectors.
-                AddExp(RatingSector.Midfield, .730);
-                break;
-
-            case "DEF-C":
-                // Normal DEF-C defence is already empirically calibrated in
-                // RatingPositionMatrix; keep experience only for midfield.
-                AddExp(RatingSector.Midfield, .730);
-                break;
-
-            case "DEF-CR":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.RightDefence, .345);
-                AddExp(RatingSector.Midfield, .730);
-                break;
-
-            case "W-L":
-                if (p.Order == PlayerOrder.Normal)
-                {
-                    // Normal winger defence/midfield/side-attack are already
-                    // empirically calibrated with experience in the matrix.
-                    AddExp(RatingSector.CentralAttack, .450);
-                }
-                else
-                {
-                    AddExp(RatingSector.CentralDefence, .480);
-                    AddExp(RatingSector.LeftDefence, .345);
-                    AddExp(RatingSector.Midfield, .730);
-                    AddExp(RatingSector.CentralAttack, .450);
-                    AddExp(RatingSector.LeftAttack, .375);
-                }
-                break;
-
-            case "W-R":
-                if (p.Order == PlayerOrder.Normal)
-                {
-                    AddExp(RatingSector.CentralAttack, .450);
-                }
-                else
-                {
-                    AddExp(RatingSector.CentralDefence, .480);
-                    AddExp(RatingSector.RightDefence, .345);
-                    AddExp(RatingSector.Midfield, .730);
-                    AddExp(RatingSector.CentralAttack, .450);
-                    AddExp(RatingSector.RightAttack, .375);
-                }
-                break;
-
-            case "IM-L":
-                if (p.Order != PlayerOrder.Normal)
-                {
-                    AddExp(RatingSector.CentralDefence, .480);
-                    AddExp(RatingSector.LeftDefence, .345);
-                    AddExp(RatingSector.Midfield, .730);
-                    AddExp(RatingSector.CentralAttack, .450);
-                    AddExp(RatingSector.LeftAttack, .375);
-                }
-                break;
-
-            case "IM-C":
-                // Normal IM-C CA is calibrated as a standalone skill/form
-                // relation in RatingPositionMatrix. Do not add the generic
-                // experience CA bonus here; doing so would re-introduce a
-                // second experience term into the calibrated CA sector.
-                if (p.Order != PlayerOrder.Normal)
-                {
-                    AddExp(RatingSector.CentralDefence, .480);
-                    AddExp(RatingSector.LeftDefence, .345);
-                    AddExp(RatingSector.RightDefence, .345);
-                    AddExp(RatingSector.Midfield, .730);
-                    AddExp(RatingSector.CentralAttack, .450);
-                    AddExp(RatingSector.LeftAttack, .375);
-                    AddExp(RatingSector.RightAttack, .375);
-                }
-                break;
-
-            case "IM-R":
-                if (p.Order != PlayerOrder.Normal)
-                {
-                    AddExp(RatingSector.CentralDefence, .480);
-                    AddExp(RatingSector.RightDefence, .345);
-                    AddExp(RatingSector.Midfield, .730);
-                    AddExp(RatingSector.CentralAttack, .450);
-                    AddExp(RatingSector.RightAttack, .375);
-                }
-                break;
-
-            case "FW-L":
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.CentralAttack, .450);
-                AddExp(RatingSector.LeftAttack, .375);
-                AddExp(RatingSector.RightAttack, .375);
-                break;
-
-            case "FW-C":
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.CentralAttack, .450);
-                AddExp(RatingSector.LeftAttack, .375);
-                AddExp(RatingSector.RightAttack, .375);
-                break;
-
-            case "FW-R":
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.CentralAttack, .450);
-                AddExp(RatingSector.LeftAttack, .375);
-                AddExp(RatingSector.RightAttack, .375);
-                break;
-        }
-    }
-
     private static void ApplyContext(Dictionary<RatingSector, double> s, RatingContext c)
     {
         var midfield = c.MatchLocation switch
@@ -347,17 +201,6 @@ public sealed class RegionalRatingEngineFixed
 
     private static double LoyaltyEffect(double loyalty)
         => loyalty >= 20 ? 1.5 : Math.Clamp(loyalty / 19.0, 0.0, 1.0);
-
-    private static double ExperienceBonus(double experience)
-    {
-        var values = new[]
-        {
-            0.00, 0.00, .40, .64, .80, .93, 1.04, 1.13, 1.20, 1.27, 1.33,
-            1.39, 1.44, 1.49, 1.53, 1.57, 1.61, 1.64, 1.67, 1.71, 1.73
-        };
-
-        return values[Math.Clamp((int)Math.Round(experience), 1, 20)];
-    }
 
     private static double FormFactor(double form)
         => .378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
