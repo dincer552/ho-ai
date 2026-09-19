@@ -317,8 +317,8 @@ public sealed class RegionalRatingEngineFixed
             0 or 1 => 1.0,
             2 when slots.SequenceEqual(["IM-C", "IM-L"]) => .80000000,
             2 when slots.SequenceEqual(["IM-C", "IM-R"]) => .82352941,
-            2 when slots.SequenceEqual(["IM-L", "IM-R"]) => .94736842,
-            3 when slots.SequenceEqual(["IM-C", "IM-L", "IM-R"]) => .71428571,
+            2 when slots.SequenceEqual(["IM-L", "IM-R"]) => .85714286,
+            3 when slots.SequenceEqual(["IM-C", "IM-L", "IM-R"]) => .68965517,
             _ => InnerMidfielderCrowding(slots.Length)
         };
     }
