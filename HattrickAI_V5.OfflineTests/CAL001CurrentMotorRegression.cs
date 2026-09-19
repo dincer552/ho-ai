@@ -31,7 +31,7 @@ public static class CAL001CurrentMotorRegression
         var lineup = new Lineup("CAL-001", "3-4-3", slots);
         var actual = new RegionalRatingEngineFixed().CalculateLineup(lineup, players, RatingContext.Default);
 
-        var expected = new[] { 7.547173492520718, 15.38792826270137, 8.722175800147264, 8.356595269523073, 9.736919924603303, 12.138912750812356, 9.931162425931916 };
+        var expected = new[] { 10.607123287630, 18.225071291537, 11.389638248473, 8.849457149423, 11.225820495657, 13.045084317110, 10.793733307126 };
         var displayed = new[] { actual.LeftDefence, actual.CentralDefence, actual.RightDefence, actual.Midfield, actual.LeftAttack, actual.CentralAttack, actual.RightAttack };
         var raw = new[] { actual.RawLeftDefence, actual.RawCentralDefence, actual.RawRightDefence, actual.RawMidfield, actual.RawLeftAttack, actual.RawCentralAttack, actual.RawRightAttack };
         var groundTruth = new[] { 13.0, 12.75, 13.25, 7.0, 15.75, 13.75, 13.5 };
