@@ -17,7 +17,9 @@ public static class MidfielderSingletonDiagnosticRegression
             new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 7, 1, 1.5, 1, 1.25, 1.25, 2, 1.25),
             new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 7, 1, 1.5, 1, 1.25, 1, 1.25, 1),
             new Fixture("Abeiku Takyi", 468363070, 17, 3, 8, 4, 7, 6, 10, 6, 1, 1.5, 1, 1.25, 1.25, 2, 1.25),
-            new Fixture("Cristian Pesalovo", 476114406, 16, 6, 9, 3, 6, 7, 6, 7, 1.25, 1.75, 1.25, 1.25, 1.25, 2.25, 1.25),
+            new Fixture("Cristian Pesalovo", 476114406, 16, 6, 9, 3, 6, 7, 6, 7, 1.25, 1.75, 1.25, 1.5, 1.25, 2, 1.25),
+            new Fixture("Patrik Zarins", 498557618, 4, 6, 8, 2, 12, 6, 2, 7, 1, 1.25, 1, 1.25, 1.25, 1.75, 1.25),
+            new Fixture("Münir Balkın", 502427630, 5, 5, 5, 5, 3, 3, 2, 6, 1, 1.25, 1, 1.25, 1.25, 1.25, 1.25),
             new Fixture("Milen Bozev", 465141092, 5, 12, 9, 14, 6, 6, 8, 8, 1.25, 1.75, 1.25, 2.25, 1.25, 2, 1.25),
             new Fixture("Bertalan Doktor", 465805392, 2, 16, 12, 6, 6, 6, 8, 7, 1.25, 1.75, 1.25, 1.75, 1.25, 2.75, 1.25)
         };
