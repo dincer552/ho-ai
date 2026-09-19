@@ -228,13 +228,18 @@ public sealed class RegionalRatingEngineFixed
                 break;
 
             case "IM-C":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.LeftDefence, .345);
-                AddExp(RatingSector.RightDefence, .345);
-                AddExp(RatingSector.Midfield, .730);
-                AddExp(RatingSector.CentralAttack, .450);
-                AddExp(RatingSector.LeftAttack, .375);
-                AddExp(RatingSector.RightAttack, .375);
+                // Normal IM MID now contains its calibrated experience term
+                // directly in RatingPositionMatrix; do not add it twice.
+                if (p.Order != PlayerOrder.Normal)
+                {
+                    AddExp(RatingSector.CentralDefence, .480);
+                    AddExp(RatingSector.LeftDefence, .345);
+                    AddExp(RatingSector.RightDefence, .345);
+                    AddExp(RatingSector.Midfield, .730);
+                    AddExp(RatingSector.CentralAttack, .450);
+                    AddExp(RatingSector.LeftAttack, .375);
+                    AddExp(RatingSector.RightAttack, .375);
+                }
                 break;
 
             case "IM-R":
