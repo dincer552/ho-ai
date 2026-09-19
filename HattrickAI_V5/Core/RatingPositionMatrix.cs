@@ -259,12 +259,19 @@ public static class RatingPositionMatrix
                 - 2.23943772 * ff
                 + .84149676 * defending * ff;
 
-            var midfieldFinal = .31367924
-                + .49795548 * playmaking
-                - .02539148 * playmaking * playmaking
-                + .50078805 * exp
-                - 1.05985956 * ff;
-            var midfield = midfieldFinal / .8285714285714286;
+            // Refit from the 9 controlled live Hattrick 0-1-0 IM-C
+            // observations. Inputs are already normalized by SkillRating().
+            // This replaces the previous provisional MID fit; the regression
+            // is intentionally kept on the canonical normal-IM contribution.
+            var midfieldFinal =
+                -13.0810401
+                - .396765335 * playmaking
+                - .0222777611 * playmaking * playmaking
+                + 25.3321660 * exp
+                + 13.8886108 * ff
+                + 1.04021453 * playmaking * ff
+                - 27.8081439 * exp * ff;
+            var midfield = Math.Max(0.0, midfieldFinal) / .8285714285714286;
 
             var sideAttackFinal = 5.99538048
                 - .61642665 * passing
