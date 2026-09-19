@@ -21,8 +21,8 @@ public static class Screenshot451Diagnostic
             P(479235895, RegionalPosition.Forward, PlayerSide.Center, "FW-C", 17, 4, 1, 2, 1, 4, 5, 6, 6, 7),
         };
 
-        var engine = new RegionalRatingEngineFinal();
-        var trace = engine.CalculateLineupWithTrace(players, new RatingContext(MatchLocation.Away, TeamAttitude.Normal, TeamTactic.Normal));
+        var engine = new RegionalRatingEngineFixed();
+        var trace = engine.CalculateWithTrace(players, new RatingContext(MatchLocation.Away, TeamAttitude.Normal, TeamTactic.Normal));
 
         Console.WriteLine("V5 4-5-1 screenshot lineup diagnostic");
         Console.WriteLine("GK E. Akşın | WB-L A. Takyi | DEF-CL M. Bozev | DEF-CR M. Gobiet | WB-R D. Nocoń");
