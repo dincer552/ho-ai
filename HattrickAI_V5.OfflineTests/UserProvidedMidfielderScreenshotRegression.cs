@@ -9,16 +9,16 @@ public static class UserProvidedMidfielderScreenshotRegression
         // Six 0-1-0 normal IM-L Hattrick screenshots supplied on 2026-09-19.
         // Player skills are taken from the Hattrick export fixture:
         // HattrickAI_V5.OfflineTests/fixtures/s4msunfc-m7-m8.json
-        // The player is visibly placed in the left midfield slot in each screenshot.
+        // The player is visibly placed in the left midfield slot in each screenshot. The comparison uses the displayed quarter-step ratings, never green deltas.
         // Ground truth sector order is LD, CD, RD, MID, LA, CA, RA.
         var fixtures = new[]
         {
-            new Fixture("Şaban Savlet", 495027585, 4, 5, 5, 5, 7, 6, 3, 6, 1.25, 1, 0, 1, 1.75, 1, 0),
-            new Fixture("Bumin Pehlivanlar", 493851210, 4, 4, 7, 5, 7, 5, 2, 8, 1.25, 1, 0, 1, 2.25, 1, 0),
-            new Fixture("Adrian Beța", 491743384, 4, 5, 8, 3, 15, 7, 3, 7, 1.25, 1, 0, 1, 2, 1, 0),
-            new Fixture("Mikel Thiebault", 498487535, 4, 5, 8, 4, 12, 6, 2, 7, 1.25, 1, 0, 1, 2.25, 1, 0),
-            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 3, 1.5, 1, 0, 1, 2.25, 1, 0),
-            new Fixture("Dawid Nocoń", 458524225, 17, 3, 5, 4, 7, 5, 12, 6, 2.75, 1.5, 0, 1, 2, 1, 0)
+            new Fixture("Şaban Savlet", 495027585, 4, 5, 6, 5, 7, 6, 3, 4, 1.25, 1, 0, 1, 1.75, 1, 0),
+            new Fixture("Bumin Pehlivanlar", 493851210, 4, 4, 7, 5, 7, 5, 2, 7, 1.25, 1, 0, 1, 2.25, 1, 0),
+            new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 7, 1.25, 1, 0, 1, 2, 1, 0),
+            new Fixture("Mikel Thiebault", 498487535, 4, 5, 9, 4, 12, 6, 2, 8, 1.25, 1, 0, 1, 2.25, 1, 0),
+            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 7, 1.5, 1, 0, 1, 2.25, 1, 0),
+            new Fixture("Dawid Nocoń", 458524225, 17, 3, 5, 4, 7, 5, 12, 7, 2.75, 1.5, 0, 1, 2, 1, 0)
         };
 
         var engine = new RegionalRatingEngineFinal();
@@ -26,7 +26,7 @@ public static class UserProvidedMidfielderScreenshotRegression
         var failures = 0;
         const double tolerance = 0.25;
 
-        Console.WriteLine("V5 user-supplied Hattrick normal IM-L 0-1-0 screenshot regression");
+        Console.WriteLine("V5 user-supplied Hattrick normal IM-L 0-1-0 DISPLAY regression");
         Console.WriteLine("Name | V5 LD CD RD MID LA CA RA | HT LD CD RD MID LA CA RA | Errors LD CD RD MID LA CA RA");
 
         foreach (var f in fixtures)
