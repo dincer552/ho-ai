@@ -21,3 +21,5 @@ jobs:
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- fw-left-screenshots
       - name: Run V5 FW-C screenshot regression
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- fw-center-screenshots
+      - name: Run V5 IM single-pair-triple MID aggregation regression
+        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- mid-combinations
