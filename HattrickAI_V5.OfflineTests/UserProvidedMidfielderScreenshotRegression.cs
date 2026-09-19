@@ -18,7 +18,15 @@ public static class UserProvidedMidfielderScreenshotRegression
             new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 7, 1.25, 1, 0, 1, 2, 1, 0),
             new Fixture("Mikel Thiebault", 498487535, 4, 5, 9, 4, 12, 6, 2, 8, 1.25, 1, 0, 1, 2.25, 1, 0),
             new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 7, 1.5, 1, 0, 1, 2.25, 1, 0),
-            new Fixture("Dawid Nocoń", 458524225, 17, 3, 5, 4, 7, 5, 12, 7, 2.75, 1.5, 0, 1, 2, 1, 0)
+            new Fixture("Dawid Nocoń", 458524225, 17, 3, 5, 4, 7, 5, 12, 7, 2.75, 1.5, 0, 1, 2, 1, 0),
+            // New 2026-09-19 screenshots: WHITE Hattrick values only.
+            // These captures are visibly IM-L in the 0-1-0 layout, not IM-C.
+            new Fixture("Andres Nahasepp", 495041177, 3, 6, 8, 5, 13, 7, 3, 6, 1, 1.25, 0, 1.25, 1.25, 1.75, 0),
+            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 7, 1.25, 1.25, 0, 1.5, 1, 1.25, 0),
+            new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 7, 1, 1.25, 0, 1.25, 1.25, 2, 0),
+            new Fixture("Nelson Ferrante", 501442578, 4, 6, 9, 3, 11, 6, 2, 7, 1, 1.25, 0, 1.5, 1.25, 1.75, 0),
+            new Fixture("Dawid Nocoń-new", 458524225, 17, 3, 5, 4, 7, 5, 12, 7, 1.75, 2, 0, 1.25, 1.25, 1.5, 0),
+            new Fixture("Francisco Manuel", 454418419, 2, 15, 9, 1, 7, 4, 10, 4, 1, 1, 0, 2, 1.25, 1.5, 0)
         };
 
         var engine = new RegionalRatingEngineFinal();
