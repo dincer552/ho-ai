@@ -29,7 +29,7 @@ public static class MidfielderSingletonDiagnosticRegression
         var failures = 0;
         const double tolerance = 0.25;
 
-        Console.WriteLine("V5 normal IM-C 0-1-0 FULL 7-SECTOR ground-truth regression");
+        Console.WriteLine("V5 normal IM-C 0-1-0 FULL 7-SECTOR DISPLAY ground-truth regression");
         Console.WriteLine("Name | V5 LD CD RD MID LA CA RA | HT LD CD RD MID LA CA RA | Errors LD CD RD MID LA CA RA");
 
         foreach (var f in fixtures)
