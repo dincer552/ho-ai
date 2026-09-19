@@ -261,7 +261,7 @@ public static class RatingPositionMatrix
                 // so stronger players can still rise above the floor.
                 var midfieldImL = 1.20689655 * (.80000000 + .05000000 * playmaking);
 
-                // IM-L side attack regression: passing + visible form + experience.
+                // IM-L side attack regression: passing + visible form.
                 var leftAttackImL =
                     1.12871058
                     - .03132860 * passing
@@ -290,49 +290,48 @@ public static class RatingPositionMatrix
             // Refit from the 9 controlled live Hattrick 0-1-0 IM-C
             // observations. Inputs are normalized by SkillRating().
             //
-            // Defence regression: Defending + experience + form terms.
+            // Defence regression: Defending + form terms.
             // The left/right defensive contribution is intentionally shared
             // because a central IM has no field-side bias.
             var centralDefence =
-                .54075966
-                - 1.19179503 * defending
-                - .98523049 * ff
-                + 1.12415605 * defending * ff
-                + 2.78479513 * ff * ff;
+                -2.63016336
+                + .99728602 * defending
+                - .06901684 * defending * defending
+                + 4.72747244 * ff
+                - 1.21214251 * defending * ff
+                + .08408524 * defending * defending * ff;
 
             var sideDefence =
-                .94845587
-                - .18220788 * defending
-                - 1.34650600 * ff
-                + .25017938 * defending * ff
-                + 1.07246761 * ff * ff;
+                1.58167513
+                - .18468948 * defending
+                - .61088056 * ff
+                + .21333746 * defending * ff;
 
             // MID regression refit from the latest 9 full-sector
             // Hattrick 0-1-0 screenshots. The observed rating is the
             // quarter-step displayed team rating, so the regression is
             // calibrated to the underlying displayed-sector targets.
             var midfieldFinal =
-                1.80011637
-                - .64684156 * playmaking
-                - .00641282 * playmaking * playmaking
-                - 1.29157070 * ff
-                + .87835277 * playmaking * ff;
+                3.04068624
+                - .71259440 * playmaking
+                - 1.78139315 * ff
+                + .82512732 * playmaking * ff;
             var midfield = Math.Max(0.0, midfieldFinal) / .8285714285714286;
 
             // Left/right attack regression from the same 9 screenshots.
             // The two side models are kept separate because the live
             // observations include a one-quarter-step L/R difference.
             var leftAttack =
-                .53108315
-                - .04183457 * passing
-                + .39817775 * ff
-                + .01200582 * passing * ff;
+                .61541722
+                + .03848543 * passing
+                + .05959491 * ff
+                - .01843509 * passing * ff;
 
             var rightAttack =
-                1.08061438
-                - .15864599 * passing
-                - .11976863 * ff
-                + .14902802 * passing * ff;
+                .63897386
+                + .03995856 * passing
+                + .06187606 * ff
+                - .01914074 * passing * ff;
 
             // CA-02: simplified normal-IM central-attack calibration.
             // The previous high-order polynomial was fitted to a corrupted
@@ -346,10 +345,15 @@ public static class RatingPositionMatrix
             // normal-IM-C screenshots and the result is then passed through
             // the normal quarter-step display quantization.
             var centralAttack =
-                .42767567
-                + .09905346 * passing
-                + .02230971 * scoring
-                + .46394146 * ff;
+                -1.26708552
+                + .17205415 * passing
+                + .19834343 * scoring
+                + .01225862 * passing * passing
+                - .02301478 * scoring * scoring
+                + .02719102 * passing * scoring
+                + 2.55116194 * ff
+                - .39545662 * passing * ff
+                - .02806372 * scoring * ff;
 
             Add(s, RatingSector.CentralDefence, centralDefence, 1.0);
             if (side == PlayerSide.Left)
@@ -419,17 +423,27 @@ public static class RatingPositionMatrix
         if (order == PlayerOrder.Normal)
         {
             // Empirical normal-wing calibration from controlled 0-1-0 Hattrick
-            // observations. The same matrix is mirrored for W-L and W-R.
+            // observations. Experience is intentionally excluded.
             var ff = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
 
-            var centralDef = .03645194 * defending
-                - .00219966 * ff + .82810804;
-            var sideDef = .10634512 * defending
-                + .34313663 * ff + .58486461;
-            var midfield = .07360550 * playmaking
-                + .13827052 * ff + .66355907;
-            var sideAttack = .05458062 * passing + .17877963 * winger
-                + 1.99577707 * ff - 1.37872667;
+            var centralDef = .47533365
+                + .13610538 * defending
+                + .38235880 * ff
+                - .10500311 * defending * ff;
+            var sideDef = .46030951
+                + .19618792 * defending
+                + .35894517 * ff
+                - .08738294 * defending * ff;
+            var midfield = 1.35839805
+                - .02179095 * playmaking
+                + 1.21013647 * ff
+                - .25824624 * playmaking * ff;
+            var sideAttack = .49722642
+                + .06380086 * passing
+                - .09069453 * winger
+                + .50250568 * ff
+                - .04769162 * passing * ff
+                + .24645510 * winger * ff;
 
             Add(s, RatingSector.CentralDefence, centralDef, 1.0);
             Add(s, side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, sideDef, 1.0);
