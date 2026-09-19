@@ -30,14 +30,18 @@ public sealed class RegionalRatingEngineFixed
             var formMultiplier = FormFactor(p.Form) / BaselineFormFactor;
             formMultiplier *= StaminaMatchMultiplier(p.Stamina, context.MatchMinute);
             var loyalty = LoyaltyEffect(p.Loyalty);
+            var experienceBonus = ExperienceBonus(p.Experience);
 
+            // Hattrick applies Experience as a flat bonus to skill contribution,
+            // not as a separate sector-rating add-on. Add the official XP bonus
+            // to each non-stamina skill before the 14-position matrix is applied.
             var k = new EffectiveSkillsFixed(
-                SkillRating(p.Keeper) + loyalty,
-                SkillRating(p.Defending) + loyalty,
-                SkillRating(p.Playmaking) + loyalty,
-                SkillRating(p.Passing) + loyalty,
-                SkillRating(p.Winger) + loyalty,
-                SkillRating(p.Scoring) + loyalty,
+                SkillRating(p.Keeper) + loyalty + experienceBonus,
+                SkillRating(p.Defending) + loyalty + experienceBonus,
+                SkillRating(p.Playmaking) + loyalty + experienceBonus,
+                SkillRating(p.Passing) + loyalty + experienceBonus,
+                SkillRating(p.Winger) + loyalty + experienceBonus,
+                SkillRating(p.Scoring) + loyalty + experienceBonus,
                 formMultiplier);
 
             var before = new Dictionary<RatingSector, double>(sectors);
@@ -201,6 +205,17 @@ public sealed class RegionalRatingEngineFixed
 
     private static double LoyaltyEffect(double loyalty)
         => loyalty >= 20 ? 1.5 : Math.Clamp(loyalty / 19.0, 0.0, 1.0);
+
+    private static double ExperienceBonus(double experience)
+    {
+        var values = new[]
+        {
+            0.00, 0.00, .40, .64, .80, .93, 1.04, 1.13, 1.20, 1.27, 1.33,
+            1.39, 1.44, 1.49, 1.53, 1.57, 1.61, 1.64, 1.67, 1.71, 1.73
+        };
+
+        return values[Math.Clamp((int)Math.Round(experience), 1, 20)];
+    }
 
     private static double FormFactor(double form)
         => .378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
