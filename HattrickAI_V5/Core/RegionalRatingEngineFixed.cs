@@ -302,12 +302,9 @@ public sealed class RegionalRatingEngineFixed
 
     private static void ApplyContext(Dictionary<RatingSector, double> s, RatingContext c)
     {
-        var midfield = c.MatchLocation switch
-        {
-            MatchLocation.Home => 1.19892,
-            MatchLocation.DerbyAway => 1.11493,
-            _ => 1.0
-        };
+        // Match location must not alter midfield rating.
+        // Regional rating is driven by player contributions; no Home/Derby midfield bonus.
+        var midfield = 1.0;
 
         midfield *= c.Attitude switch
         {
