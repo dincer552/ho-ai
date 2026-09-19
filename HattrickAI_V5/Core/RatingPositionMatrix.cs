@@ -95,7 +95,7 @@ public static class RatingPositionMatrix
             case "DEF-CL":
             case "DEF-C":
             case "DEF-CR":
-                AddCentralDefender(sectors, slot, p.Order, defending, playmaking, passing, formMultiplier);
+                AddCentralDefender(sectors, slot, p.Order, defending, playmaking, passing, p.Experience, formMultiplier);
                 return;
 
             case "W-L":
@@ -122,7 +122,7 @@ public static class RatingPositionMatrix
 
     private static void AddCentralDefender(
         Dictionary<RatingSector, double> s, string slot, PlayerOrder order,
-        double defending, double playmaking, double passing, double form)
+        double defending, double playmaking, double passing, double experience, double form)
     {
         // DEF-CL normal-position calibration from 10 controlled live Hattrick
         // 1-0-0 observations. The observed sector values are the ground truth
