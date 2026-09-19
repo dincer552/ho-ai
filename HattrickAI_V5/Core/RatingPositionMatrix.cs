@@ -264,17 +264,17 @@ public static class RatingPositionMatrix
                 // as the empirical scale correction needed to match the isolated
                 // Hattrick 0-1-0 screenshots within the quarter-step display band.
                 var midfieldImL =
-                    -2.16159200
-                    + .13612135 * playmaking
-                    + 3.15768100 * imLFormFactor;
+                    -2.60881793
+                    + .16428439 * playmaking
+                    + 3.81099431 * imLFormFactor;
 
                 // Normal IM side attack is driven by Passing. The positive passing
                 // coefficient is required by both the documented contribution
                 // model and the supplied Hattrick screenshots.
                 var leftAttackImL =
-                    .75038771
-                    + .04099550 * passing
-                    + .19044908 * imLFormFactor;
+                    .58959034
+                    + .03221075 * passing
+                    + .14963856 * imLFormFactor;
 
                 // Normal IM central attack is driven by Passing + Scoring.
                 var centralAttackImL =
