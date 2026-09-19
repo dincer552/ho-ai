@@ -178,12 +178,23 @@ public static class Stage6OvercrowdingRegression
         if (Math.Abs(player.CrowdingMultiplier - expectedFactor) > 1e-12)
             failures.Add($"{name}: crowding expected {expectedFactor:F3}, got {player.CrowdingMultiplier:F3}");
 
-        foreach (var kv in player.DirectContributions)
+        foreach (var kv in player.SkillContributionsBeforeExperience)
         {
             player.CrowdingAdjustedContributions.TryGetValue(kv.Key, out var actual);
-            var expected = kv.Value * expectedFactor;
+            player.ExperienceContributions.TryGetValue(kv.Key, out var experience);
+            var expected = kv.Value * expectedFactor + experience;
             if (Math.Abs(actual - expected) > 1e-10)
-                failures.Add($"{name} {kv.Key}: expected {expected:F10}, got {actual:F10}");
+                failures.Add($"{name} {kv.Key}: expected skill×crowding+XP={expected:F10}, got {actual:F10}");
+        }
+
+        // Explicitly prove that experience itself is not crowded.
+        foreach (var kv in player.ExperienceContributions)
+        {
+            player.CrowdingAdjustedContributions.TryGetValue(kv.Key, out var actual);
+            player.SkillContributionsBeforeExperience.TryGetValue(kv.Key, out var skill);
+            var expected = skill * expectedFactor + kv.Value;
+            if (Math.Abs(actual - expected) > 1e-10)
+                failures.Add($"{name} {kv.Key}: experience was crowded or lost; expected {expected:F10}, got {actual:F10}");
         }
     }
 }
