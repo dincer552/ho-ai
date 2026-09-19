@@ -289,34 +289,34 @@ public sealed class RegionalRatingEngineFixed
     private static Dictionary<RatingSector, double> Empty()
         => Enum.GetValues<RatingSector>().ToDictionary(x => x, _ => 0d);
 
-    private static double CentralDefenderCrowding(int count) => count == 2 ? .964 : count >= 3 ? .900 : 1.0;
-    private static double InnerMidfielderCrowding(int count) => count == 2 ? .935 : count >= 3 ? .825 : 1.0;
-    private static double ForwardCrowding(int count) => count == 2 ? .945 : count >= 3 ? .865 : 1.0;
-
-    // The 2026-09-19 user screenshot corpus shows that the displayed midfield
-    // rating does not reproduce with the generic 0.935/0.825 IM crowding factors.
-    // Keep those factors for non-midfield sectors, but use the observed common
-    // midfield aggregation factors for the three real IM slot combinations.
-    // This is an empirical V5 calibration, not a replacement for the documented
-    // Hattrick contribution percentages.
-    private static double InnerMidfielderMidfieldCrowding(IReadOnlyList<RegionalPlayer> players)
+    // HO! / Schum overcrowding factors. The penalty is determined by
+    // the number of players occupying the SAME central lineup sector and is
+    // applied to the player's COMPLETE contribution to every rating sector.
+    //
+    // Central defenders: 2 => 0.964, 3 => 0.900
+    // Inner midfielders: 2 => 0.935, 3 => 0.825
+    // Forwards:          2 => 0.945, 3 => 0.865
+    // One player (and non-crowded roles such as WB/W) => 1.0.
+    private static double CentralDefenderCrowding(int count) => count switch
     {
-        var slots = players
-            .Select(RatingPositionMatrix.CanonicalSlot)
-            .Where(x => x is "IM-L" or "IM-C" or "IM-R")
-            .OrderBy(x => x, StringComparer.Ordinal)
-            .ToArray();
+        2 => .964,
+        >= 3 => .900,
+        _ => 1.0
+    };
 
-        return slots.Length switch
-        {
-            0 or 1 => 1.0,
-            2 when slots.SequenceEqual(["IM-C", "IM-L"]) => .80000000,
-            2 when slots.SequenceEqual(["IM-C", "IM-R"]) => .82352941,
-            2 when slots.SequenceEqual(["IM-L", "IM-R"]) => .85714286,
-            3 when slots.SequenceEqual(["IM-C", "IM-L", "IM-R"]) => .68965517,
-            _ => InnerMidfielderCrowding(slots.Length)
-        };
-    }
+    private static double InnerMidfielderCrowding(int count) => count switch
+    {
+        2 => .935,
+        >= 3 => .825,
+        _ => 1.0
+    };
+
+    private static double ForwardCrowding(int count) => count switch
+    {
+        2 => .945,
+        >= 3 => .865,
+        _ => 1.0
+    };
 
     private static double PositionCrowding(string slot, int cds, int ims, int fws) => slot switch
     {
