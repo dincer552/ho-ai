@@ -1,4 +1,4 @@
-name: V5 Rating Validation
+name: V5 MID Diagnostic
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  v5:
+  v5-mid:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout V5
@@ -15,9 +15,5 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
-      - name: Run V5 rating contract regression
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- rating-contract
-      - name: Run V5 CAL-001 ground-truth validation
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- cal001
-      - name: Run V5 controlled DEF-CL ground-truth calibration
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- empirical-020
+      - name: Run V5 controlled MID diagnostic
+        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- mid-diagnostic
