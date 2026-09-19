@@ -11,22 +11,17 @@ public static class UserProvidedMidfielderScreenshotRegression
         // HattrickAI_V5.OfflineTests/fixtures/s4msunfc-m7-m8.json
         // The player is visibly placed in the left midfield slot in each screenshot. The comparison uses the displayed quarter-step ratings, never green deltas.
         // Ground truth sector order is LD, CD, RD, MID, LA, CA, RA.
+        // Six current 0-1-0 normal IM-L Hattrick screenshots supplied on
+        // 2026-09-19. These are the authoritative IM-L calibration corpus for
+        // this gate. White values are ground truth; green delta values are ignored.
         var fixtures = new[]
         {
-            new Fixture("Şaban Savlet", 495027585, 4, 5, 6, 5, 7, 6, 3, 4, 1.25, 1, 0, 1, 1.75, 1, 0),
-            new Fixture("Bumin Pehlivanlar", 493851210, 4, 4, 7, 5, 7, 5, 2, 7, 1.25, 1, 0, 1, 2.25, 1, 0),
-            new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 7, 1.25, 1, 0, 1, 2, 1, 0),
-            new Fixture("Mikel Thiebault", 498487535, 4, 5, 9, 4, 12, 6, 2, 8, 1.25, 1, 0, 1, 2.25, 1, 0),
-            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 7, 1.5, 1, 0, 1, 2.25, 1, 0),
-            new Fixture("Dawid Nocoń", 458524225, 17, 3, 5, 4, 7, 5, 12, 7, 2.75, 1.5, 0, 1, 2, 1, 0),
-            // New 2026-09-19 screenshots: WHITE Hattrick values only.
-            // These captures are visibly IM-L in the 0-1-0 layout, not IM-C.
             new Fixture("Andres Nahasepp", 495041177, 3, 6, 8, 5, 13, 7, 3, 6, 1, 1.25, 0, 1.25, 1.25, 1.75, 0),
-            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 7, 1.25, 1.25, 0, 1.5, 1, 1.25, 0),
-            new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 7, 1, 1.25, 0, 1.25, 1.25, 2, 0),
-            new Fixture("Nelson Ferrante", 501442578, 4, 6, 9, 3, 11, 6, 2, 7, 1, 1.25, 0, 1.5, 1.25, 1.75, 0),
-            new Fixture("Dawid Nocoń-new", 458524225, 17, 3, 5, 4, 7, 5, 12, 7, 1.75, 2, 0, 1.25, 1.25, 1.5, 0),
-            new Fixture("Francisco Manuel", 454418419, 2, 15, 9, 1, 7, 4, 10, 4, 1, 1, 0, 2, 1.25, 1.5, 0)
+            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 7, 1.25, 1.25, 0, 1.50, 1.00, 1.25, 0),
+            new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 7, 1.00, 1.25, 0, 1.25, 1.25, 2.00, 0),
+            new Fixture("Nelson Ferrante", 501442578, 4, 6, 9, 3, 11, 6, 2, 7, 1.00, 1.25, 0, 1.50, 1.25, 1.75, 0),
+            new Fixture("Dawid Nocoń", 458524225, 17, 3, 5, 4, 7, 5, 12, 7, 1.75, 2.00, 0, 1.25, 1.25, 1.50, 0),
+            new Fixture("Francisco Manuel", 454418419, 2, 15, 9, 1, 7, 4, 10, 4, 1.00, 1.00, 0, 2.00, 1.25, 1.50, 0)
         };
 
         var engine = new RegionalRatingEngineFinal();
@@ -83,7 +78,7 @@ public static class UserProvidedMidfielderScreenshotRegression
             $"MID={abs[3] / fixtures.Length:F4} LA={abs[4] / fixtures.Length:F4} CA={abs[5] / fixtures.Length:F4} RA={abs[6] / fixtures.Length:F4}");
 
         Console.WriteLine(failures == 0
-            ? "PASS: all 7 sectors are within +/-0.25 of the 6 supplied Hattrick screenshots."
+            ? "PASS: all 7 sectors for all 6 current IM-L screenshots are within +/-0.25."
             : $"FAIL: {failures} sector observations exceed tolerance +/-{tolerance:F2}.");
         return failures == 0 ? 0 : 1;
     }
