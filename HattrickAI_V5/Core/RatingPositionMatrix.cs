@@ -95,18 +95,18 @@ public static class RatingPositionMatrix
             case "DEF-CL":
             case "DEF-C":
             case "DEF-CR":
-                AddCentralDefender(sectors, slot, p.Order, defending, playmaking, passing, p.Experience, formMultiplier);
+                AddCentralDefender(sectors, slot, p.Order, defending, playmaking, passing, formMultiplier);
                 return;
 
             case "W-L":
             case "W-R":
-                AddWinger(sectors, p.Order, p.Side, defending, playmaking, passing, winger, p.Experience, p.Form, formMultiplier);
+                AddWinger(sectors, p.Order, p.Side, defending, playmaking, passing, winger, p.Form, formMultiplier);
                 return;
 
             case "IM-L":
             case "IM-C":
             case "IM-R":
-                AddInnerMidfielder(sectors, p.Order, p.Side, defending, playmaking, passing, winger, scoring, p.Form, p.Experience, formMultiplier);
+                AddInnerMidfielder(sectors, p.Order, p.Side, defending, playmaking, passing, winger, scoring, p.Form, formMultiplier);
                 return;
 
             case "FW-L":
@@ -122,7 +122,7 @@ public static class RatingPositionMatrix
 
     private static void AddCentralDefender(
         Dictionary<RatingSector, double> s, string slot, PlayerOrder order,
-        double defending, double playmaking, double passing, double experience, double form)
+        double defending, double playmaking, double passing, double form)
     {
         // DEF-CL normal-position calibration from 10 controlled live Hattrick
         // 1-0-0 observations. The observed sector values are the ground truth
@@ -140,10 +140,7 @@ public static class RatingPositionMatrix
             // DEF-C calibration from controlled 1-0-0 live observations.
             // The low-defending/high-experience correction captures the
             // observed central-defense uplift in the central sector.
-            var central = .19759418 * defending + .73256248
-                + Math.Max(0.0, 5.0 - defending)
-                * Math.Max(0.0, experience - 3.0)
-                * (.1 / 3.0);
+            var central = .19759418 * defending + .73256248;
             var side = .06497175 * defending + .93079096;
             Add(s, RatingSector.CentralDefence, central, 1.0);
             AddBothSides(s, RatingSector.LeftDefence, RatingSector.RightDefence, side, 1.0);
@@ -239,7 +236,7 @@ public static class RatingPositionMatrix
     private static void AddInnerMidfielder(
         Dictionary<RatingSector, double> s, PlayerOrder order, PlayerSide side,
         double defending, double playmaking, double passing, double winger,
-        double scoring, double playerForm, double experience, double form)
+        double scoring, double playerForm, double form)
     {
         if (order == PlayerOrder.Normal)
         {
@@ -268,8 +265,7 @@ public static class RatingPositionMatrix
                 var leftAttackImL =
                     1.12871058
                     - .03132860 * passing
-                    + .11491215 * playerForm
-                    - .02008954 * experience;
+                    + .11491215 * playerForm;
 
                 // The supplied IM-L screenshots all display CA=1.00. Keep the
                 // central-attack relation conservative and monotonic in passing
@@ -291,8 +287,6 @@ public static class RatingPositionMatrix
             // Hattrick observations. The formula is deliberately shared by
             // IM-L and IM-R; only the side-facing sectors are mirrored.
             var ff = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
-            var exp = EmpiricalExperienceBonus(experience);
-
             // Refit from the 9 controlled live Hattrick 0-1-0 IM-C
             // observations. Inputs are normalized by SkillRating().
             //
@@ -302,21 +296,15 @@ public static class RatingPositionMatrix
             var centralDefence =
                 .54075966
                 - 1.19179503 * defending
-                + 7.50869621 * exp
                 - .98523049 * ff
                 + 1.12415605 * defending * ff
-                - 8.37736646 * exp * ff
-                + .14528725 * defending * exp
                 + 2.78479513 * ff * ff;
 
             var sideDefence =
                 .94845587
                 - .18220788 * defending
-                + 1.84170705 * exp
                 - 1.34650600 * ff
                 + .25017938 * defending * ff
-                - 1.42313090 * exp * ff
-                - .04206833 * defending * exp
                 + 1.07246761 * ff * ff;
 
             // MID regression refit from the latest 9 full-sector
@@ -327,10 +315,8 @@ public static class RatingPositionMatrix
                 1.80011637
                 - .64684156 * playmaking
                 - .00641282 * playmaking * playmaking
-                + 1.90387540 * exp
                 - 1.29157070 * ff
-                + .87835277 * playmaking * ff
-                - 1.95958520 * exp * ff;
+                + .87835277 * playmaking * ff;
             var midfield = Math.Max(0.0, midfieldFinal) / .8285714285714286;
 
             // Left/right attack regression from the same 9 screenshots.
@@ -339,14 +325,12 @@ public static class RatingPositionMatrix
             var leftAttack =
                 .53108315
                 - .04183457 * passing
-                + .28048094 * exp
                 + .39817775 * ff
                 + .01200582 * passing * ff;
 
             var rightAttack =
                 1.08061438
                 - .15864599 * passing
-                + .17848088 * exp
                 - .11976863 * ff
                 + .14902802 * passing * ff;
 
@@ -430,23 +414,22 @@ public static class RatingPositionMatrix
     private static void AddWinger(
         Dictionary<RatingSector, double> s, PlayerOrder order, PlayerSide side,
         double defending, double playmaking, double passing, double winger,
-        double experience, double playerForm, double form)
+        double playerForm, double form)
     {
         if (order == PlayerOrder.Normal)
         {
             // Empirical normal-wing calibration from controlled 0-1-0 Hattrick
             // observations. The same matrix is mirrored for W-L and W-R.
-            var exp = EmpiricalExperienceBonus(experience);
             var ff = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
 
-            var centralDef = .03645194 * defending + .03975943 * exp
+            var centralDef = .03645194 * defending
                 - .00219966 * ff + .82810804;
-            var sideDef = .10634512 * defending - .00897458 * exp
+            var sideDef = .10634512 * defending
                 + .34313663 * ff + .58486461;
-            var midfield = .07360550 * playmaking + .13107758 * exp
+            var midfield = .07360550 * playmaking
                 + .13827052 * ff + .66355907;
             var sideAttack = .05458062 * passing + .17877963 * winger
-                + .16341765 * exp + 1.99577707 * ff - 1.37872667;
+                + 1.99577707 * ff - 1.37872667;
 
             Add(s, RatingSector.CentralDefence, centralDef, 1.0);
             Add(s, side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, sideDef, 1.0);
@@ -473,16 +456,6 @@ public static class RatingPositionMatrix
         Add(s, side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack,
             passing * v.SidePassing + winger * v.SideWinger, form);
         Add(s, RatingSector.CentralAttack, passing * v.CenterPassing, form);
-    }
-
-    private static double EmpiricalExperienceBonus(double experience)
-    {
-        var values = new[]
-        {
-            0.00, 0.00, .40, .64, .80, .93, 1.04, 1.13, 1.20, 1.27, 1.33,
-            1.39, 1.44, 1.49, 1.53, 1.57, 1.61, 1.64, 1.67, 1.71, 1.73
-        };
-        return values[Math.Clamp((int)Math.Round(experience), 1, 20)];
     }
 
     private static void AddForward(
