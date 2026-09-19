@@ -320,9 +320,9 @@ public static class RatingPositionMatrix
             // MID is playmaking-driven; the form term is retained because
             // the supplied Hattrick screenshots show a measurable form effect.
             var midfieldFinal =
-                .85744069
-                + .12220584 * playmaking
-                + .86862451 * imCFormFactor;
+                .71045086
+                + .10125627 * playmaking
+                + .71971745 * imCFormFactor;
             var midfield = Math.Max(0.0, midfieldFinal) / .8285714285714286;
 
             // The six current screenshots display the side-attack sector at
