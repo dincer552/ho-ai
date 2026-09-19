@@ -152,6 +152,82 @@ public static class Empirical020LineupRegression
                 failures.Add($"{fixture.Name} W-L ATT-C: expected {fixture.ExpectedCentralAttack:F2}, got {Math.Max(1.0, actual.RawCentralAttack):F2}");
         }
 
+        // Controlled live Hattrick observations: normal IM-L in 0-1-0.
+        // IM-R is tested with the exact same fixture set below; only the
+        // left/right sectors are mirrored.
+        var imFixtures = new[]
+        {
+            new ImFixture("Felix Gustavsson", 3, 3, 9, 17, 5, 7, 6, 4, 1.00, 1.00, 1.25, 1.25, 1.50),
+            new ImFixture("Daim Evliya", 4, 5, 7, 4, 4, 5, 4, 2, 1.00, 1.25, 1.50, 1.25, 1.25),
+            new ImFixture("Nelson Ferrante", 4, 6, 9, 3, 11, 6, 7, 2, 1.25, 1.25, 1.50, 1.25, 1.75),
+            new ImFixture("Sergen Gözay", 6, 5, 4, 5, 5, 4, 7, 2, 1.25, 1.25, 1.50, 1.00, 1.25),
+            new ImFixture("Andres Nahasepp", 3, 6, 8, 5, 13, 7, 6, 3, 1.00, 1.00, 2.00, 1.25, 1.25),
+            new ImFixture("Adrian Beța", 4, 5, 9, 3, 15, 7, 7, 3, 1.00, 1.25, 1.25, 1.25, 2.00),
+            new ImFixture("Dawid Nocoń", 17, 3, 5, 4, 7, 5, 7, 12, 1.75, 2.00, 1.25, 1.25, 1.50),
+            new ImFixture("Francisco Manuel", 2, 15, 9, 1, 7, 4, 4, 10, 1.00, 1.00, 2.00, 1.25, 1.50),
+            new ImFixture("Milen Bozev", 5, 12, 9, 14, 6, 6, 8, 8, 1.25, 1.25, 2.25, 1.50, 1.75)
+        };
+
+        foreach (var fixture in imFixtures)
+        {
+            var player = new Player(
+                4000 + Array.IndexOf(imFixtures, fixture),
+                fixture.Name,
+                Keeper: 0,
+                Defending: fixture.Defending,
+                Playmaking: fixture.Playmaking,
+                Passing: fixture.Passing,
+                Winger: fixture.Winger,
+                Scoring: fixture.Scoring,
+                Stamina: fixture.Stamina,
+                Form: fixture.Form,
+                Experience: fixture.Experience);
+
+            var leftLineup = new Lineup("IM-L", "0-1-0",
+            [
+                new Slot("IM-L", "IM-L", "14-position IM-L regression", player.Name, player.Id, 0, 0, 0)
+            ]);
+
+            var left = engine.CalculateLineup(leftLineup, [player], RatingContext.Default);
+
+            if (Math.Abs(left.RawLeftDefence - fixture.ExpectedSideDefence) > .30)
+                failures.Add($"{fixture.Name} IM-L DEF-L: expected {fixture.ExpectedSideDefence:F2}, got {left.RawLeftDefence:F2}");
+            if (Math.Abs(left.RawCentralDefence - fixture.ExpectedCentralDefence) > .30)
+                failures.Add($"{fixture.Name} IM-L DEF-C: expected {fixture.ExpectedCentralDefence:F2}, got {left.RawCentralDefence:F2}");
+            if (Math.Abs(left.RawRightDefence) > .30)
+                failures.Add($"{fixture.Name} IM-L DEF-R: expected 0.00, got {left.RawRightDefence:F2}");
+            if (Math.Abs(left.RawMidfield - fixture.ExpectedMidfield) > .30)
+                failures.Add($"{fixture.Name} IM-L MID: expected {fixture.ExpectedMidfield:F2}, got {left.RawMidfield:F2}");
+            if (Math.Abs(left.RawLeftAttack - fixture.ExpectedSideAttack) > .30)
+                failures.Add($"{fixture.Name} IM-L ATT-L: expected {fixture.ExpectedSideAttack:F2}, got {left.RawLeftAttack:F2}");
+            if (Math.Abs(left.RawCentralAttack - fixture.ExpectedCentralAttack) > .30)
+                failures.Add($"{fixture.Name} IM-L ATT-C: expected {fixture.ExpectedCentralAttack:F2}, got {left.RawCentralAttack:F2}");
+            if (Math.Abs(left.RawRightAttack) > .30)
+                failures.Add($"{fixture.Name} IM-L ATT-R: expected 0.00, got {left.RawRightAttack:F2}");
+
+            var rightLineup = new Lineup("IM-R", "0-1-0",
+            [
+                new Slot("IM-R", "IM-R", "14-position IM-R mirror regression", player.Name, player.Id, 0, 0, 0)
+            ]);
+
+            var right = engine.CalculateLineup(rightLineup, [player], RatingContext.Default);
+
+            if (Math.Abs(right.RawRightDefence - fixture.ExpectedSideDefence) > .30)
+                failures.Add($"{fixture.Name} IM-R DEF-R: expected {fixture.ExpectedSideDefence:F2}, got {right.RawRightDefence:F2}");
+            if (Math.Abs(right.RawCentralDefence - fixture.ExpectedCentralDefence) > .30)
+                failures.Add($"{fixture.Name} IM-R DEF-C: expected {fixture.ExpectedCentralDefence:F2}, got {right.RawCentralDefence:F2}");
+            if (Math.Abs(right.RawLeftDefence) > .30)
+                failures.Add($"{fixture.Name} IM-R DEF-L: expected 0.00, got {right.RawLeftDefence:F2}");
+            if (Math.Abs(right.RawMidfield - fixture.ExpectedMidfield) > .30)
+                failures.Add($"{fixture.Name} IM-R MID: expected {fixture.ExpectedMidfield:F2}, got {right.RawMidfield:F2}");
+            if (Math.Abs(right.RawRightAttack - fixture.ExpectedSideAttack) > .30)
+                failures.Add($"{fixture.Name} IM-R ATT-R: expected {fixture.ExpectedSideAttack:F2}, got {right.RawRightAttack:F2}");
+            if (Math.Abs(right.RawCentralAttack - fixture.ExpectedCentralAttack) > .30)
+                failures.Add($"{fixture.Name} IM-R ATT-C: expected {fixture.ExpectedCentralAttack:F2}, got {right.RawCentralAttack:F2}");
+            if (Math.Abs(right.RawLeftAttack) > .30)
+                failures.Add($"{fixture.Name} IM-R ATT-L: expected 0.00, got {right.RawLeftAttack:F2}");
+        }
+
         if (failures.Count > 0)
         {
             foreach (var failure in failures)
@@ -159,9 +235,25 @@ public static class Empirical020LineupRegression
             return 1;
         }
 
-        Console.WriteLine("PASS: 10 DEF-CL + 8 DEF-C + 9 W-L controlled fixtures match the empirical calibration.");
+        Console.WriteLine("PASS: 10 DEF-CL + 8 DEF-C + 9 W-L + 9 IM-L/IM-R mirror fixtures match the empirical calibration.");
         return 0;
     }
+
+    private readonly record struct ImFixture(
+        string Name,
+        double Defending,
+        double Playmaking,
+        double Passing,
+        double Winger,
+        double Scoring,
+        double Stamina,
+        double Form,
+        double Experience,
+        double ExpectedSideDefence,
+        double ExpectedCentralDefence,
+        double ExpectedMidfield,
+        double ExpectedSideAttack,
+        double ExpectedCentralAttack);
 
     private readonly record struct WingerFixture(
         string Name,
