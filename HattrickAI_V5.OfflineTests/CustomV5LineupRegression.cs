@@ -21,7 +21,9 @@ public static class CustomV5LineupRegression
         var custom = new Lineup("Custom XI", "3-2-3", slots);
         var resolvedLeft = RatingPositionResolver.Resolve(custom, "DEF-L");
         var resolvedRight = RatingPositionResolver.Resolve(custom, "DEF-R");
-        var resolvedWbLeft = RatingPositionResolver.Resolve(custom, "WB-L");\n        var resolvedWbRight = RatingPositionResolver.Resolve(custom, "WB-R");\n        if (resolvedWbLeft != RegionalPosition.WingBack || resolvedWbRight != RegionalPosition.WingBack || resolvedLeft != RegionalPosition.CentralDefender || resolvedRight != RegionalPosition.CentralDefender)
+        var resolvedWbLeft = RatingPositionResolver.Resolve(custom, "WB-L");
+        var resolvedWbRight = RatingPositionResolver.Resolve(custom, "WB-R");
+        if (resolvedWbLeft != RegionalPosition.WingBack || resolvedWbRight != RegionalPosition.WingBack || resolvedLeft != RegionalPosition.CentralDefender || resolvedRight != RegionalPosition.CentralDefender)
             return Fail("Legacy DEF-L/DEF-R must resolve as central defenders and WB-L/WB-R as wing-backs.");
 
         var rating = new V5RatingEngine().Calculate(new RatingEngineRequest(custom, players, RatingContext.Default)).Rating;
