@@ -243,20 +243,14 @@ public sealed class RegionalRatingEngineFinal
         double la, double ca, double ra)
         => new(
             ld, cd, rd, mid, la, ca, ra,
-            QuarterDisplay(ld),
-            QuarterDisplay(cd),
-            QuarterDisplay(rd),
-            QuarterDisplay(mid),
-            QuarterDisplay(la),
-            QuarterDisplay(ca),
-            QuarterDisplay(ra));
+            ld,
+            cd,
+            rd,
+            mid,
+            la,
+            ca,
+            ra);
 
-    private static double QuarterDisplay(double raw)
-    {
-        if (!double.IsFinite(raw) || raw <= 0)
-            return 0;
-
-        var rounded = Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0;
-        return Math.Clamp(Math.Max(1.0, rounded), 1.0, 20.0);
-    }
+    // V5 exposes the raw engine result. Display quantization belongs only in
+    // an explicit UI/display conversion layer; it must never alter engine data.
 }
