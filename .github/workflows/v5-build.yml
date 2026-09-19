@@ -43,6 +43,11 @@ jobs:
         run: |
           set -Eeuo pipefail
           dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- mid-diagnostic
+      - name: V5 exact HO crowding regression
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- stage6
       - name: V5 IM single-pair-triple MID aggregation regression
         shell: bash
         run: |
