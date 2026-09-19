@@ -9,49 +9,168 @@ public static class Stage6OvercrowdingRegression
         var failures = new List<string>();
         var engine = new RegionalRatingEngineFixed();
 
-        // Keep form/stamina identical and disable loyalty/experience so this gate
-        // measures only the position-crowding layer described in the reconstruction plan.
-        var cd = new RegionalPlayer(1, RegionalPosition.CentralDefender, PlayerSide.Center, PlayerOrder.Normal, 1, 12, 10, 8, 3, 6, 7, 7, 0, 0);
-        var im = new RegionalPlayer(2, RegionalPosition.InnerMidfielder, PlayerSide.Left, PlayerOrder.Normal, 1, 8, 14, 10, 8, 6, 7, 7, 0, 0);
-        var fw = new RegionalPlayer(3, RegionalPosition.Forward, PlayerSide.Left, PlayerOrder.Normal, 1, 4, 5, 6, 9, 13, 7, 7, 0, 0);
+        // Exact HO!/Schum crowding law:
+        // CD sector: 2=.964, 3=.900
+        // IM sector: 2=.935, 3=.825
+        // FW sector: 2=.945, 3=.865
+        // The factor belongs to each player's own lineup sector and is applied
+        // to every sector contribution of that player. It is NOT applied to the
+        // accumulated rating sector and must NOT compound as players are added.
 
-        var cd1 = engine.Calculate(new[] { cd });
-        var cd2 = engine.Calculate(new[] { cd, cd with { Id = 4 } });
-        var cd3 = engine.Calculate(new[] { cd, cd with { Id = 4 }, cd with { Id = 5 } });
-        CheckRatio(cd2.RawCentralDefence, cd1.RawCentralDefence, 2 * .964, "CD central defence x2", failures);
-        CheckRatio(cd2.RawMidfield, cd1.RawMidfield, 2 * .964, "CD midfield x2", failures);
-        CheckRatio(cd3.RawCentralDefence, cd1.RawCentralDefence, 3 * .900, "CD central defence x3", failures);
+        var cd = new RegionalPlayer(
+            1, RegionalPosition.CentralDefender, PlayerSide.Center, PlayerOrder.Normal,
+            1, 12, 10, 8, 3, 6, 7, 7, 0, 0);
 
-        var im1 = engine.Calculate(new[] { im });
-        var im2 = engine.Calculate(new[] { im, im with { Id = 6 } });
-        var im3 = engine.Calculate(new[] { im, im with { Id = 6 }, im with { Id = 7 } });
-        CheckRatio(im2.RawCentralDefence, im1.RawCentralDefence, 2 * .935, "IM central defence x2", failures);
-        CheckRatio(im2.RawCentralAttack, im1.RawCentralAttack, 2 * .935, "IM central attack x2", failures);
-        CheckRatio(im2.RawMidfield, im1.RawMidfield, 2 * .935, "IM midfield x2", failures);
-        CheckRatio(im3.RawMidfield, im1.RawMidfield, 3 * .825, "IM midfield x3", failures);
+        var imLeft = new RegionalPlayer(
+            10, RegionalPosition.InnerMidfielder, PlayerSide.Left, PlayerOrder.Normal,
+            1, 8, 14, 10, 8, 6, 7, 7, 0, 0, "IM-L");
 
-        var fw1 = engine.Calculate(new[] { fw });
-        var fw2 = engine.Calculate(new[] { fw, fw with { Id = 8 } });
-        var fw3 = engine.Calculate(new[] { fw, fw with { Id = 8 }, fw with { Id = 9 } });
-        CheckRatio(fw2.RawCentralAttack, fw1.RawCentralAttack, 2 * .945, "FW central attack x2", failures);
-        CheckRatio(fw2.RawMidfield, fw1.RawMidfield, 2 * .945, "FW midfield x2", failures);
-        CheckRatio(fw3.RawCentralAttack, fw1.RawCentralAttack, 3 * .865, "FW central attack x3", failures);
+        var imCenter = imLeft with { Id = 11, Side = PlayerSide.Center, SlotCode = "IM-C" };
+        var imRight = imLeft with { Id = 12, Side = PlayerSide.Right, SlotCode = "IM-R" };
+
+        var fw = new RegionalPlayer(
+            20, RegionalPosition.Forward, PlayerSide.Center, PlayerOrder.Normal,
+            1, 4, 5, 6, 9, 13, 7, 7, 0, 0);
+
+        var wb = new RegionalPlayer(
+            30, RegionalPosition.WingBack, PlayerSide.Left, PlayerOrder.Normal,
+            1, 10, 6, 8, 4, 6, 7, 7, 0, 0, "WB-L");
+
+        var winger = new RegionalPlayer(
+            40, RegionalPosition.Winger, PlayerSide.Left, PlayerOrder.Normal,
+            1, 6, 7, 8, 13, 6, 7, 7, 0, 0, "W-L");
+
+        CheckSingleGroup(engine, cd, 2, .964, "2 central defenders", failures);
+        CheckSingleGroup(engine, cd, 3, .900, "3 central defenders", failures);
+
+        CheckSingleGroup(engine, imLeft, 2, .935, "2 inner midfielders", failures);
+        CheckSingleGroup(engine, imLeft, 3, .825, "3 inner midfielders", failures);
+
+        CheckSingleGroup(engine, fw, 2, .945, "2 forwards", failures);
+        CheckSingleGroup(engine, fw, 3, .865, "3 forwards", failures);
+
+        // Side combinations are NOT different crowding regimes: L+C, C+R and L+R
+        // are all two players in the same InnerMidfield sector.
+        CheckPair(engine, new[] { imLeft, imCenter }, .935, "IM-L + IM-C", failures);
+        CheckPair(engine, new[] { imCenter, imRight }, .935, "IM-C + IM-R", failures);
+        CheckPair(engine, new[] { imLeft, imRight }, .935, "IM-L + IM-R", failures);
+        CheckTriple(engine, new[] { imLeft, imCenter, imRight }, .825, "IM-L + IM-C + IM-R", failures);
+
+        // Mixed central lines: 5 "defenders" means 3 crowded CDs + 2 uncrowded WBs.
+        // Their midfield/attack/defence contributions must retain their own factors.
+        var mixed = engine.CalculateWithTrace(new[]
+        {
+            cd,
+            cd with { Id = 2 },
+            cd with { Id = 3 },
+            wb,
+            wb with { Id = 31 },
+            imLeft,
+            imCenter,
+            imRight,
+            fw,
+            fw with { Id = 21 },
+            fw with { Id = 22 },
+            winger,
+            winger with { Id = 41 }
+        });
+
+        CheckPlayerCrowding(mixed, 1, "CD-1", .900, failures);
+        CheckPlayerCrowding(mixed, 2, "CD-2", .900, failures);
+        CheckPlayerCrowding(mixed, 3, "CD-3", .900, failures);
+        CheckPlayerCrowding(mixed, 30, "WB-1", 1.000, failures);
+        CheckPlayerCrowding(mixed, 31, "WB-2", 1.000, failures);
+        CheckPlayerCrowding(mixed, 10, "IM-L", .825, failures);
+        CheckPlayerCrowding(mixed, 11, "IM-C", .825, failures);
+        CheckPlayerCrowding(mixed, 12, "IM-R", .825, failures);
+        CheckPlayerCrowding(mixed, 20, "FW-1", .865, failures);
+        CheckPlayerCrowding(mixed, 21, "FW-2", .865, failures);
+        CheckPlayerCrowding(mixed, 22, "FW-3", .865, failures);
+        CheckPlayerCrowding(mixed, 40, "W-1", 1.000, failures);
+        CheckPlayerCrowding(mixed, 41, "W-2", 1.000, failures);
 
         if (failures.Count == 0)
         {
-            Console.WriteLine("PASS: Stage 6 overcrowding applies to full position contribution");
+            Console.WriteLine("PASS: Stage 6 exact HO! overcrowding model; no cross-position contamination or cumulative compounding");
             return 0;
         }
 
-        foreach (var failure in failures) Console.WriteLine("FAIL: " + failure);
+        foreach (var failure in failures)
+            Console.WriteLine("FAIL: " + failure);
+
         Console.WriteLine($"FAIL: Stage 6 ({failures.Count} assertion(s))");
         return 1;
     }
 
-    private static void CheckRatio(double actual, double baseline, double expected, string name, List<string> failures)
+    private static void CheckSingleGroup(
+        RegionalRatingEngineFixed engine,
+        RegionalPlayer player,
+        int count,
+        double expectedFactor,
+        string name,
+        List<string> failures)
     {
-        var ratio = actual / baseline;
-        if (Math.Abs(ratio - expected) > 1e-9)
-            failures.Add($"{name}: expected ratio {expected:F6}, got {ratio:F6}");
+        var players = Enumerable.Range(0, count)
+            .Select(i => player with { Id = player.Id + i + 1000 })
+            .ToArray();
+
+        var trace = engine.CalculateWithTrace(players);
+        foreach (var p in trace.Players)
+        {
+            CheckPlayerTrace(p, expectedFactor, name, failures);
+        }
+    }
+
+    private static void CheckPair(
+        RegionalRatingEngineFixed engine,
+        IReadOnlyList<RegionalPlayer> players,
+        double expectedFactor,
+        string name,
+        List<string> failures)
+    {
+        var trace = engine.CalculateWithTrace(players);
+        foreach (var p in trace.Players)
+            CheckPlayerTrace(p, expectedFactor, name, failures);
+    }
+
+    private static void CheckTriple(
+        RegionalRatingEngineFixed engine,
+        IReadOnlyList<RegionalPlayer> players,
+        double expectedFactor,
+        string name,
+        List<string> failures)
+    {
+        var trace = engine.CalculateWithTrace(players);
+        foreach (var p in trace.Players)
+            CheckPlayerTrace(p, expectedFactor, name, failures);
+    }
+
+    private static void CheckPlayerCrowding(
+        RatingCalculationTraceResult trace,
+        int playerId,
+        string name,
+        double expectedFactor,
+        List<string> failures)
+    {
+        var player = trace.Players.Single(p => p.PlayerId == playerId);
+        CheckPlayerTrace(player, expectedFactor, name, failures);
+    }
+
+    private static void CheckPlayerTrace(
+        PlayerRatingCalculationTrace player,
+        double expectedFactor,
+        string name,
+        List<string> failures)
+    {
+        if (Math.Abs(player.CrowdingMultiplier - expectedFactor) > 1e-12)
+            failures.Add($"{name}: crowding expected {expectedFactor:F3}, got {player.CrowdingMultiplier:F3}");
+
+        foreach (var kv in player.DirectContributions)
+        {
+            player.CrowdingAdjustedContributions.TryGetValue(kv.Key, out var actual);
+            var expected = kv.Value * expectedFactor;
+            if (Math.Abs(actual - expected) > 1e-10)
+                failures.Add($"{name} {kv.Key}: expected {expected:F10}, got {actual:F10}");
+        }
     }
 }
