@@ -165,8 +165,10 @@ public sealed class RegionalRatingEngineFixed
                 break;
 
             case "DEF-CL":
-                AddExp(RatingSector.CentralDefence, .480);
-                AddExp(RatingSector.LeftDefence, .345);
+                // Normal DEF-CL defence is already empirically calibrated from
+                // the controlled Hattrick sample in RatingPositionMatrix.
+                // Keep experience here only for midfield so it is not counted
+                // twice in the calibrated defence sectors.
                 AddExp(RatingSector.Midfield, .730);
                 break;
 
