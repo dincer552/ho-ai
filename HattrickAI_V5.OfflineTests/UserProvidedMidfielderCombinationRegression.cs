@@ -39,20 +39,19 @@ public static class UserProvidedMidfielderCombinationRegression
 
         foreach (var f in fixtures)
         {
-            var slots = f.Slots.Select((slot, i) =>
+            var slots = f.Slots.Select(slot =>
             {
-                var name = slot switch
+                var p = byName[slot switch
                 {
                     "IM-L" => "B. Doktor",
                     "IM-C" => "M. Bozev",
                     "IM-R" => "F. Manuel",
                     _ => throw new InvalidOperationException()
-                };
-                var p = byName[name];
+                }];
                 return new Slot(slot, slot, "MID-COMBO", p.Name, p.Id, 0, 0, 0, PlayerOrder.Normal);
             }).ToArray();
 
-            var selected = slots.Select(s => byName[s.PlayerName]).ToArray();
+            var selected = slots.Select(s => byName[s.PlayerName!]).ToArray();
             var lineup = new Lineup("MID-COMBO", f.Slots.Length == 1 ? "0-1-0" : f.Slots.Length == 2 ? "0-2-0" : "0-3-0", slots);
 
             var actual = engine.CalculateLineup(lineup, selected, RatingContext.Default);
