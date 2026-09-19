@@ -107,6 +107,20 @@ public sealed class AnalysisService
             MotorPipeline = pipeline
         };
 
+        var traceTactic = Enum.TryParse<TeamTactic>(analysis.SelectedTactic, true, out var traceParsedTactic)
+            ? traceParsedTactic
+            : TeamTactic.Normal;
+        var traceContext = ratingContext with { Tactic = traceTactic };
+        var ratingTrace = new RegionalRatingEngineFixed()
+            .CalculateLineupWithTrace(finalLineup, ownPlayers, traceContext);
+        ratingTrace = ratingTrace with
+        {
+            ConfidenceLevel = selfConfidence,
+            ConfidenceAttackMultiplier = Math.Clamp(1.0 + (selfConfidence - 4.0) * 0.05, 0.80, 1.25),
+            FinalRating = ConfidenceRatingAdjuster.Apply(ratingTrace.EngineRatingBeforeConfidence, selfConfidence)
+        };
+        analysis = analysis with { OwnRatingCalculation = ratingTrace };
+
         var sessionId = _http.HttpContext?.Session.Id;
         if (!string.IsNullOrWhiteSpace(sessionId))
         {
@@ -114,10 +128,6 @@ public sealed class AnalysisService
             var runId = MotorRunLogContext.CurrentRunId;
             if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.SetBench(runId, bench);
             var http = _http.HttpContext!;
-            var finalTactic = Enum.TryParse<TeamTactic>(analysis.SelectedTactic, true, out var parsedTactic)
-                ? parsedTactic
-                : TeamTactic.Normal;
-            var traceContext = ratingContext with { Tactic = finalTactic };
 
             http.Session.SetString("v5.rating.players", JsonSerializer.Serialize(ownPlayers));
             http.Session.SetString("v5.rating.lineup", JsonSerializer.Serialize(finalLineup));
