@@ -60,12 +60,16 @@ public sealed class RegionalRatingEngineFixed
                 SkillRating(p.Scoring) + loyalty + experienceBonus,
                 formMultiplier);
 
-            var before = new Dictionary<RatingSector, double>(sectors);
-            Dictionary<RatingSector, double>? direct = null;
+            // IMPORTANT: crowding belongs to the player's own central lineup sector,
+            // not to the rating sector being accumulated. HO! applies the same
+            // position crowding factor to every rating-sector contribution of that
+            // player. Applying crowding after adding into the shared sector would
+            // compound the penalty and incorrectly penalize unrelated positions.
+            var direct = Empty();
             string route = RatingCalculationFormulaCatalog.RouteFor(RatingPositionMatrix.CanonicalSlot(p), p.Order, p.Side);
 
             RatingPositionMatrix.AddContribution(
-                sectors, p, k.Keeper, k.Defending, k.Playmaking, k.Passing,
+                direct, p, k.Keeper, k.Defending, k.Playmaking, k.Passing,
                 k.Winger, k.Scoring, k.FormMultiplier, experienceBonus,
                 (_, routed, delta) =>
                 {
@@ -73,23 +77,14 @@ public sealed class RegionalRatingEngineFixed
                     direct = delta.ToDictionary(x => x.Key, x => x.Value);
                 });
 
-            direct ??= Enum.GetValues<RatingSector>().ToDictionary(x => x, _ => 0d);
             var slot = RatingPositionMatrix.CanonicalSlot(p);
             var crowding = PositionCrowding(slot, centralDefenders, centralMidfielders, forwards);
-            var midfieldCrowding = slot is "IM-L" or "IM-C" or "IM-R"
-                ? InnerMidfielderMidfieldCrowding(players)
-                : 1.0;
-
             var crowdingAdjusted = direct.ToDictionary(
                 x => x.Key,
-                x => x.Value * (x.Key == RatingSector.Midfield ? midfieldCrowding : crowding));
+                x => x.Value * crowding);
 
-            foreach (var sector in Enum.GetValues<RatingSector>())
-            {
-                var sectorCrowding = sector == RatingSector.Midfield ? midfieldCrowding : crowding;
-                if (sectorCrowding != 1.0)
-                    sectors[sector] = before[sector] + (sectors[sector] - before[sector]) * sectorCrowding;
-            }
+            foreach (var contribution in crowdingAdjusted)
+                sectors[contribution.Key] += contribution.Value;
 
             var name = playerNames is not null && playerNames.TryGetValue(p.Id, out var playerName)
                 ? playerName
