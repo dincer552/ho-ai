@@ -131,11 +131,18 @@ app.MapGet("/api/v5/rating-calculation-details", (HttpContext http) =>
     {
         var players = JsonSerializer.Deserialize<List<Player>>(playersJson) ?? [];
         var storedLineup = JsonSerializer.Deserialize<StoredLineup>(lineupJson);
+        var storedSlots = storedLineup?.Slots ?? Array.Empty<Slot>();
+        var validSlots = storedSlots
+            .Where(s => s is not null && s.PlayerId > 0 && !string.IsNullOrWhiteSpace(s.Code))
+            .ToList();
         var lineup = storedLineup is null
             ? null
-            : new Lineup(storedLineup.TeamName, storedLineup.Formation, storedLineup.Slots);
+            : new Lineup(
+                storedLineup.TeamName ?? "Takım",
+                storedLineup.Formation ?? string.Empty,
+                validSlots);
         var context = JsonSerializer.Deserialize<RatingContext>(contextJson);
-        if (lineup is null || context is null || players.Count == 0 || lineup.Slots.Count == 0)
+        if (lineup is null || context is null || players.Count == 0 || validSlots.Count == 0)
             return Results.BadRequest(new { message = "Kaydedilmiş rating hesaplama verisi eksik." });
 
         var confidence = int.TryParse(
