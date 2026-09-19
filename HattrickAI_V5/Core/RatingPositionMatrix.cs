@@ -558,8 +558,8 @@ public static class RatingPositionMatrix
                     var leftCenterSide = centerSide / 1.2727272727272727;
                     var rightCenterSide = centerSide / 1.2258064516129032;
 
-                    Add(s, RatingSector.LeftAttack, leftCenterSide, form);
-                    Add(s, RatingSector.RightAttack, rightCenterSide, form);
+                    Add(s, RatingSector.LeftAttack, leftCenterSide, 1.0);
+                    Add(s, RatingSector.RightAttack, rightCenterSide, 1.0);
                     Add(s, RatingSector.CentralAttack, centerAttack, 1.0);
                     break;
                 }
