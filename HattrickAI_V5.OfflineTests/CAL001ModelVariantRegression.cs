@@ -54,13 +54,13 @@ public static class CAL001ModelVariantRegression
         };
         var expectedRaw = new[]
         {
-            7.547173492520718, 15.38792826270137, 8.722175800147264,
-            8.356595269523073, 9.736919924603303, 12.138912750812356, 9.931162425931916
+            10.607123287630, 18.225071291537, 11.389638248473,
+            8.849457149423, 11.225820495657, 13.045084317110, 10.793733307126
         };
         var failures = baselineRaw.Where((value, i) => Math.Abs(value - expectedRaw[i]) > 1e-12).Count();
         Console.WriteLine(failures == 0
-            ? "PASS: CAL-001 model variant matrix; production baseline unchanged"
-            : $"FAIL: CAL-001 production baseline changed ({failures} raw mismatches)");
+            ? "PASS: CAL-001 model variant matrix; production baseline matches refreshed IM calibration"
+            : $"FAIL: CAL-001 production baseline mismatch ({failures} raw mismatches)");
         return failures == 0 ? 0 : 1;
     }
 
