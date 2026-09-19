@@ -11,15 +11,15 @@ public static class MidfielderSingletonDiagnosticRegression
         // The screenshots provide the complete 7-sector ground truth.
         var fixtures = new[]
         {
-            new Fixture("Utku Hakan Başak", 482291700, 4, 3, 5, 7, 8, 6, 3, 3, 1, 1, 1.25, 1, 1, 1.25, 1),
-            new Fixture("Andres Nahasepp", 495041177, 3, 6, 8, 5, 13, 7, 3, 6, 1, 1, 1.25, 1, 1.75, 1, 1),
-            new Fixture("Mikel Thiebault", 498487535, 4, 5, 9, 4, 12, 6, 2, 8, 1, 1.25, 1.25, 1, 2, 1, 1),
-            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 7, 1.25, 2, 1.25, 1, 1.5, 1, 1),
-            new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 7, 1, 1, 1, 1, 1.5, 1, 1),
-            new Fixture("Abeiku Takyi", 468363070, 17, 3, 8, 4, 7, 6, 10, 6, 1.25, 2, 1.25, 1, 1.5, 1, 1),
-            new Fixture("Cristian Pesalovo", 476114406, 16, 6, 9, 3, 6, 7, 6, 7, 1.25, 2.25, 1.25, 1.25, 1.75, 1.25, 1.25),
-            new Fixture("Milen Bozev", 465141092, 5, 12, 9, 14, 6, 6, 8, 8, 1.25, 2, 1.25, 1.25, 1.75, 1.25, 2.25),
-            new Fixture("Bertalan Doktor", 465805392, 2, 16, 12, 6, 6, 6, 8, 7, 1.25, 2.75, 1.25, 1.25, 1.75, 1.25, 1.75)
+            new Fixture("Utku Hakan Başak", 482291700, 4, 3, 5, 7, 8, 6, 3, 3, 1, 1.25, 1, 1.25, 1, 1, 1),
+            new Fixture("Andres Nahasepp", 495041177, 3, 6, 8, 5, 13, 7, 3, 6, 1, 1.75, 1, 1.25, 1, 1, 1),
+            new Fixture("Mikel Thiebault", 498487535, 4, 5, 9, 4, 12, 6, 2, 8, 1, 2, 1, 1.25, 1, 1.25, 1.25),
+            new Fixture("Sergen Gözay", 513885774, 6, 5, 4, 5, 5, 4, 2, 7, 1, 1.5, 1, 1.25, 1.25, 2, 1.25),
+            new Fixture("Adrian Beța", 491743384, 4, 5, 9, 3, 15, 7, 3, 7, 1, 1.5, 1, 1.25, 1, 1.25, 1),
+            new Fixture("Abeiku Takyi", 468363070, 17, 3, 8, 4, 7, 6, 10, 6, 1, 1.5, 1, 1.25, 1.25, 2, 1.25),
+            new Fixture("Cristian Pesalovo", 476114406, 16, 6, 9, 3, 6, 7, 6, 7, 1.25, 1.75, 1.25, 1.25, 1.25, 2.25, 1.25),
+            new Fixture("Milen Bozev", 465141092, 5, 12, 9, 14, 6, 6, 8, 8, 1.25, 1.75, 1.25, 2.25, 1.25, 2, 1.25),
+            new Fixture("Bertalan Doktor", 465805392, 2, 16, 12, 6, 6, 6, 8, 7, 1.25, 1.75, 1.25, 1.75, 1.25, 2.75, 1.25)
         };
 
         var engine = new RegionalRatingEngineFinal();
