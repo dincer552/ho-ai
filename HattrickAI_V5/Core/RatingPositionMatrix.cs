@@ -524,18 +524,18 @@ public static class RatingPositionMatrix
                     // FW-C needs its own fit because the live singleton corpus
                     // exposes a different center/side attack scale. Inputs are
                     // raw skill levels after removing the production XP bonus.
-                    const double centerSideIntercept = .87733052;
-                    const double centerSidePassing = .02000000;
-                    const double centerSideScoring = .05867077;
-                    const double centerSideWinger = .04453311;
-                    const double centerSideDefending = -.02800839;
-                    const double centerSideExperience = .04224485;
+                    const double centerSideIntercept = .93619861;
+                    const double centerSidePassing = .01000000;
+                    const double centerSideScoring = .05739950;
+                    const double centerSideWinger = .04386850;
+                    const double centerSideDefending = -.02183898;
+                    const double centerSideExperience = .28212060;
 
-                    const double centerAttackIntercept = 1.01019929;
-                    const double centerAttackPassing = .02000000;
-                    const double centerAttackScoring = .20263139;
-                    const double centerAttackDefending = -.06061769;
-                    const double centerAttackExperience = .08313947;
+                    const double centerAttackIntercept = 1.07631807;
+                    const double centerAttackPassing = .01000000;
+                    const double centerAttackScoring = .19974124;
+                    const double centerAttackDefending = -.05671134;
+                    const double centerAttackExperience = .52513407;
 
                     var centerSide =
                         centerSideIntercept
