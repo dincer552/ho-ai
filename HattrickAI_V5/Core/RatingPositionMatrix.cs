@@ -533,12 +533,12 @@ public static class RatingPositionMatrix
                 Add(s, RatingSector.Midfield, playmaking * .041, form);
 
                 var sideNormal =
-                    sideIntercept
+                    sideIntercept / Math.Max(form, 1e-9)
                     + passing * sidePassing
                     + scoring * sideScoring
                     + winger * sideWinger;
                 var centralNormal =
-                    centralIntercept
+                    centralIntercept / Math.Max(form, 1e-9)
                     + passing * centralPassing
                     + scoring * centralScoring;
 
