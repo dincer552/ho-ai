@@ -135,6 +135,17 @@ public static class RatingPositionMatrix
             Add(s, slot == "DEF-CL" ? RatingSector.LeftDefence : RatingSector.RightDefence,
                 .16906005 * defending + .74086162, 1.0);
         }
+        else if (slot == "DEF-C" && order == PlayerOrder.Normal)
+        {
+            // DEF-C calibration from controlled 1-0-0 live observations.
+            // The low-defending/high-experience correction captures the
+            // observed central-defense uplift without changing DEF-CL/DEF-CR.
+            var central = .19759418 * defending + .73256248
+                + Math.Max(0.0, 5.0 - defending)
+                * Math.Max(0.0, p.Experience - 3.0)
+                * (.1 / 3.0);
+            Add(s, RatingSector.CentralDefence, central, 1.0);
+        }
         else
         {
             var central = order switch
