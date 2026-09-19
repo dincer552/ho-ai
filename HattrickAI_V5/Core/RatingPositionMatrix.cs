@@ -165,13 +165,6 @@ public static class RatingPositionMatrix
             _ => playmaking * .035
         };
 
-        var midfield = order switch
-        {
-            PlayerOrder.Offensive => playmaking * .047,
-            PlayerOrder.TowardsWing => playmaking * .023,
-            _ => playmaking * .035
-        };
-
         Add(s, RatingSector.Midfield, midfield, form);
 
         if (order == PlayerOrder.TowardsWing)
