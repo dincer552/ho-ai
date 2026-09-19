@@ -106,7 +106,7 @@ public static class RatingPositionMatrix
             case "IM-L":
             case "IM-C":
             case "IM-R":
-                AddInnerMidfielder(sectors, p.Order, p.Side, defending, playmaking, passing, winger, scoring, formMultiplier);
+                AddInnerMidfielder(sectors, p.Order, p.Side, defending, playmaking, passing, winger, scoring, p.Form, p.Experience, formMultiplier);
                 return;
 
             case "FW-L":
@@ -239,15 +239,15 @@ public static class RatingPositionMatrix
     private static void AddInnerMidfielder(
         Dictionary<RatingSector, double> s, PlayerOrder order, PlayerSide side,
         double defending, double playmaking, double passing, double winger,
-        double scoring, double form)
+        double scoring, double playerForm, double experience, double form)
     {
         if (order == PlayerOrder.Normal)
         {
             // Empirical normal-IM calibration from controlled 1-player
             // Hattrick observations. The formula is deliberately shared by
             // IM-L and IM-R; only the side-facing sectors are mirrored.
-            var ff = .378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
-            var exp = EmpiricalExperienceBonus(p.Experience);
+            var ff = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
+            var exp = EmpiricalExperienceBonus(experience);
 
             var centralDefence = .78296361
                 + .06425274 * defending
