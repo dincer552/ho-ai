@@ -292,10 +292,10 @@ public static class RatingPositionMatrix
                 - .00219966 * ff + .82810804;
             var sideDef = .10634512 * defending - .00897458 * exp
                 + .34313663 * ff + .58486461;
-            var midfield = .06098742 * playmaking + .10860714 * exp
-                + .11456700 * ff + .54980609;
-            var sideAttack = .05540904 * passing + .23201786 * winger
-                + .18790426 * exp + 2.07246483 * ff - 1.25848288;
+            var midfield = .07360550 * playmaking + .13107758 * exp
+                + .13827052 * ff + .66355907;
+            var sideAttack = .04353568 * passing + .18229975 * winger
+                + .14763906 * exp + 1.62836523 * ff - .98880798;
 
             Add(s, RatingSector.CentralDefence, centralDef, 1.0);
             Add(s, side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence, sideDef, 1.0);
