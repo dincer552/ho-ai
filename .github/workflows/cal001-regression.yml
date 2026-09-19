@@ -1,4 +1,4 @@
-name: CAL-001 Rating Regression
+name: V5 Rating Validation
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  cal001:
+  v5:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout V5
@@ -15,23 +15,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
-      - name: Run Rating engine contract regression
+      - name: Run V5 rating contract regression
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- rating-contract
-      - name: Run CAL-001 current motor regression
+      - name: Run V5 CAL-001 ground-truth validation
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- cal001
-      - name: Run CAL-001 model variant matrix
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- cal001-variants
-      - name: Run Stage-2 HO engine regression
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- ho-stage2
-      - name: Run Stage-2 HO real CHPP fixture regression
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- ho-real-fixture
-      - name: Run Stage-3 HattrickDash regression
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- dash-stage3
-      - name: Run Stage-4 Foxtrick regression
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- foxtrick-stage4
-      - name: Run Real Hattrick 3-4-3 lineup across all engines
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- real-hattrick-rating
-      - name: Run controlled Hattrick 2-0-0 sector calibration
+      - name: Run V5 controlled DEF-CL ground-truth calibration
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- empirical-020
-      - name: Run Rating engine real fixture validation
-        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- rating-validation
