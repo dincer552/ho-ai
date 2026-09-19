@@ -75,7 +75,8 @@ public static class RatingPositionMatrix
         double passing,
         double winger,
         double scoring,
-        double formMultiplier)
+        double formMultiplier,
+        double experienceBonus = 0.0)
     {
         var slot = CanonicalSlot(p);
 
@@ -112,7 +113,7 @@ public static class RatingPositionMatrix
             case "FW-L":
             case "FW-C":
             case "FW-R":
-                AddForward(sectors, p.Order, p.Side, playmaking, passing, winger, scoring, formMultiplier);
+                AddForward(sectors, p.Order, p.Side, playmaking, passing, winger, scoring, formMultiplier, experienceBonus);
                 return;
 
             default:
@@ -460,10 +461,20 @@ public static class RatingPositionMatrix
 
     private static void AddForward(
         Dictionary<RatingSector, double> s, PlayerOrder order, PlayerSide side,
-        double playmaking, double passing, double winger, double scoring, double form)
+        double playmaking, double passing, double winger, double scoring,
+        double form, double experienceBonus)
     {
         var own = side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack;
         var other = side == PlayerSide.Left ? RatingSector.RightAttack : RatingSector.LeftAttack;
+
+        // Experience is a match-performance factor, but it is NOT a skill
+        // level for the contribution matrix. The documented forward matrix
+        // uses the player's actual Scoring/Passing/Winger levels. Remove the
+        // V5 experience normalization here before applying the coefficients.
+        playmaking = Math.Max(0.0, playmaking - experienceBonus);
+        passing = Math.Max(0.0, passing - experienceBonus);
+        winger = Math.Max(0.0, winger - experienceBonus);
+        scoring = Math.Max(0.0, scoring - experienceBonus);
 
         switch (order)
         {
@@ -500,19 +511,33 @@ public static class RatingPositionMatrix
                 break;
 
             default:
+                // Normal forward calibration against the 2026-09-19 FW-L
+                // screenshot corpus. The relative weights follow Hattrick's
+                // documented normal-forward matrix: side attack uses
+                // Scoring/Winger/Passing at 22.4/19.0/12.2%; central attack
+                // uses Scoring + 36.9% of Passing. Form remains the production
+                // multiplier. The fitted scales are deliberately monotonic.
+                const double sideScale = .22416727;
+                const double centralScale = .17634516;
+
                 Add(s, RatingSector.Midfield, playmaking * .041, form);
-                var ownNormal = scoring * .058 + passing * .048 + winger * .032;
-                var otherNormal = scoring * .058 + passing * .048;
+
+                var sideNormal =
+                    (scoring * .224 + winger * .190 + passing * .122) * sideScale;
+                var centralNormal =
+                    (scoring + passing * .369) * centralScale;
+
                 if (side == PlayerSide.Center)
                 {
-                    AddBothSides(s, RatingSector.LeftAttack, RatingSector.RightAttack, ownNormal, form);
+                    AddBothSides(s, RatingSector.LeftAttack, RatingSector.RightAttack, sideNormal, form);
                 }
                 else
                 {
-                    Add(s, own, ownNormal, form);
-                    Add(s, other, otherNormal, form);
+                    Add(s, own, sideNormal, form);
+                    Add(s, other, sideNormal, form);
                 }
-                Add(s, RatingSector.CentralAttack, scoring * .178 + passing * .066, form);
+
+                Add(s, RatingSector.CentralAttack, centralNormal, form);
                 break;
         }
     }
