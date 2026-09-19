@@ -45,8 +45,8 @@ public static class UserProvidedMidfielderScreenshotRegression
             var actual = engine.CalculateLineup(lineup, [player], RatingContext.Default);
             var v = new[]
             {
-                actual.LeftDefence, actual.CentralDefence, actual.RightDefence,
-                actual.Midfield, actual.LeftAttack, actual.CentralAttack, actual.RightAttack
+                QuarterDisplay(actual.RawLeftDefence), QuarterDisplay(actual.RawCentralDefence), QuarterDisplay(actual.RawRightDefence),
+                QuarterDisplay(actual.RawMidfield), QuarterDisplay(actual.RawLeftAttack), QuarterDisplay(actual.RawCentralAttack), QuarterDisplay(actual.RawRightAttack)
             };
             var h = new[]
             {
@@ -79,6 +79,9 @@ public static class UserProvidedMidfielderScreenshotRegression
             : $"FAIL: {failures} sector observations exceed tolerance +/-{tolerance:F2}.");
         return failures == 0 ? 0 : 1;
     }
+
+    private static double QuarterDisplay(double raw)
+        => raw <= 0 ? 0 : Math.Clamp(Math.Max(1.0, Math.Round(raw * 4.0, MidpointRounding.AwayFromZero) / 4.0), 1.0, 20.0);
 
     private static string Fmt(double value) => $"{value:+0.00;-0.00;0.00}";
 
