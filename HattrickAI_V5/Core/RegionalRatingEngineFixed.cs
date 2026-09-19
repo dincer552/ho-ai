@@ -17,9 +17,27 @@ public sealed class RegionalRatingEngineFixed
     private const double ReferenceRightAttackCalibration = 1.2258064516129032;
 
     public RegionalRatingSnapshot Calculate(IReadOnlyList<RegionalPlayer> players, RatingContext? context = null)
+        => CalculateCore(players, context, null, null, null).Rating;
+
+    public RatingCalculationTraceResult CalculateWithTrace(
+        IReadOnlyList<RegionalPlayer> players,
+        RatingContext? context = null,
+        string? teamName = null,
+        string? formation = null)
+        => CalculateCore(players, context, teamName, formation, players.ToDictionary(x => x.Id, _ => string.Empty)).Trace!;
+
+    private sealed record CoreResult(RegionalRatingSnapshot Rating, RatingCalculationTraceResult? Trace);
+
+    private CoreResult CalculateCore(
+        IReadOnlyList<RegionalPlayer> players,
+        RatingContext? context,
+        string? teamName,
+        string? formation,
+        IReadOnlyDictionary<int, string>? playerNames)
     {
         context ??= RatingContext.Default;
         var sectors = Empty();
+        var playerTraces = new List<PlayerRatingCalculationTrace>(players.Count);
 
         var centralDefenders = players.Count(p => RatingPositionMatrix.CanonicalSlot(p) is "DEF-CL" or "DEF-C" or "DEF-CR");
         var centralMidfielders = players.Count(p => RatingPositionMatrix.CanonicalSlot(p) is "IM-L" or "IM-C" or "IM-R");
@@ -27,14 +45,12 @@ public sealed class RegionalRatingEngineFixed
 
         foreach (var p in players)
         {
-            var formMultiplier = FormFactor(p.Form) / BaselineFormFactor;
-            formMultiplier *= StaminaMatchMultiplier(p.Stamina, context.MatchMinute);
+            var formFactor = FormFactor(p.Form);
+            var staminaMultiplier = StaminaMatchMultiplier(p.Stamina, context.MatchMinute);
+            var formMultiplier = formFactor / BaselineFormFactor * staminaMultiplier;
             var loyalty = LoyaltyEffect(p.Loyalty);
             var experienceBonus = ExperienceBonus(p.Experience);
 
-            // Hattrick applies Experience as a flat bonus to skill contribution,
-            // not as a separate sector-rating add-on. Add the official XP bonus
-            // to each non-stamina skill before the 14-position matrix is applied.
             var k = new EffectiveSkillsFixed(
                 SkillRating(p.Keeper) + loyalty + experienceBonus,
                 SkillRating(p.Defending) + loyalty + experienceBonus,
@@ -45,23 +61,156 @@ public sealed class RegionalRatingEngineFixed
                 formMultiplier);
 
             var before = new Dictionary<RatingSector, double>(sectors);
+            Dictionary<RatingSector, double>? direct = null;
+            string route = RatingCalculationFormulaCatalog.RouteFor(RatingPositionMatrix.CanonicalSlot(p), p.Order, p.Side);
+
             RatingPositionMatrix.AddContribution(
                 sectors, p, k.Keeper, k.Defending, k.Playmaking, k.Passing,
-                k.Winger, k.Scoring, k.FormMultiplier, experienceBonus);
+                k.Winger, k.Scoring, k.FormMultiplier, experienceBonus,
+                (_, routed, delta) =>
+                {
+                    route = routed;
+                    direct = delta.ToDictionary(x => x.Key, x => x.Value);
+                });
 
-            var crowding = PositionCrowding(RatingPositionMatrix.CanonicalSlot(p), centralDefenders, centralMidfielders, forwards);
+            direct ??= Enum.GetValues<RatingSector>().ToDictionary(x => x, _ => 0d);
+            var slot = RatingPositionMatrix.CanonicalSlot(p);
+            var crowding = PositionCrowding(slot, centralDefenders, centralMidfielders, forwards);
+
+            var crowdingAdjusted = direct.ToDictionary(x => x.Key, x => x.Value * crowding);
+
             if (crowding != 1.0)
             {
                 foreach (var sector in Enum.GetValues<RatingSector>())
                     sectors[sector] = before[sector] + (sectors[sector] - before[sector]) * crowding;
             }
 
+            var name = playerNames is not null && playerNames.TryGetValue(p.Id, out var playerName)
+                ? playerName
+                : string.Empty;
+
+            playerTraces.Add(new PlayerRatingCalculationTrace(
+                p.Id,
+                name,
+                slot,
+                p.Side.ToString(),
+                p.Order.ToString(),
+                route,
+                RatingCalculationFormulaCatalog.FormulaFor(slot, p.Order, p.Side),
+                new Dictionary<string, double>(StringComparer.Ordinal)
+                {
+                    ["keeper"] = p.Keeper,
+                    ["defending"] = p.Defending,
+                    ["playmaking"] = p.Playmaking,
+                    ["passing"] = p.Passing,
+                    ["winger"] = p.Winger,
+                    ["scoring"] = p.Scoring
+                },
+                new Dictionary<string, double>(StringComparer.Ordinal)
+                {
+                    ["keeper"] = k.Keeper,
+                    ["defending"] = k.Defending,
+                    ["playmaking"] = k.Playmaking,
+                    ["passing"] = k.Passing,
+                    ["winger"] = k.Winger,
+                    ["scoring"] = k.Scoring
+                },
+                p.Form,
+                k.FormMultiplier,
+                staminaMultiplier,
+                loyalty,
+                experienceBonus,
+                crowding,
+                direct
+                    .Where(x => Math.Abs(x.Value) > 1e-12)
+                    .ToDictionary(x => x.Key.ToString(), x => x.Value, StringComparer.Ordinal),
+                crowdingAdjusted
+                    .Where(x => Math.Abs(x.Value) > 1e-12)
+                    .ToDictionary(x => x.Key.ToString(), x => x.Value, StringComparer.Ordinal)));
         }
 
+        var matrixSubtotal = new Dictionary<RatingSector, double>(sectors);
         ApplyContext(sectors, context);
+        var contextAdjusted = new Dictionary<RatingSector, double>(sectors);
+
+        var contextMultipliers = Enum.GetValues<RatingSector>()
+            .ToDictionary(
+                sector => sector,
+                sector => Math.Abs(matrixSubtotal[sector]) < 1e-12
+                    ? 1.0
+                    : contextAdjusted[sector] / matrixSubtotal[sector]);
+
         ApplyReferenceCalibration(sectors);
-        return ToSnapshot(sectors);
+        var sectorTraces = Enum.GetValues<RatingSector>()
+            .Select(sector =>
+            {
+                var key = sector.ToString();
+                var playerContributions = playerTraces
+                    .Where(x => x.CrowdingAdjustedContributions.ContainsKey(key))
+                    .ToDictionary(
+                        x => $"{x.PlayerId} • {x.PlayerName}".TrimEnd(' ', '•'),
+                        x => x.CrowdingAdjustedContributions[key],
+                        StringComparer.Ordinal);
+
+                var reference = ReferenceCalibrationFor(sector);
+                return new RatingSectorCalculationTrace(
+                    key,
+                    matrixSubtotal[sector],
+                    contextMultipliers[sector],
+                    reference,
+                    sectors[sector],
+                    RegionalRatingEngine.Display(sectors[sector]),
+                    playerContributions);
+            })
+            .ToList();
+
+        var rating = ToSnapshot(sectors);
+        var trace = new RatingCalculationTraceResult(
+            "V5",
+            teamName ?? string.Empty,
+            formation ?? string.Empty,
+            context.MatchLocation.ToString(),
+            context.Attitude.ToString(),
+            context.Tactic.ToString(),
+            context.MatchMinute,
+            context.GoalDifference,
+            BaselineFormFactor,
+            centralDefenders,
+            centralMidfielders,
+            forwards,
+            4,
+            1.0,
+            rating,
+            rating,
+            playerTraces,
+            sectorTraces);
+
+        return new CoreResult(rating, trace);
     }
+
+    public RatingCalculationTraceResult CalculateLineupWithTrace(
+        Lineup lineup,
+        IReadOnlyList<Player> players,
+        RatingContext? context = null)
+    {
+        var byId = players.ToDictionary(p => p.Id);
+        var mapped = lineup.Slots
+            .Where(s => s.PlayerId > 0 && byId.ContainsKey(s.PlayerId))
+            .Select(s => ToRegionalPlayer(lineup.Formation, s, byId[s.PlayerId]))
+            .ToList();
+
+        var names = players.ToDictionary(p => p.Id, p => p.Name);
+        return CalculateCore(mapped, context, lineup.TeamName, lineup.Formation, names).Trace!;
+    }
+
+    private static double ReferenceCalibrationFor(RatingSector sector)
+        => sector switch
+        {
+            RatingSector.Midfield => ReferenceMidfieldCalibration,
+            RatingSector.LeftAttack => ReferenceLeftAttackCalibration,
+            RatingSector.RightAttack => ReferenceRightAttackCalibration,
+            _ => 1.0
+        };
 
     public RegionalRatingSnapshot CalculateLineup(Lineup lineup, IReadOnlyList<Player> players, RatingContext? context = null)
     {
