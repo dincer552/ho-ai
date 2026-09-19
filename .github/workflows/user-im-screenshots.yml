@@ -1,0 +1,19 @@
+name: V5 User IM Screenshots
+
+on:
+  push:
+    branches: [v5]
+  workflow_dispatch:
+
+jobs:
+  user-im:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V5
+        uses: actions/checkout@v4
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Run user-supplied IM screenshot regression
+        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- user-im-screenshots
