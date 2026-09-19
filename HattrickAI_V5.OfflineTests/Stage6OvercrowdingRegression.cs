@@ -10,9 +10,9 @@ public static class Stage6OvercrowdingRegression
         var engine = new RegionalRatingEngineFixed();
 
         // Exact HO!/Schum crowding law:
-        // CD sector: 2=.964, 3=.900
-        // IM sector: 2=.935, 3=.825
-        // FW sector: 2=.945, 3=.865
+        // CD sector: 2=.964, 3=.900; otherwise 1.0
+        // IM sector: 2=.935, 3=.825; otherwise 1.0
+        // FW sector: 2=.945, 3=.865; otherwise 1.0
         // The factor belongs to each player's own lineup sector and is applied
         // to every sector contribution of that player. It is NOT applied to the
         // accumulated rating sector and must NOT compound as players are added.
@@ -42,12 +42,15 @@ public static class Stage6OvercrowdingRegression
 
         CheckSingleGroup(engine, cd, 2, .964, "2 central defenders", failures);
         CheckSingleGroup(engine, cd, 3, .900, "3 central defenders", failures);
+        CheckSingleGroup(engine, cd, 4, 1.000, "4 central defenders (HO! map has no 4-player penalty)", failures);
 
         CheckSingleGroup(engine, imLeft, 2, .935, "2 inner midfielders", failures);
         CheckSingleGroup(engine, imLeft, 3, .825, "3 inner midfielders", failures);
+        CheckSingleGroup(engine, imLeft, 4, 1.000, "4 inner midfielders (HO! map has no 4-player penalty)", failures);
 
         CheckSingleGroup(engine, fw, 2, .945, "2 forwards", failures);
         CheckSingleGroup(engine, fw, 3, .865, "3 forwards", failures);
+        CheckSingleGroup(engine, fw, 4, 1.000, "4 forwards (HO! map has no 4-player penalty)", failures);
 
         // Side combinations are NOT different crowding regimes: L+C, C+R and L+R
         // are all two players in the same InnerMidfield sector.
