@@ -47,7 +47,7 @@ public sealed class RegionalRatingEngineFixed
             var before = new Dictionary<RatingSector, double>(sectors);
             RatingPositionMatrix.AddContribution(
                 sectors, p, k.Keeper, k.Defending, k.Playmaking, k.Passing,
-                k.Winger, k.Scoring, k.FormMultiplier);
+                k.Winger, k.Scoring, k.FormMultiplier, experienceBonus);
 
             var crowding = PositionCrowding(RatingPositionMatrix.CanonicalSlot(p), centralDefenders, centralMidfielders, forwards);
             if (crowding != 1.0)
