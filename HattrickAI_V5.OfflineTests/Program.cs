@@ -69,6 +69,8 @@ if (args.Length > 0 && string.Equals(args[0], "user-im-screenshots", StringCompa
     return UserProvidedMidfielderScreenshotRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "mid-combinations", StringComparison.OrdinalIgnoreCase))
     return UserProvidedMidfielderCombinationRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "screenshot-451", StringComparison.OrdinalIgnoreCase))
+    return Screenshot451Diagnostic.Run();
 
 var startFrom = args.Length > 0 && args[0].StartsWith("c", StringComparison.OrdinalIgnoreCase) ? args[0].ToLowerInvariant() : "c1";
 var path = args.Length > 1
