@@ -139,12 +139,14 @@ public static class RatingPositionMatrix
         {
             // DEF-C calibration from controlled 1-0-0 live observations.
             // The low-defending/high-experience correction captures the
-            // observed central-defense uplift without changing DEF-CL/DEF-CR.
+            // observed central-defense uplift in the central sector.
             var central = .19759418 * defending + .73256248
                 + Math.Max(0.0, 5.0 - defending)
                 * Math.Max(0.0, p.Experience - 3.0)
                 * (.1 / 3.0);
+            var side = .06497175 * defending + .93079096;
             Add(s, RatingSector.CentralDefence, central, 1.0);
+            AddBothSides(s, RatingSector.LeftDefence, RatingSector.RightDefence, side, 1.0);
         }
         else
         {
