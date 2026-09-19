@@ -110,6 +110,73 @@ app.MapGet("/api/v5/analysis", async (HttpContext http, AnalysisService service,
     }
 });
 
+// V5_RATING_CALCULATION_JSON_V1: exact per-player regional rating calculation trace.
+app.MapGet("/api/v5/rating-calculation-details", (HttpContext http) =>
+{
+    var session = http.Session;
+    var playersJson = session.GetString("v5.rating.players");
+    var lineupJson = session.GetString("v5.rating.lineup");
+    var contextJson = session.GetString("v5.rating.context");
+
+    if (string.IsNullOrWhiteSpace(playersJson) || string.IsNullOrWhiteSpace(lineupJson) || string.IsNullOrWhiteSpace(contextJson))
+        return Results.BadRequest(new { message = "Önce analiz çalıştırılmalı; rating hesaplama oturumu bulunamadı." });
+
+    var selectedEngine = session.GetString("v5.rating.engine")
+        ?? session.GetString("v5.rating.selected")
+        ?? RatingEngineKind.V5.ToString();
+    if (!string.Equals(selectedEngine, RatingEngineKind.V5.ToString(), StringComparison.OrdinalIgnoreCase))
+        return Results.Conflict(new { message = $"Hesap JSON dökümü şu anda V5 motoru için kullanılabilir. Seçili motor: {selectedEngine}." });
+
+    try
+    {
+        var players = JsonSerializer.Deserialize<List<Player>>(playersJson) ?? [];
+        var lineup = JsonSerializer.Deserialize<Lineup>(lineupJson);
+        var context = JsonSerializer.Deserialize<RatingContext>(contextJson);
+        if (lineup is null || context is null || players.Count == 0)
+            return Results.BadRequest(new { message = "Kaydedilmiş rating hesaplama verisi eksik." });
+
+        var confidence = int.TryParse(
+            session.GetString("v5.rating.confidence"),
+            System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var parsedConfidence)
+            ? Math.Clamp(parsedConfidence, 0, 9)
+            : 4;
+
+        var trace = new RegionalRatingEngineFixed().CalculateLineupWithTrace(lineup, players, context);
+        var attackMultiplier = Math.Clamp(1.0 + (confidence - 4.0) * 0.05, 0.80, 1.25);
+        var finalRating = ConfidenceRatingAdjuster.Apply(trace.EngineRatingBeforeConfidence, confidence);
+        trace = trace with
+        {
+            ConfidenceLevel = confidence,
+            ConfidenceAttackMultiplier = attackMultiplier,
+            FinalRating = finalRating
+        };
+
+        var json = JsonSerializer.SerializeToUtf8Bytes(
+            trace,
+            new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
+            });
+
+        var safeTeam = string.Concat((lineup.TeamName ?? "team").Select(ch => char.IsLetterOrDigit(ch) ? ch : '_'));
+        if (string.IsNullOrWhiteSpace(safeTeam)) safeTeam = "team";
+        var filename = $"hattrickai-v5-rating-calculation-{safeTeam}-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.json";
+        return Results.File(json, "application/json; charset=utf-8", filename);
+    }
+    catch (JsonException)
+    {
+        return Results.BadRequest(new { message = "Kaydedilmiş rating hesaplama JSON'u çözümlenemedi." });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message, statusCode: 502);
+    }
+});
+
 // TEAM_PLAYER_CHPP_JSON_EXPORT_V1: lightweight DEV data collection endpoint.
 // Returns a real attachment so mobile browsers can download it without Blob/async gesture issues.
 app.MapGet("/api/v5/team-player-export", async (ChppV5 chpp, CancellationToken ct) =>
