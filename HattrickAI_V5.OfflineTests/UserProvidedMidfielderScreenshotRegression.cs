@@ -6,9 +6,10 @@ public static class UserProvidedMidfielderScreenshotRegression
 {
     public static int Run()
     {
-        // Six 0-1-0 normal IM-C Hattrick screenshots supplied on 2026-09-19.
+        // Six 0-1-0 normal IM-L Hattrick screenshots supplied on 2026-09-19.
         // Player skills are taken from the Hattrick export fixture:
         // HattrickAI_V5.OfflineTests/fixtures/s4msunfc-m7-m8.json
+        // The player is visibly placed in the left midfield slot in each screenshot.
         // Ground truth sector order is LD, CD, RD, MID, LA, CA, RA.
         var fixtures = new[]
         {
@@ -25,7 +26,7 @@ public static class UserProvidedMidfielderScreenshotRegression
         var failures = 0;
         const double tolerance = 0.25;
 
-        Console.WriteLine("V5 user-supplied Hattrick normal IM-C 0-1-0 screenshot regression");
+        Console.WriteLine("V5 user-supplied Hattrick normal IM-L 0-1-0 screenshot regression");
         Console.WriteLine("Name | V5 LD CD RD MID LA CA RA | HT LD CD RD MID LA CA RA | Errors LD CD RD MID LA CA RA");
 
         foreach (var f in fixtures)
@@ -39,7 +40,7 @@ public static class UserProvidedMidfielderScreenshotRegression
 
             var lineup = new Lineup(
                 "USER-IM", "0-1-0",
-                [new Slot("IM-C", "IM-C", "USER-IM", player.Name, player.Id, 0, 0, 0, PlayerOrder.Normal)]);
+                [new Slot("IM-L", "IM-L", "USER-IM", player.Name, player.Id, 0, 0, 0, PlayerOrder.Normal)]);
 
             var actual = engine.CalculateLineup(lineup, [player], RatingContext.Default);
             var v = new[]
