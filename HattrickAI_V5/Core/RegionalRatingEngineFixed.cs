@@ -371,13 +371,13 @@ public sealed class RegionalRatingEngineFixed
             s[RatingSector.LeftAttack],
             s[RatingSector.CentralAttack],
             s[RatingSector.RightAttack],
-            RegionalRatingEngine.Display(s[RatingSector.LeftDefence]),
-            RegionalRatingEngine.Display(s[RatingSector.CentralDefence]),
-            RegionalRatingEngine.Display(s[RatingSector.RightDefence]),
-            RegionalRatingEngine.Display(s[RatingSector.Midfield]),
-            RegionalRatingEngine.Display(s[RatingSector.LeftAttack]),
-            RegionalRatingEngine.Display(s[RatingSector.CentralAttack]),
-            RegionalRatingEngine.Display(s[RatingSector.RightAttack]));
+            s[RatingSector.LeftDefence],
+            s[RatingSector.CentralDefence],
+            s[RatingSector.RightDefence],
+            s[RatingSector.Midfield],
+            s[RatingSector.LeftAttack],
+            s[RatingSector.CentralAttack],
+            s[RatingSector.RightAttack]);
 
     private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p)
     {
