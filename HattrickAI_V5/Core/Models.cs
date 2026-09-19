@@ -49,6 +49,7 @@ public sealed record Lineup(string TeamName,string Formation,IReadOnlyList<Slot>
 
 public sealed record Analysis(string Build,string TeamName,string OpponentName,string MatchTitle,Lineup Own,Lineup Opponent,RegionalRatingSnapshot OwnRating,RegionalRatingSnapshot OpponentRating,MatchQuestionnaire AppliedQuestionnaire)
 {
+    public RatingCalculationTraceResult? OwnRatingCalculation { get; init; }
     public Lineup OwnLineup=>Own; public Lineup OpponentLineup=>Opponent; public string OwnFormation=>Own.Formation; public string OpponentFormation=>Opponent.Formation;
     public RegionalRatingPair RegionalRatings=>new(OwnRating,OpponentRating); public OpponentThreatMap OpponentThreat=>new OpponentThreatEngine().Analyze(OpponentRating);
     public string SelectedTactic => TacticComparisons.Where(x => x.TacticEligible)
