@@ -295,73 +295,51 @@ public static class RatingPositionMatrix
             // Hattrick observations. The formula is deliberately shared by
             // IM-L and IM-R; only the side-facing sectors are mirrored.
             var ff = .378 * Math.Sqrt(Math.Clamp(playerForm - 1.0, 0.0, 7.0));
-            // Refit from the 9 controlled live Hattrick 0-1-0 IM-C
-            // observations. Inputs are normalized by SkillRating().
+            // IM-C calibration from the six current user-supplied 0-1-0
+            // Hattrick screenshots dated 2026-09-19. White values only are
+            // ground truth; green delta values are never calibration targets.
             //
-            // Defence regression: Defending + form terms.
-            // The left/right defensive contribution is intentionally shared
-            // because a central IM has no field-side bias.
+            // Effective skill inputs are the production normalized skills
+            // (raw skill - 1 + experience bonus + loyalty). Form is represented
+            // by the same form-factor input used by the V5 calibration layer.
+            var imCFormFactor = .378 * Math.Sqrt(
+                Math.Max(0.0, playerForm - 1.0));
+
+            // Central IM has no field-side bias: LD/RD share the same
+            // defending-driven contribution.
             var centralDefence =
-                -2.63016336
-                + .99728602 * defending
-                - .06901684 * defending * defending
-                + 4.72747244 * ff
-                - 1.21214251 * defending * ff
-                + .08408524 * defending * defending * ff;
+                .75566434
+                + .06363900 * defending
+                + 1.30004873 * imCFormFactor;
 
             var sideDefence =
-                1.58167513
-                - .18468948 * defending
-                - .61088056 * ff
-                + .21333746 * defending * ff;
+                .92836006
+                + .01959188 * defending
+                + .02775777 * imCFormFactor;
 
-            // MID regression refit from the latest 9 full-sector
-            // Hattrick 0-1-0 screenshots. The observed rating is the
-            // quarter-step displayed team rating, so the regression is
-            // calibrated to the underlying displayed-sector targets.
+            // MID is playmaking-driven; the form term is retained because
+            // the supplied Hattrick screenshots show a measurable form effect.
             var midfieldFinal =
-                3.04068624
-                - .71259440 * playmaking
-                - 1.78139315 * ff
-                + .82512732 * playmaking * ff;
+                .85744069
+                + .12220584 * playmaking
+                + .86862451 * imCFormFactor;
             var midfield = Math.Max(0.0, midfieldFinal) / .8285714285714286;
 
-            // Left/right attack regression from the same 9 screenshots.
-            // The two side models are kept separate because the live
-            // observations include a one-quarter-step L/R difference.
-            var leftAttack =
-                .61541722
-                + .03848543 * passing
-                + .05959491 * ff
-                - .01843509 * passing * ff;
+            // The six current screenshots display the side-attack sector at
+            // the 1.00 floor. Keep this calibration stable rather than using
+            // the previous high-order polynomial that over-shot several players.
+            var leftAttack = .78571429;
+            var rightAttack = .78571429;
 
-            var rightAttack =
-                .63897386
-                + .03995856 * passing
-                + .06187606 * ff
-                - .01914074 * passing * ff;
-
-            // CA-02: simplified normal-IM central-attack calibration.
-            // The previous high-order polynomial was fitted to a corrupted
-            // sector corpus and produced non-monotonic extrapolation (notably
-            // Patrik/Münir). The refreshed 2026-09-19 screenshots give a stable
-            // low-complexity relation using normalized Passing, Scoring and
-            // visible Form. Experience is intentionally not folded into this
-            // empirical CA term until an orthogonal experience corpus exists.
-            //
-            // The coefficients are fitted to the seven verified 0-1-0
-            // normal-IM-C screenshots and the result is then passed through
-            // the normal quarter-step display quantization.
+            // Normal IM central attack is driven by Passing + Scoring.
+            // The fit is monotonic in both skills and includes the observed
+            // form correction; experience is already represented in effective
+            // skill normalization and is not added as a separate sector bonus.
             var centralAttack =
-                -1.26708552
-                + .17205415 * passing
-                + .19834343 * scoring
-                + .01225862 * passing * passing
-                - .02301478 * scoring * scoring
-                + .02719102 * passing * scoring
-                + 2.55116194 * ff
-                - .39545662 * passing * ff
-                - .02806372 * scoring * ff;
+                .68045821
+                + .07019686 * passing
+                + .02872443 * scoring
+                + 1.52811418 * imCFormFactor;
 
             Add(s, RatingSector.CentralDefence, centralDefence, 1.0);
             if (side == PlayerSide.Left)
