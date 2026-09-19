@@ -266,7 +266,7 @@ public static class RatingPositionMatrix
 
                 // IM-L side attack regression: passing + visible form + experience.
                 var leftAttackImL =
-                    1.51628626
+                    1.43654074
                     - .03987276 * passing
                     + .14625183 * playerForm
                     - .02556850 * experience;
