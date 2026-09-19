@@ -76,13 +76,19 @@ public sealed class RegionalRatingEngineFixed
             direct ??= Enum.GetValues<RatingSector>().ToDictionary(x => x, _ => 0d);
             var slot = RatingPositionMatrix.CanonicalSlot(p);
             var crowding = PositionCrowding(slot, centralDefenders, centralMidfielders, forwards);
+            var midfieldCrowding = slot is "IM-L" or "IM-C" or "IM-R"
+                ? InnerMidfielderMidfieldCrowding(players)
+                : 1.0;
 
-            var crowdingAdjusted = direct.ToDictionary(x => x.Key, x => x.Value * crowding);
+            var crowdingAdjusted = direct.ToDictionary(
+                x => x.Key,
+                x => x.Value * (x.Key == RatingSector.Midfield ? midfieldCrowding : crowding));
 
-            if (crowding != 1.0)
+            foreach (var sector in Enum.GetValues<RatingSector>())
             {
-                foreach (var sector in Enum.GetValues<RatingSector>())
-                    sectors[sector] = before[sector] + (sectors[sector] - before[sector]) * crowding;
+                var sectorCrowding = sector == RatingSector.Midfield ? midfieldCrowding : crowding;
+                if (sectorCrowding != 1.0)
+                    sectors[sector] = before[sector] + (sectors[sector] - before[sector]) * sectorCrowding;
             }
 
             var name = playerNames is not null && playerNames.TryGetValue(p.Id, out var playerName)
@@ -291,6 +297,31 @@ public sealed class RegionalRatingEngineFixed
     private static double CentralDefenderCrowding(int count) => count == 2 ? .964 : count >= 3 ? .900 : 1.0;
     private static double InnerMidfielderCrowding(int count) => count == 2 ? .935 : count >= 3 ? .825 : 1.0;
     private static double ForwardCrowding(int count) => count == 2 ? .945 : count >= 3 ? .865 : 1.0;
+
+    // The 2026-09-19 user screenshot corpus shows that the displayed midfield
+    // rating does not reproduce with the generic 0.935/0.825 IM crowding factors.
+    // Keep those factors for non-midfield sectors, but use the observed common
+    // midfield aggregation factors for the three real IM slot combinations.
+    // This is an empirical V5 calibration, not a replacement for the documented
+    // Hattrick contribution percentages.
+    private static double InnerMidfielderMidfieldCrowding(IReadOnlyList<RegionalPlayer> players)
+    {
+        var slots = players
+            .Select(RatingPositionMatrix.CanonicalSlot)
+            .Where(x => x is "IM-L" or "IM-C" or "IM-R")
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToArray();
+
+        return slots.Length switch
+        {
+            0 or 1 => 1.0,
+            2 when slots.SequenceEqual(["IM-C", "IM-L"]) => .80000000,
+            2 when slots.SequenceEqual(["IM-C", "IM-R"]) => .82352941,
+            2 when slots.SequenceEqual(["IM-L", "IM-R"]) => .94736842,
+            3 when slots.SequenceEqual(["IM-C", "IM-L", "IM-R"]) => .71428571,
+            _ => InnerMidfielderCrowding(slots.Length)
+        };
+    }
 
     private static double PositionCrowding(string slot, int cds, int ims, int fws) => slot switch
     {
