@@ -517,19 +517,30 @@ public static class RatingPositionMatrix
                 // Scoring/Winger/Passing at 22.4/19.0/12.2%; central attack
                 // uses Scoring + 36.9% of Passing. Form remains the production
                 // multiplier. The fitted scales are deliberately monotonic.
-                const double sideIntercept = 1.02356217;
-                const double sideScale = .21904367;
-                const double centralIntercept = .95136801;
-                const double centralScale = .18038653;
+                // Refit to the complete 8-player FW-L screenshot corpus.
+                // These are monotonic raw-skill coefficients after the common
+                // production form multiplier. Experience is intentionally not
+                // folded into the skill values here.
+                const double sideIntercept = .99522254;
+                const double sidePassing = .05215221;
+                const double sideScoring = .03750657;
+                const double sideWinger = .03364124;
+
+                const double centralIntercept = .99496221;
+                const double centralPassing = .05239461;
+                const double centralScoring = .18757562;
 
                 Add(s, RatingSector.Midfield, playmaking * .041, form);
 
                 var sideNormal =
                     sideIntercept
-                    + (scoring * .224 + winger * .190 + passing * .122) * sideScale;
+                    + passing * sidePassing
+                    + scoring * sideScoring
+                    + winger * sideWinger;
                 var centralNormal =
                     centralIntercept
-                    + (scoring + passing * .369) * centralScale;
+                    + passing * centralPassing
+                    + scoring * centralScoring;
 
                 // RegionalRatingEngineFixed applies the legacy reference
                 // attack calibrations after all player contributions. Compensate
