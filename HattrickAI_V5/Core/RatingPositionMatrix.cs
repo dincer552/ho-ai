@@ -241,6 +241,54 @@ public static class RatingPositionMatrix
         double defending, double playmaking, double passing, double winger,
         double scoring, double form)
     {
+        if (order == PlayerOrder.Normal)
+        {
+            // Empirical normal-IM calibration from controlled 1-player
+            // Hattrick observations. The formula is deliberately shared by
+            // IM-L and IM-R; only the side-facing sectors are mirrored.
+            var ff = .378 * Math.Sqrt(Math.Clamp(form - 1.0, 0.0, 7.0));
+            var exp = EmpiricalExperienceBonus(p.Experience);
+
+            var centralDefence = .49482463
+                + .04570901 * defending
+                + .04878888 * exp
+                + .44828559 * ff
+                - .19789164 * defending * ff;
+
+            var sideDefence = .78296361
+                + .06425274 * defending
+                + .14339652 * ff;
+
+            var midfield = .31367924
+                + .49795548 * playmaking
+                - .02539148 * playmaking * playmaking
+                + .50078805 * exp
+                - 1.05985956 * ff;
+
+            var sideAttack = 5.99538048
+                - .61642665 * passing
+                + .22318205 * exp
+                - 5.72285483 * ff
+                + .71990907 * passing * ff;
+
+            var centralAttack = .60113680
+                + .50932770 * passing
+                - .69748765 * scoring
+                + .24256673 * exp
+                - .49128126 * passing * ff
+                + .80635547 * scoring * ff;
+
+            Add(s, RatingSector.CentralDefence, centralDefence, 1.0);
+            Add(s, side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence,
+                sideDefence, 1.0);
+
+            Add(s, RatingSector.Midfield, midfield, 1.0);
+            Add(s, side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack,
+                sideAttack, 1.0);
+            Add(s, RatingSector.CentralAttack, centralAttack, 1.0);
+            return;
+        }
+
         var v = order switch
         {
             PlayerOrder.Defensive => new ImMatrix(.115, .040, .131, .018, .039, .028, 0),
