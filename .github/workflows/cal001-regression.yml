@@ -17,3 +17,5 @@ jobs:
           dotnet-version: 9.0.x
       - name: Run V5 controlled MID diagnostic
         run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- mid-diagnostic
+      - name: Run V5 FW-L screenshot regression
+        run: dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- fw-left-screenshots
