@@ -306,16 +306,22 @@ public static class RatingPositionMatrix
                 - .11976863 * ff
                 + .14902802 * passing * ff;
 
-            // Central attack regression from the same 9 controlled fixtures.
+            // CA-02: simplified normal-IM central-attack calibration.
+            // The previous high-order polynomial was fitted to a corrupted
+            // sector corpus and produced non-monotonic extrapolation (notably
+            // Patrik/Münir). The refreshed 2026-09-19 screenshots give a stable
+            // low-complexity relation using normalized Passing, Scoring and
+            // visible Form. Experience is intentionally not folded into this
+            // empirical CA term until an orthogonal experience corpus exists.
+            //
+            // The coefficients are fitted to the seven verified 0-1-0
+            // normal-IM-C screenshots and the result is then passed through
+            // the normal quarter-step display quantization.
             var centralAttack =
-                1.83692983
-                + .24767661 * passing
-                - .54858410 * scoring
-                - .13220492 * exp
-                + 3.80615670 * ff
-                - .59370359 * passing * ff
-                - .36917834 * scoring * ff
-                + .09689352 * passing * scoring;
+                .42767567
+                + .09905346 * passing
+                + .02230971 * scoring
+                + .46394146 * ff;
 
             Add(s, RatingSector.CentralDefence, centralDefence, 1.0);
             if (side == PlayerSide.Left)
