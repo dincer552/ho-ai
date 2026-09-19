@@ -46,7 +46,20 @@ function fallbackCopy(text,done){const ta=document.createElement('textarea');ta.
 function buildCopyText(kind){const x=lastAnalysis;if(!x)return 'Henüz analiz verisi yok.';const own=kind==='own';const lineup=own?x.own:x.opponent;const rating=own?x.ownRating:x.opponentRating;const title=own?(x.teamName||'TAKIM'):(x.opponentName||'RAKİP');const formation=own?(x.ownFormation||lineup?.formation||'—'):(x.opponentFormation||lineup?.formation||'Son maç');const rv=ratingValues(rating)||[];const lines=['HattrickAI V5 KOPYA','TAKIM: '+title,'DİZİLİŞ: '+formation,'','OYUNCULAR:'];for(const [code] of SLOT_DEFS){const p=(lineup?.slots||[]).find(s=>s.code===code);if(p?.playerName)lines.push(code+': '+p.playerName+' | RP='+Number(p.rating||0).toFixed(1))}lines.push('','BÖLGESEL RATING:','DEF-L: '+(rv[0]??'—'),'DEF-C: '+(rv[1]??'—'),'DEF-R: '+(rv[2]??'—'),'MID: '+(rv[3]??'—'),'ATT-L: '+(rv[4]??'—'),'ATT-C: '+(rv[5]??'—'),'ATT-R: '+(rv[6]??'—'));return lines.join('\n')}
 function copyLineup(kind){const button=document.getElementById(kind==='own'?'copyOwn':'copyOpp');copyText(buildCopyText(kind),button)}
 function setRatingJsonEnabled(enabled){const button=document.getElementById('ratingJsonBtn');if(button)button.disabled=!enabled}
-function downloadRatingJson(){window.location.href='/api/v5/rating-calculation-details'}
+function downloadRatingJson(){
+  const trace=lastAnalysis?.ownRatingCalculation;
+  if(!trace){ alert('Önce analizi çalıştırmalısın.'); return; }
+  const blob=new Blob([JSON.stringify(trace,null,2)],{type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const team=String(lastAnalysis?.teamName||'team').replace(/[^a-zA-Z0-9_-]+/g,'_');
+  a.href=url;
+  a.download='hattrickai-v5-rating-calculation-'+team+'.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 async function refreshStatus(){try{const b=await json('/api/v5/build');document.getElementById('build').textContent='build '+String(b.build||'dev').slice(0,7)}catch{document.getElementById('build').textContent='build ?'}try{const s=await json('/api/v5/status');const btn=document.getElementById('connect'),a=document.getElementById('analyze');if(s.connected){document.getElementById('statusDot').classList.add('on');document.getElementById('statusTitle').textContent='CHPP bağlı';document.getElementById('statusText').textContent='Hesap verileri hazır. Analizi çalıştırabilirsin.';btn.textContent='CHPP bağlı';btn.classList.remove('off');a.disabled=false}else{document.getElementById('statusDot').classList.remove('on');document.getElementById('statusTitle').textContent='CHPP bağlı değil';document.getElementById('statusText').textContent='Hesabı bağla, sonra analizi çalıştır.';btn.textContent='CHPP bağlan';btn.classList.add('off');a.disabled=true}}catch(e){document.getElementById('statusTitle').textContent='Durum alınamadı';document.getElementById('statusText').textContent=e.message}}
 function showQuestion(){const card=document.getElementById('questionCard');card.style.display='block';qIndex=0;answers={};renderQuestion();card.scrollIntoView({behavior:'smooth',block:'nearest'})}
 function renderQuestion(){const q=QUESTIONS[qIndex];selected=answers[q.key]||'';document.getElementById('questionNumber').textContent='SORU '+(qIndex+1)+' / '+QUESTIONS.length;document.getElementById('questionText').textContent=q.title;document.querySelectorAll('.step').forEach((el,i)=>el.classList.toggle('active',i<=qIndex));const wrap=document.getElementById('options');wrap.innerHTML='';for(const [value,label] of q.options){const b=document.createElement('button');b.className='option'+(value===selected?' selected':'');b.textContent=label;b.onclick=()=>{selected=value;answers[q.key]=value;document.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');document.getElementById('next').disabled=false};wrap.appendChild(b)}document.getElementById('next').textContent=qIndex===QUESTIONS.length-1?'ANALİZİ BAŞLAT':'DEVAM ET';document.getElementById('next').disabled=!selected}
