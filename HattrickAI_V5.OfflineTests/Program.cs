@@ -13,7 +13,9 @@ if (args.Length > 0 && string.Equals(args[0], "write6", StringComparison.Ordinal
     return ChppWrite06LiveWriteRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "write7", StringComparison.OrdinalIgnoreCase))
     return ChppWrite07ReadBackRegression.Run();
-if (args.Length > 0 && string.Equals(args[0], "custom-v5-lineup", StringComparison.OrdinalIgnoreCase))\n    return CustomV5LineupRegression.Run();\nif (args.Length > 0 && string.Equals(args[0], "rating-contract", StringComparison.OrdinalIgnoreCase))
+if (args.Length > 0 && string.Equals(args[0], "custom-v5-lineup", StringComparison.OrdinalIgnoreCase))
+    return CustomV5LineupRegression.Run();
+if (args.Length > 0 && string.Equals(args[0], "rating-contract", StringComparison.OrdinalIgnoreCase))
     return RatingEngineContractsRegression.Run();
 if (args.Length > 0 && string.Equals(args[0], "rating-validation", StringComparison.OrdinalIgnoreCase))
     return RatingEngineValidationRegression.Run();
