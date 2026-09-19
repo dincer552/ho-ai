@@ -300,21 +300,21 @@ public sealed class RegionalRatingEngineFixed
     private static double CentralDefenderCrowding(int count) => count switch
     {
         2 => .964,
-        >= 3 => .900,
+        3 => .900,
         _ => 1.0
     };
 
     private static double InnerMidfielderCrowding(int count) => count switch
     {
         2 => .935,
-        >= 3 => .825,
+        3 => .825,
         _ => 1.0
     };
 
     private static double ForwardCrowding(int count) => count switch
     {
         2 => .945,
-        >= 3 => .865,
+        3 => .865,
         _ => 1.0
     };
 
