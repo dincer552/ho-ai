@@ -259,17 +259,20 @@ public static class RatingPositionMatrix
                 + .06425274 * defending
                 + .14339652 * ff;
 
-            var midfield = .31367924
+            var midfieldFinal = .31367924
                 + .49795548 * playmaking
                 - .02539148 * playmaking * playmaking
                 + .50078805 * exp
                 - 1.05985956 * ff;
+            var midfield = midfieldFinal / .8285714285714286;
 
-            var sideAttack = 5.99538048
+            var sideAttackFinal = 5.99538048
                 - .61642665 * passing
                 + .22318205 * exp
                 - 5.72285483 * ff
                 + .71990907 * passing * ff;
+            var sideAttack = sideAttackFinal /
+                (side == PlayerSide.Left ? 1.2727272727272727 : 1.2258064516129032);
 
             var centralAttack = .60113680
                 + .50932770 * passing
