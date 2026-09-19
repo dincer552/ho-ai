@@ -23,6 +23,8 @@ public static class MidfielderSingletonDiagnosticRegression
 
         var engine = new RegionalRatingEngineFinal();
         var totalAbsoluteError = 0.0;
+        var failures = 0;
+        const double tolerance = 0.13;
 
         Console.WriteLine("V5 MID 0-1-0 controlled diagnostic");
         Console.WriteLine("Name | PM | Form | Exp | V5 raw MID | V5 display MID | Hattrick MID | Error");
@@ -43,14 +45,20 @@ public static class MidfielderSingletonDiagnosticRegression
             var actual = engine.CalculateLineup(lineup, [player], RatingContext.Default);
             var error = actual.RawMidfield - f.ExpectedMidfield;
             totalAbsoluteError += Math.Abs(error);
+            if (Math.Abs(error) > tolerance)
+                failures++;
 
             Console.WriteLine(
                 $"{f.Name} | {f.Playmaking} | {f.Form} | {f.Experience} | " +
                 $"{actual.RawMidfield:F3} | {actual.Midfield:F2} | {f.ExpectedMidfield:F2} | {error:+0.000;-0.000;0.000}");
         }
 
-        Console.WriteLine($"MID MAE={totalAbsoluteError / fixtures.Length:F4}");
-        return 0;
+        var mae = totalAbsoluteError / fixtures.Length;
+        Console.WriteLine($"MID MAE={mae:F4}");
+        Console.WriteLine(failures == 0
+            ? "PASS: V5 normal IM MID matches the 9 controlled Hattrick observations."
+            : $"FAIL: {failures}/9 MID fixtures exceed tolerance {tolerance:F2}.");
+        return failures == 0 ? 0 : 1;
     }
 
     private readonly record struct Fixture(
