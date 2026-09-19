@@ -124,19 +124,39 @@ public static class RatingPositionMatrix
         Dictionary<RatingSector, double> s, string slot, PlayerOrder order,
         double defending, double playmaking, double passing, double form)
     {
-        var central = order switch
+        // DEF-CL normal-position calibration from 10 controlled live Hattrick
+        // 1-0-0 observations. The observed sector values are the ground truth
+        // for this canonical slot; other defender orders retain the researched
+        // contribution matrix until their own calibration set is available.
+        if (slot == "DEF-CL" && order == PlayerOrder.Normal)
         {
-            PlayerOrder.Offensive => defending * .130,
-            PlayerOrder.TowardsWing => defending * .133,
-            _ => defending * .186
-        };
+            Add(s, RatingSector.CentralDefence,
+                .19759418 * defending + .73256248, 1.0);
+            Add(s, RatingSector.LeftDefence,
+                .16906005 * defending + .74086162, 1.0);
+        }
+        else
+        {
+            var central = order switch
+            {
+                PlayerOrder.Offensive => defending * .130,
+                PlayerOrder.TowardsWing => defending * .133,
+                _ => defending * .186
+            };
 
-        var side = order switch
-        {
-            PlayerOrder.TowardsWing => defending * .217,
-            PlayerOrder.Offensive => defending * .058,
-            _ => defending * .077
-        };
+            var side = order switch
+            {
+                PlayerOrder.TowardsWing => defending * .217,
+                PlayerOrder.Offensive => defending * .058,
+                _ => defending * .077
+            };
+
+            Add(s, RatingSector.CentralDefence, central, form);
+            if (slot == "DEF-C")
+                AddBothSides(s, RatingSector.LeftDefence, RatingSector.RightDefence, side, form);
+            else
+                Add(s, slot == "DEF-CL" ? RatingSector.LeftDefence : RatingSector.RightDefence, side, form);
+        }
 
         var midfield = order switch
         {
@@ -145,12 +165,12 @@ public static class RatingPositionMatrix
             _ => playmaking * .035
         };
 
-        Add(s, RatingSector.CentralDefence, central, form);
-
-        if (slot == "DEF-C")
-            AddBothSides(s, RatingSector.LeftDefence, RatingSector.RightDefence, side, form);
-        else
-            Add(s, slot == "DEF-CL" ? RatingSector.LeftDefence : RatingSector.RightDefence, side, form);
+        var midfield = order switch
+        {
+            PlayerOrder.Offensive => playmaking * .047,
+            PlayerOrder.TowardsWing => playmaking * .023,
+            _ => playmaking * .035
+        };
 
         Add(s, RatingSector.Midfield, midfield, form);
 
