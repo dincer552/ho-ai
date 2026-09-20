@@ -136,11 +136,56 @@ function nearestSlot(nx,ny,used){
   }
   return best;
 }
+const OCR_NAME_SLOTS={
+  'GK':[.50,.235],
+  'WB-L':[.105,.470],'DEF-CL':[.300,.470],'DEF-C':[.500,.470],'DEF-CR':[.700,.470],'WB-R':[.900,.470],
+  'W-L':[.105,.665],'IM-L':[.300,.665],'IM-C':[.500,.665],'IM-R':[.700,.665],'W-R':[.900,.665],
+  'FW-L':[.300,.986],'FW-C':[.500,.986],'FW-R':[.700,.986]
+};
+
+function buildFixedNameCrop(field,slot,scale=3){
+  const [cx,cy]=OCR_NAME_SLOTS[slot];
+  const wide=(slot==='GK'||slot==='FW-L'||slot==='FW-C'||slot==='FW-R') ? .30 : .20;
+  const high=slot.startsWith('FW-') ? .055 : .075;
+  const sx=Math.max(0,Math.min(field.width-field.width*wide,field.width*cx-field.width*wide/2));
+  const sy=Math.max(0,Math.min(field.height-field.height*high,field.height*cy-field.height*high/2));
+  const sw=Math.max(1,Math.round(field.width*wide));
+  const sh=Math.max(1,Math.round(field.height*high));
+  const c=document.createElement('canvas');
+  c.width=Math.max(1,Math.round(sw*scale));c.height=Math.max(1,Math.round(sh*scale));
+  const ctx=c.getContext('2d',{willReadFrequently:true});
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(field,sx,sy,sw,sh,0,0,c.width,c.height);
+
+  // Beyaz isimleri yeşil zeminden ayır: kontrastı hafif artır.
+  const img=ctx.getImageData(0,0,c.width,c.height),d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    const y=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+    const v=y>155 ? 255 : Math.max(0,Math.min(255,(y-90)*2.1));
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  ctx.putImageData(img,0,0);
+  return c;
+}
+
+function ocrCandidatesFromResult(out){
+  const values=[];
+  const full=String(out?.data?.text||'').trim().replace(/\s+/g,' ');
+  if(full)values.push(full);
+  for(const line of (out?.data?.lines||[])){
+    const t=String(line.text||'').trim().replace(/\s+/g,' ');
+    if(t)values.push(t);
+  }
+  const words=(out?.data?.words||[]).map(w=>String(w.text||'').trim()).filter(Boolean);
+  if(words.length)values.push(words.join(' '));
+  return [...new Set(values)].filter(x=>x.length>=2&&x.length<=42);
+}
+
 async function importLineupFromImage(file){
   const status=document.getElementById('imageStatus'),err=document.getElementById('error');
   if(!file)return;
   if(!players.length){status.textContent='Önce CHPP oyuncu listesinin yüklenmesini bekle.';return;}
-  err.style.display='none'; status.textContent='Oyuncular aranıyor…';
+  err.style.display='none'; status.textContent='14 sabit mevki bölgesi okunuyor…';
   const img=new Image(),url=URL.createObjectURL(file);
   try{
     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
@@ -148,142 +193,52 @@ async function importLineupFromImage(file){
     source.width=Math.max(1,Math.round(img.naturalWidth*scale));
     source.height=Math.max(1,Math.round(img.naturalHeight*scale));
     source.getContext('2d').drawImage(img,0,0,source.width,source.height);
-    const field=detectPitchBounds(source),crop=document.createElement('canvas');
-    crop.width=Math.max(1,Math.round(field.width)); crop.height=Math.max(1,Math.round(field.height));
-    crop.getContext('2d').drawImage(source,field.x,field.y,field.width,field.height,0,0,crop.width,crop.height);
 
-    // Tek OCR taraması: önce sahadaki tüm isimleri çıkarıyoruz.
-    // Sonra OCR metnini CHPP'den gelen oyuncu listesine topluca karşılaştırıyoruz.
+    // Önce yalnızca yeşil saha alanını buluyoruz. Sonrası tamamen sabit
+    // koordinatlarla ilerliyor; OCR artık ekranda isim aramıyor.
+    const bounds=detectPitchBounds(source);
+    const field=document.createElement('canvas');
+    field.width=Math.max(1,Math.round(bounds.width));
+    field.height=Math.max(1,Math.round(bounds.height));
+    field.getContext('2d').drawImage(source,bounds.x,bounds.y,bounds.width,bounds.height,0,0,field.width,field.height);
+
     const worker=await Tesseract.createWorker('tur+eng');
-    await worker.setParameters({tessedit_pageseg_mode:'11',preserve_interword_spaces:'1'});
-    const out=await worker.recognize(crop);
+    await worker.setParameters({
+      tessedit_pageseg_mode:'7',
+      preserve_interword_spaces:'1',
+      user_defined_dpi:'300'
+    });
 
-    const texts=[];
-    for(const line of (out.data.lines||[])){
-      const text=String(line.text||'').trim().replace(/\s+/g,' ');
-      if(text.length>=3&&text.length<=42)
-        texts.push({text,bbox:line.bbox,nx:((line.bbox.x0+line.bbox.x1)/2)/crop.width,ny:((line.bbox.y0+line.bbox.y1)/2)/crop.height});
-    }
-    for(const word of (out.data.words||[])){
-      const text=String(word.text||'').trim();
-      if(text.length>=3&&text.length<=30)
-        texts.push({text,bbox:word.bbox,nx:((word.bbox.x0+word.bbox.x1)/2)/crop.width,ny:((word.bbox.y0+word.bbox.y1)/2)/crop.height});
-    }
-
-    // Kaleci adı saha görüntüsünün en üstünde ve karakterler çok küçük
-    // olduğundan genel PSM-11 taramasında zaman zaman tamamen kaçabiliyor.
-    // Sadece GK bandını ikinci kez, daha büyük ve kontrastlı okuyalım.
-    // Bu ikinci tarama tüm resmi değil yalnızca küçük bir bölgeyi işler.
-    const gkBand=document.createElement('canvas');
-    const gx=Math.round(crop.width*.22), gy=0;
-    const gw=Math.round(crop.width*.56), gh=Math.round(crop.height*.30);
-    gkBand.width=Math.max(1,gw*2); gkBand.height=Math.max(1,gh*2);
-    gkBand.getContext('2d').drawImage(crop,gx,gy,gw,gh,0,0,gkBand.width,gkBand.height);
-    const gkOut=await worker.recognize(gkBand);
-    for(const line of (gkOut.data.lines||[])){
-      const text=String(line.text||'').trim().replace(/\s+/g,' ');
-      if(text.length>=2&&text.length<=42){
-        const x0=line.bbox.x0/2+gx,x1=line.bbox.x1/2+gx;
-        const y0=line.bbox.y0/2+gy,y1=line.bbox.y1/2+gy;
-        texts.push({text,bbox:line.bbox,nx:((x0+x1)/2)/crop.width,ny:((y0+y1)/2)/crop.height});
+    const slotMatches=[];
+    for(const [slot] of SLOTS){
+      const crop=buildFixedNameCrop(field,slot,3);
+      const out=await worker.recognize(crop);
+      let best=null;
+      for(const text of ocrCandidatesFromResult(out)){
+        const match=bestOcrPlayer(text);
+        if(match && (!best || match.score>best.score))
+          best={...match,text};
       }
-    }
-    for(const word of (gkOut.data.words||[])){
-      const text=String(word.text||'').trim();
-      if(text.length>=2&&text.length<=30){
-        const x0=word.bbox.x0/2+gx,x1=word.bbox.x1/2+gx;
-        const y0=word.bbox.y0/2+gy,y1=word.bbox.y1/2+gy;
-        texts.push({text,bbox:word.bbox,nx:((x0+x1)/2)/crop.width,ny:((y0+y1)/2)/crop.height});
-      }
-    }
-    // Genel OCR bazı isimleri oyuncu görsellerinin üzerine bindirdiği
-    // için atlayabilir. Kadro eksik kaldıysa yalnızca isim etiketlerinin
-    // bulunduğu 14 küçük bantta ikinci bir tarama yapıyoruz. Böylece tüm
-    // ekranı tekrar OCR etmiyoruz; özellikle Takyi/Bozev/Pesalovo gibi
-    // alt tarafta veya kenarda kalan isimler kurtarılıyor.
-    if(texts.length<11){
-      const namePoints={
-        'GK':[.50,.23],
-        'WB-L':[.08,.50],'DEF-CL':[.29,.50],'DEF-C':[.50,.50],'DEF-CR':[.71,.50],'WB-R':[.92,.50],
-        'W-L':[.08,.75],'IM-L':[.29,.75],'IM-C':[.50,.75],'IM-R':[.71,.75],'W-R':[.92,.75],
-        'FW-L':[.29,.985],'FW-C':[.50,.985],'FW-R':[.71,.985]
-      };
-      await worker.setParameters({tessedit_pageseg_mode:'7',preserve_interword_spaces:'1'});
-      for(const [slot,[cx,cy]] of Object.entries(namePoints)){
-        const bw=Math.round(crop.width*.25),bh=Math.round(crop.height*.085);
-        const sx=Math.max(0,Math.min(crop.width-bw,Math.round(crop.width*cx-bw/2)));
-        const sy=Math.max(0,Math.min(crop.height-bh,Math.round(crop.height*cy-bh/2)));
-        const band=document.createElement('canvas');
-        band.width=Math.max(1,bw*2);band.height=Math.max(1,bh*2);
-        band.getContext('2d').drawImage(crop,sx,sy,bw,bh,0,0,band.width,band.height);
-        const bo=await worker.recognize(band);
-        for(const line of (bo.data.lines||[])){
-          const text=String(line.text||'').trim().replace(/\s+/g,' ');
-          if(text.length>=2&&text.length<=42){
-            const x0=line.bbox.x0/2+sx,x1=line.bbox.x1/2+sx;
-            const y0=line.bbox.y0/2+sy,y1=line.bbox.y1/2+sy;
-            texts.push({text,bbox:line.bbox,nx:((x0+x1)/2)/crop.width,ny:((y0+y1)/2)/crop.height});
-          }
-        }
-        for(const word of (bo.data.words||[])){
-          const text=String(word.text||'').trim();
-          if(text.length>=2&&text.length<=30){
-            const x0=word.bbox.x0/2+sx,x1=word.bbox.x1/2+sx;
-            const y0=word.bbox.y0/2+sy,y1=word.bbox.y1/2+sy;
-            texts.push({text,bbox:word.bbox,nx:((x0+x1)/2)/crop.width,ny:((y0+y1)/2)/crop.height});
-          }
-        }
-      }
+      if(best)slotMatches.push({slot,player:best.player,score:best.score,text:best.text});
     }
     await worker.terminate();
 
-    // Her OCR parçasını bir kez değil, CHPP kadrosundaki tüm oyuncularla
-    // aynı anda karşılaştırıyoruz. Whitelist yok; kadro tamamen dinamik.
-    const candidates=[];
-    for(const item of texts){
-      const match=bestOcrPlayer(item.text);
-      if(match)candidates.push({...item,player:match.player,score:match.score});
-    }
-    candidates.sort((a,b)=>b.score-a.score);
-
-    // Önce OCR ismini doğru oyuncuyla eşleştir, sonra oyuncunun gerçek
-    // ekran koordinatına göre en yakın mevkiyi seç. Önceki greedy yaklaşımda
-    // erken gelen bir OCR parçası WB-L/W-L gibi slotu kapatabiliyordu ve
-    // soldaki isimler kayboluyordu.
-    const slotPairs=[];
-    for(const item of candidates){
-      if(item.score<.84)continue;
-      for(const [slot,[sx,sy]] of Object.entries(OCR_SLOT_POINTS)){
-        const dx=(item.nx-sx)/.75,dy=item.ny-sy;
-        const distance=Math.sqrt(dx*dx+dy*dy);
-        // Aynı oyuncu adı farklı slotlara okunabilse de yalnızca saha
-        // üzerinde makul yakınlıktaki eşleşmeler yarışsın.
-        if(distance<=.30){
-          const spatialScore=item.score-(distance*.18);
-          slotPairs.push({slot,item,spatialScore,distance});
-        }
-      }
-    }
-
-    // En güçlü isim+konum eşleşmelerini global olarak sırala.
-    // Böylece A. Takyi, C. Pesalovo ve M. Bozev gibi sol taraftaki
-    // isimler sırf başka bir OCR parçası önce geldi diye kaybolmaz.
-    slotPairs.sort((a,b)=>b.spatialScore-a.spatialScore);
-    const found=[],usedPlayers=new Set(),usedSlots=new Set();
-    for(const pair of slotPairs){
-      if(found.length>=11)break;
-      const item=pair.item;
-      if(usedPlayers.has(item.player.id)||usedSlots.has(pair.slot))continue;
+    // Aynı oyuncu iki bölgede eşleşirse en güçlü bölgeyi tut.
+    slotMatches.sort((a,b)=>b.score-a.score);
+    const found=[],usedPlayers=new Set();
+    for(const item of slotMatches){
+      if(usedPlayers.has(item.player.id))continue;
       usedPlayers.add(item.player.id);
-      usedSlots.add(pair.slot);
-      found.push({player:item.player,slot:pair.slot,score:item.score,text:item.text});
+      found.push(item);
     }
-selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);
+
+    selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);
     for(const x of found)selected.set(x.slot,x.player);
     renderPitch(null);renderPlayers();
+
     status.textContent=found.length
-      ? found.length+' oyuncu bulundu ve mevkilere yerleştirildi: '+found.map(x=>x.player.name).join(', ')
-      : 'Oyuncu adı bulunamadı. Daha net bir maç ekranı yükle.';
+      ? found.length+' oyuncu bulundu ve sabit mevkilere yerleştirildi: '+found.map(x=>x.player.name).join(', ')
+      : 'İsim bölgeleri okunamadı. Ekran görüntüsünü aynı maç ekranından yükle.';
   }catch(e){
     console.error(e);status.textContent='Resim okunamadı.';
     err.textContent='Resimden kadro okunamadı: '+(e.message||e);err.style.display='block';
