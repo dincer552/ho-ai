@@ -100,7 +100,7 @@ public static class RatingPositionMatrix
                 return;
 case "WB-L":
             case "WB-R":
-                AddWingBack(sectors, p.Order, p.Side, defending, playmaking, winger, formMultiplier);
+                AddWingBack(sectors, p, p.Order, p.Side, defending, playmaking, winger, formMultiplier, experienceBonus);
                 FinishTrace();
                 return;
 case "DEF-CL":
@@ -201,9 +201,63 @@ default:
     }
 
     private static void AddWingBack(
-        Dictionary<RatingSector, double> s, PlayerOrder order, PlayerSide side,
-        double defending, double playmaking, double winger, double form)
+        Dictionary<RatingSector, double> s, RegionalPlayer p, PlayerOrder order, PlayerSide side,
+        double defending, double playmaking, double winger, double formMultiplier,
+        double experienceBonus)
     {
+        var defence = side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence;
+        var attack = side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack;
+
+        // Normal WB was recalibrated from the six independent singleton
+        // Hattrick captures supplied on 2026-09-20. These captures expose the
+        // displayed sector contribution directly, so Normal WB uses an
+        // empirical contribution surface instead of the older generic
+        // coefficient-only approximation. Other WB orders remain unchanged.
+        if (order == PlayerOrder.Normal)
+        {
+            var experience = experienceBonus;
+            var form = p.Form;
+
+            var centralDefence =
+                .22718839 * p.Defending
+                - .06836110 * p.Playmaking
+                - .03859804 * p.Winger
+                + 1.55775124 * experience
+                + .07189513 * form;
+
+            var sideDefence =
+                .07251566 * p.Defending
+                + .00050016 * p.Playmaking
+                + .00774675 * p.Winger
+                + .15188322 * experience
+                + .08817767 * form;
+
+            var midfield =
+                .02567605 * p.Defending
+                + .01508094 * p.Playmaking
+                + .01862094 * p.Winger
+                - .20468004 * experience
+                + .12042817 * form;
+
+            var sideAttack =
+                .01004223 * p.Defending
+                + .00375560 * p.Playmaking
+                + .13115347 * p.Winger
+                + .11525574 * experience
+                + .10627788 * form;
+
+            // Preserve the existing minute/stamina layer. At kickoff this
+            // factor is 1.0, matching the supplied singleton screenshots.
+            var baseForm = .378 * Math.Sqrt(Math.Clamp(p.Form - 1.0, 0.0, 7.0)) / .756;
+            var staminaMultiplier = baseForm > 1e-12 ? formMultiplier / baseForm : 1.0;
+
+            Add(s, RatingSector.CentralDefence, Math.Max(0.0, centralDefence), staminaMultiplier);
+            Add(s, defence, Math.Max(0.0, sideDefence), staminaMultiplier);
+            Add(s, RatingSector.Midfield, Math.Max(0.0, midfield), staminaMultiplier);
+            Add(s, attack, Math.Max(0.0, sideAttack), staminaMultiplier);
+            return;
+        }
+
         var centralDef = order switch
         {
             PlayerOrder.Defensive => .089,
@@ -220,14 +274,14 @@ default:
             _ => .268
         };
 
-        var midfield = order switch
+        var midfieldCoefficient = order switch
         {
             PlayerOrder.Defensive => .009,
             PlayerOrder.Offensive => .032,
             _ => .023
         };
 
-        var sideAttack = order switch
+        var sideAttackCoefficient = order switch
         {
             PlayerOrder.Defensive => .082,
             PlayerOrder.TowardsMiddle => .072,
@@ -235,43 +289,11 @@ default:
             _ => .129
         };
 
-        var defence = side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence;
-        var attack = side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack;
-
-        // 2026-09-20 empirical calibration from six independent Hattrick
-        // WB-Normal singleton captures. The production coefficient matrix
-        // remains unchanged for Defensive/TowardsMiddle/Offensive orders.
-        // These coefficients are intentionally isolated to Normal WB so the
-        // calibration can be reverted without touching the other 14 slots.
-        if (order == PlayerOrder.Normal)
-        {
-            var calibratedLeftDefence =
-                .22718839 * GetRawSkill(p: defending, effective: true);
-            var calibratedCentralDefence =
-                .07251566 * GetRawSkill(p: defending, effective: true);
-            var calibratedMidfield =
-                .02567605 * GetRawSkill(p: playmaking, effective: true);
-            var calibratedSideAttack =
-                .01004223 * GetRawSkill(p: winger, effective: true);
-
-            // The normal-WB singleton observations were calibrated against
-            // raw displayed skill, experience bonus and visible form. Those
-            // inputs are not available in this low-level matrix signature, so
-            // the final calibration is applied by AddContribution overload
-            // that supplies the raw player values.
-            _ = calibratedLeftDefence;
-            _ = calibratedCentralDefence;
-            _ = calibratedMidfield;
-            _ = calibratedSideAttack;
-        }
-
-        Add(s, RatingSector.CentralDefence, defending * centralDef, form);
-        Add(s, defence, defending * sideDef, form);
-        Add(s, RatingSector.Midfield, playmaking * midfield, form);
-        Add(s, attack, winger * sideAttack, form);
+        Add(s, RatingSector.CentralDefence, defending * centralDef, formMultiplier);
+        Add(s, defence, defending * sideDef, formMultiplier);
+        Add(s, RatingSector.Midfield, playmaking * midfieldCoefficient, formMultiplier);
+        Add(s, attack, winger * sideAttackCoefficient, formMultiplier);
     }
-
-    private static double GetRawSkill(double p, bool effective) => p;
 
     private static void AddInnerMidfielder(
         Dictionary<RatingSector, double> s, PlayerOrder order, PlayerSide side,
