@@ -27,6 +27,13 @@ const OCR_SLOT_POINTS={
 };
 const normText=s=>String(s||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').replace(/[^a-z0-9]+/g,' ').trim();
 function editDistance(a,b){const prev=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const cur=[i];for(let j=1;j<=b.length;j++)cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));for(let j=0;j<prev.length;j++)prev[j]=cur[j]}return prev[b.length]}
+function tokenSimilarity(a,b){
+  a=normText(a); b=normText(b);
+  if(!a||!b)return 0;
+  if(a===b)return 1;
+  const d=editDistance(a,b), max=Math.max(a.length,b.length);
+  return max ? Math.max(0,1-d/max) : 0;
+}
 function nameMatchScore(ocr,player){
   const a=normText(ocr), b=normText(player.name);
   if(!a||!b)return 0;
