@@ -144,16 +144,29 @@ async function importLineupFromImage(file){
     }
     candidates.sort((a,b)=>b.score-a.score);
 
-    const found=[],usedPlayers=new Set(),usedSlots=new Set();
+    const occupiedSlots = new Map();
+    const slotCandidates = new Map();
     for(const item of candidates){
-      if(usedPlayers.has(item.player.id)||item.score<.58)continue;
-      const slot=nearestSlot(item.nx,item.ny,usedSlots);
+      if(item.score<.50)continue;
+      const slot=nearestSlot(item.nx,item.ny,new Set(slotCandidates.keys()));
       if(!slot)continue;
-      usedPlayers.add(item.player.id);usedSlots.add(slot);
-      found.push({player:item.player,slot,score:item.score,text:item.text});
+      if(!slotCandidates.has(slot))slotCandidates.set(slot,[]);
+      slotCandidates.get(slot).push(item);
     }
-
-    selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);
+    // A match screen contains at most 11 active players. Keep the strongest
+    // spatial/name matches and never fill more than one player per slot.
+    const found=[],usedPlayers=new Set(),usedSlots=new Set();
+    const ranked=[...slotCandidates.entries()]
+      .map(([slot,list])=>({slot,item:list.sort((a,b)=>b.score-a.score)[0]}))
+      .sort((a,b)=>b.item.score-a.item.score);
+    for(const entry of ranked){
+      if(found.length>=11)break;
+      const item=entry.item;
+      if(usedPlayers.has(item.player.id)||usedSlots.has(entry.slot))continue;
+      usedPlayers.add(item.player.id);usedSlots.add(entry.slot);
+      found.push({player:item.player,slot:entry.slot,score:item.score,text:item.text});
+    }
+selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);
     for(const x of found)selected.set(x.slot,x.player);
     renderPitch(null);renderPlayers();
     status.textContent=found.length
