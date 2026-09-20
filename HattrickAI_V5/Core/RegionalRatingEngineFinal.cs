@@ -242,13 +242,13 @@ public sealed class RegionalRatingEngineFinal
         double la, double ca, double ra)
         => new(
             ld, cd, rd, mid, la, ca, ra,
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftDefence, ld),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralDefence, cd),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightDefence, rd),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.Midfield, mid),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftAttack, la),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralAttack, ca),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightAttack, ra));
+            ld,
+            cd,
+            rd,
+            mid,
+            la,
+            ca,
+            ra);
 
     // V5 exposes the raw engine result. Display quantization belongs only in
     // an explicit UI/display conversion layer; it must never alter engine data.
