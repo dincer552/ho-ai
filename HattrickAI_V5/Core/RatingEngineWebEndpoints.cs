@@ -63,6 +63,29 @@ public static class RatingEngineWebEndpoints
             }
         });
 
+        // Direct V5 endpoint for arbitrary partial/full manual testing. One player is enough;
+        // missing slots simply contribute zero, which makes this endpoint useful for
+        // isolating position/crowding behaviour without fabricating an XI.
+        app.MapPost("/api/v5/rating-engine/manual", (ManualV5RatingRequest request) =>
+        {
+            try
+            {
+                CustomV5RatingValidation.ValidateManual(request.Lineup, request.Players);
+                var result = new V5RatingEngine().Calculate(new RatingEngineRequest(
+                    request.Lineup, request.Players, request.Context, null, request.HOContext));
+                return Results.Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(new { message = "Manuel V5 kadrosu hesaplanamadı.", detail = ex.Message },
+                    statusCode: StatusCodes.Status500InternalServerError);
+            }
+        });
+
         // Direct V5 endpoint for arbitrary XI/slot selection. Formation is descriptive;
         // the selected slot codes determine the positional calculation.
         app.MapPost("/api/v5/rating-engine/custom", (CustomV5RatingRequest request) =>
