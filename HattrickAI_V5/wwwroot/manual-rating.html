@@ -108,41 +108,46 @@ async function importLineupFromImage(file){
   const status=document.getElementById('imageStatus'),err=document.getElementById('error');
   if(!file)return;
   if(!players.length){status.textContent='Önce CHPP oyuncu listesinin yüklenmesini bekle.';return;}
-  err.style.display='none'; status.textContent='Resim hazırlanıyor…';
+  err.style.display='none'; status.textContent='Oyuncular aranıyor…';
   const img=new Image(),url=URL.createObjectURL(file);
   try{
     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
     const source=document.createElement('canvas'),scale=Math.min(1.5,1800/img.naturalWidth);
-    source.width=Math.max(1,Math.round(img.naturalWidth*scale));source.height=Math.max(1,Math.round(img.naturalHeight*scale));
+    source.width=Math.max(1,Math.round(img.naturalWidth*scale));
+    source.height=Math.max(1,Math.round(img.naturalHeight*scale));
     source.getContext('2d').drawImage(img,0,0,source.width,source.height);
     const field=detectPitchBounds(source),crop=document.createElement('canvas');
-    crop.width=Math.max(1,Math.round(field.width));crop.height=Math.max(1,Math.round(field.height));
+    crop.width=Math.max(1,Math.round(field.width)); crop.height=Math.max(1,Math.round(field.height));
     crop.getContext('2d').drawImage(source,field.x,field.y,field.width,field.height,0,0,crop.width,crop.height);
-    status.textContent='Oyuncu isimleri çoklu OCR ile taranıyor…';
+
+    // Tek OCR taraması: önce sahadaki tüm isimleri çıkarıyoruz.
+    // Sonra OCR metnini CHPP'den gelen oyuncu listesine topluca karşılaştırıyoruz.
     const worker=await Tesseract.createWorker('tur+eng');
-    await worker.setParameters({preserve_interword_spaces:'1'});
-    const candidates=[];
-    for(const mode of ['color','gray','contrast','threshold']){
-      const variant=imageVariant(crop,mode,2);
-      for(const psm of ['11','12']){
-        await worker.setParameters({tessedit_pageseg_mode:psm});
-        const out=await worker.recognize(variant);
-        for(const line of (out.data.lines||[])){
-          const text=String(line.text||'').trim().replace(/\s+/g,' ');
-          if(text.length<3||text.length>42)continue;
-          const match=bestOcrPlayer(text);
-          if(match)candidates.push({player:match.player,score:match.score,text,nx:((line.bbox.x0+line.bbox.x1)/2)/variant.width,ny:((line.bbox.y0+line.bbox.y1)/2)/variant.height});
-        }
-        for(const word of (out.data.words||[])){
-          const text=String(word.text||'').trim();
-          if(text.length<3)continue;
-          const match=bestOcrPlayer(text);
-          if(match)candidates.push({player:match.player,score:match.score,text,nx:((word.bbox.x0+word.bbox.x1)/2)/variant.width,ny:((word.bbox.y0+word.bbox.y1)/2)/variant.height});
-        }
-      }
-    }
+    await worker.setParameters({tessedit_pageseg_mode:'11',preserve_interword_spaces:'1'});
+    const out=await worker.recognize(crop);
     await worker.terminate();
+
+    const texts=[];
+    for(const line of (out.data.lines||[])){
+      const text=String(line.text||'').trim().replace(/\s+/g,' ');
+      if(text.length>=3&&text.length<=42)
+        texts.push({text,bbox:line.bbox,nx:((line.bbox.x0+line.bbox.x1)/2)/crop.width,ny:((line.bbox.y0+line.bbox.y1)/2)/crop.height});
+    }
+    for(const word of (out.data.words||[])){
+      const text=String(word.text||'').trim();
+      if(text.length>=3&&text.length<=30)
+        texts.push({text,bbox:word.bbox,nx:((word.bbox.x0+word.bbox.x1)/2)/crop.width,ny:((word.bbox.y0+word.bbox.y1)/2)/crop.height});
+    }
+
+    // Her OCR parçasını bir kez değil, CHPP kadrosundaki tüm oyuncularla
+    // aynı anda karşılaştırıyoruz. Whitelist yok; kadro tamamen dinamik.
+    const candidates=[];
+    for(const item of texts){
+      const match=bestOcrPlayer(item.text);
+      if(match)candidates.push({...item,player:match.player,score:match.score});
+    }
     candidates.sort((a,b)=>b.score-a.score);
+
     const found=[],usedPlayers=new Set(),usedSlots=new Set();
     for(const item of candidates){
       if(usedPlayers.has(item.player.id)||item.score<.58)continue;
@@ -151,12 +156,13 @@ async function importLineupFromImage(file){
       usedPlayers.add(item.player.id);usedSlots.add(slot);
       found.push({player:item.player,slot,score:item.score,text:item.text});
     }
+
     selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);
     for(const x of found)selected.set(x.slot,x.player);
     renderPitch(null);renderPlayers();
     status.textContent=found.length
       ? found.length+' oyuncu bulundu ve mevkilere yerleştirildi: '+found.map(x=>x.player.name).join(', ')
-      : 'Oyuncu adı bulunamadı. Daha yüksek çözünürlüklü maç ekranı yükle.';
+      : 'Oyuncu adı bulunamadı. Daha net bir maç ekranı yükle.';
   }catch(e){
     console.error(e);status.textContent='Resim okunamadı.';
     err.textContent='Resimden kadro okunamadı: '+(e.message||e);err.style.display='block';
