@@ -31,20 +31,16 @@ function nameMatchScore(ocr,player){
   const a=normText(ocr), b=normText(player.name);
   if(!a||!b)return 0;
   if(a===b)return 1;
-  const at=a.split(/\s+/), bt=b.split(/\s+/);
-  const al=at[at.length-1], bl=bt[bt.length-1];
-  if(al===bl){
-    if(at[0] && /^[a-z]\.?$/.test(at[0])) return at[0][0]===bt[0][0] ? .98 : .80;
-    return .94;
-  }
-  const lastDistance=editDistance(al,bl);
-  if(lastDistance<=Math.max(1,Math.floor(bl.length*.22))){
-    if(at[0] && /^[a-z]\.?$/.test(at[0]) && at[0][0]===bt[0][0])return .96;
-    return .88;
-  }
+  const at=a.split(/\s+/).filter(Boolean),bt=b.split(/\s+/).filter(Boolean);
+  const al=at[at.length-1],bl=bt[bt.length-1];
+  const lastScore=tokenSimilarity(al,bl);
+  const initials=at[0]?.[0]===bt[0]?.[0];
+  if(at.length>=2&&bt.length>=2&&at[0].length<=2&&initials&&lastScore>=.80)return .95;
+  if(al===bl)return .94;
+  if(lastScore>=.88)return .90;
   if(a.includes(bl)||b.includes(al))return .82;
-  let common=0; for(const x of at)if(bt.includes(x))common++;
-  return common/Math.max(at.length,bt.length)*.75;
+  let common=0;for(const x of at)if(bt.includes(x))common++;
+  return Math.max(common/Math.max(at.length,bt.length)*.75,lastScore*.72);
 }
 function bestOcrPlayer(text,blocked=new Set()){
   let best=null,score=0;
@@ -53,7 +49,7 @@ function bestOcrPlayer(text,blocked=new Set()){
     const s=nameMatchScore(text,p);
     if(s>score){score=s;best=p;}
   }
-  return best&&score>=.52?{player:best,score}:null;
+  return best&&score>=.50?{player:best,score}:null;
 }
 function imageVariant(source,mode,scale=2){
   const w=Math.max(1,Math.round(source.width*scale)),h=Math.max(1,Math.round(source.height*scale));
