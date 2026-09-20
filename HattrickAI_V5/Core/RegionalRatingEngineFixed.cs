@@ -38,6 +38,7 @@ public sealed class RegionalRatingEngineFixed
         context ??= RatingContext.Default;
         var sectors = Empty();
         var playerTraces = new List<PlayerRatingCalculationTrace>(players.Count);
+        var crowdingState = RatingCrowding.Evaluate(players);
 
         foreach (var p in players)
         {
@@ -97,7 +98,7 @@ public sealed class RegionalRatingEngineFixed
                 x => x.Value - skillOnly[x.Key]);
 
             var slot = RatingPositionMatrix.CanonicalSlot(p);
-            var crowding = RatingCrowding.GetMultiplier(slot, players);
+            var crowding = crowdingState.ForSlot(slot);
 
             // Only skill contribution is crowded. Experience is a post-crowding
             // flat contribution and therefore remains fully intact.
