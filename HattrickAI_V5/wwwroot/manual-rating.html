@@ -55,6 +55,21 @@ function bestOcrPlayer(text,blocked=new Set()){
   }
   return best&&score>=.52?{player:best,score}:null;
 }
+function imageVariant(source,mode,scale=2){
+  const w=Math.max(1,Math.round(source.width*scale)),h=Math.max(1,Math.round(source.height*scale));
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(source,0,0,w,h);
+  if(mode==='color')return c;
+  const img=ctx.getImageData(0,0,w,h),d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    const y=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+    let v=y;
+    if(mode==='contrast')v=Math.max(0,Math.min(255,(y-128)*1.8+128));
+    if(mode==='threshold')v=y>150?255:0;
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  ctx.putImageData(img,0,0);return c;
+}
 function detectPitchBounds(canvas){
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
   const w=canvas.width,h=canvas.height,data=ctx.getImageData(0,0,w,h).data;
