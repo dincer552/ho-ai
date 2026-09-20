@@ -20,12 +20,13 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=x=>Number(x||0).toFixed(2).replace(/\.00$/,'');
 
 const OCR_SLOT_POINTS={
-  'GK':[.50,.09],
-  'WB-L':[.08,.29],'DEF-CL':[.29,.29],'DEF-C':[.50,.29],'DEF-CR':[.71,.29],'WB-R':[.92,.29],
-  'W-L':[.08,.51],'IM-L':[.29,.51],'IM-C':[.50,.51],'IM-R':[.71,.51],'W-R':[.92,.51],
-  'FW-L':[.29,.75],'FW-C':[.50,.75],'FW-R':[.71,.75]
+  'GK':[.50,.18],
+  'WB-L':[.08,.46],'DEF-CL':[.29,.46],'DEF-C':[.50,.46],'DEF-CR':[.71,.46],'WB-R':[.92,.46],
+  'W-L':[.08,.71],'IM-L':[.29,.71],'IM-C':[.50,.71],'IM-R':[.71,.71],'W-R':[.92,.71],
+  'FW-L':[.29,.95],'FW-C':[.50,.95],'FW-R':[.71,.95]
 };
 const normText=s=>String(s||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').replace(/[^a-z0-9]+/g,' ').trim();
+function editDistance(a,b){const prev=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const cur=[i];for(let j=1;j<=b.length;j++)cur[j]=Math.min(cur[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));for(let j=0;j<prev.length;j++)prev[j]=cur[j]}return prev[b.length]}
 function nameMatchScore(ocr,player){
   const a=normText(ocr), b=normText(player.name);
   if(!a||!b)return 0;
@@ -35,6 +36,11 @@ function nameMatchScore(ocr,player){
   if(al===bl){
     if(at[0] && /^[a-z]\.?$/.test(at[0])) return at[0][0]===bt[0][0] ? .98 : .80;
     return .94;
+  }
+  const lastDistance=editDistance(al,bl);
+  if(lastDistance<=Math.max(1,Math.floor(bl.length*.22))){
+    if(at[0] && /^[a-z]\.?$/.test(at[0]) && at[0][0]===bt[0][0])return .96;
+    return .88;
   }
   if(a.includes(bl)||b.includes(al))return .82;
   let common=0; for(const x of at)if(bt.includes(x))common++;
