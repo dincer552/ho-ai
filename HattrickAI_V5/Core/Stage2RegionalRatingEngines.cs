@@ -44,10 +44,10 @@ public sealed class Stage2RegionalRatingEngineFixed
     private readonly RegionalRatingEngineFixed _inner = new();
 
     public RegionalRatingSnapshot Calculate(IReadOnlyList<RegionalPlayer> players, RatingContext? context = null)
-        => Stage2RegionalRatingEngine.Convert(_inner.Calculate(players, context));
+        => _inner.Calculate(players, context);
 
     public RegionalRatingSnapshot CalculateLineup(Lineup lineup, IReadOnlyList<Player> players, RatingContext? context = null)
-        => Stage2RegionalRatingEngine.Convert(_inner.CalculateLineup(lineup, players, context));
+        => _inner.CalculateLineup(lineup, players, context);
 
     public RegionalRatingPair CalculatePair(
         Lineup ownLineup,
