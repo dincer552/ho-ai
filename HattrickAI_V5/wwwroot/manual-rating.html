@@ -207,27 +207,37 @@ async function importLineupFromImage(file){
     }
     candidates.sort((a,b)=>b.score-a.score);
 
-    const occupiedSlots = new Map();
-    const slotCandidates = new Map();
+    // Önce OCR ismini doğru oyuncuyla eşleştir, sonra oyuncunun gerçek
+    // ekran koordinatına göre en yakın mevkiyi seç. Önceki greedy yaklaşımda
+    // erken gelen bir OCR parçası WB-L/W-L gibi slotu kapatabiliyordu ve
+    // soldaki isimler kayboluyordu.
+    const slotPairs=[];
     for(const item of candidates){
-      if(item.score<.50)continue;
-      const slot=nearestSlot(item.nx,item.ny,new Set(slotCandidates.keys()));
-      if(!slot)continue;
-      if(!slotCandidates.has(slot))slotCandidates.set(slot,[]);
-      slotCandidates.get(slot).push(item);
+      if(item.score<.84)continue;
+      for(const [slot,[sx,sy]] of Object.entries(OCR_SLOT_POINTS)){
+        const dx=(item.nx-sx)/.75,dy=item.ny-sy;
+        const distance=Math.sqrt(dx*dx+dy*dy);
+        // Aynı oyuncu adı farklı slotlara okunabilse de yalnızca saha
+        // üzerinde makul yakınlıktaki eşleşmeler yarışsın.
+        if(distance<=.30){
+          const spatialScore=item.score-(distance*.18);
+          slotPairs.push({slot,item,spatialScore,distance});
+        }
+      }
     }
-    // A match screen contains at most 11 active players. Keep the strongest
-    // spatial/name matches and never fill more than one player per slot.
+
+    // En güçlü isim+konum eşleşmelerini global olarak sırala.
+    // Böylece A. Takyi, C. Pesalovo ve M. Bozev gibi sol taraftaki
+    // isimler sırf başka bir OCR parçası önce geldi diye kaybolmaz.
+    slotPairs.sort((a,b)=>b.spatialScore-a.spatialScore);
     const found=[],usedPlayers=new Set(),usedSlots=new Set();
-    const ranked=[...slotCandidates.entries()]
-      .map(([slot,list])=>({slot,item:list.sort((a,b)=>b.score-a.score)[0]}))
-      .sort((a,b)=>b.item.score-a.item.score);
-    for(const entry of ranked){
+    for(const pair of slotPairs){
       if(found.length>=11)break;
-      const item=entry.item;
-      if(usedPlayers.has(item.player.id)||usedSlots.has(entry.slot))continue;
-      usedPlayers.add(item.player.id);usedSlots.add(entry.slot);
-      found.push({player:item.player,slot:entry.slot,score:item.score,text:item.text});
+      const item=pair.item;
+      if(usedPlayers.has(item.player.id)||usedSlots.has(pair.slot))continue;
+      usedPlayers.add(item.player.id);
+      usedSlots.add(pair.slot);
+      found.push({player:item.player,slot:pair.slot,score:item.score,text:item.text});
     }
 selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);
     for(const x of found)selected.set(x.slot,x.player);
