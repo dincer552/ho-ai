@@ -1,23 +1,133 @@
 <!doctype html>
 <html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#21804a"><title>HattrickAI V5 • Manuel Rating</title>
 <style>
-:root{--bg:#edf1ee;--card:#fff;--ink:#26332c;--muted:#737c76;--g:#21804a;--p:#2f8444;--p2:#287a3c;--line:#d9f1da88;--blue:#bce9ff;--gold:#f0c34f}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}.page{max-width:1100px;margin:auto;padding:12px}.top,.card{background:var(--card);border-radius:14px;box-shadow:0 2px 9px #0002}.top{padding:12px 15px;display:flex;align-items:center;gap:10px;margin-bottom:12px}.brand{font-size:21px;font-weight:900}.brand span{color:var(--g)}.crumb{flex:1;color:var(--muted);font-size:12px}.back,.btn,.move{cursor:pointer;font-weight:900;border-radius:9px}.back{border:1px solid #d1ddd5;background:#f6faf7;color:var(--g);padding:9px 12px}.grid{display:grid;grid-template-columns:minmax(340px,1fr) minmax(390px,1.05fr);gap:14px}.card{overflow:hidden;margin-bottom:14px}.head{padding:14px 16px;border-bottom:1px solid #edf1ee}.eyebrow{font-size:10px;font-weight:900;letter-spacing:.08em;color:#7c837f}.title{font-size:20px;font-weight:900;margin-top:3px}.sub{font-size:11px;color:var(--muted);line-height:1.35;margin-top:4px}.controls{padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:9px}.controls label{display:block;font-size:10px;font-weight:900;color:#6f7872;margin-bottom:4px}.controls select,.controls input{width:100%;height:39px;border:1px solid #d4dfd7;border-radius:9px;padding:0 10px;background:#fff;color:var(--ink)}.player-list{padding:0 12px 12px;max-height:680px;overflow:auto}.player{border:1px solid #dfe7e1;border-radius:11px;padding:9px;margin-top:8px}.player-main{display:flex;gap:8px;align-items:center}.pname{font-weight:900;font-size:13px;flex:1}.pmeta{font-size:9px;color:#7b837d}.skills{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-top:7px}.skill{background:#f3f6f4;border-radius:5px;text-align:center;padding:4px 1px}.skill b{display:block;font-size:11px}.skill span{font-size:7px;color:#778079}.movegrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:7px}.move{border:1px solid #d0ddd4;background:#f8faf9;color:#2a6943;padding:5px 1px;font-size:8px}.pitch-wrap{padding:0 12px 12px}.pitch{position:relative;aspect-ratio:1.03/1;background:linear-gradient(90deg,var(--p),var(--p2));border-radius:10px;overflow:hidden}.pitch:before{content:"";position:absolute;inset:15px;border:2px solid var(--line)}.mid{position:absolute;left:15px;right:15px;top:50%;border-top:2px solid var(--line)}.circle{position:absolute;width:30%;aspect-ratio:1;border:2px solid var(--line);border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%)}.box{position:absolute;width:42%;height:22%;left:29%;border:2px solid var(--line)}.box.t{top:15px}.box.b{bottom:15px}.goal{position:absolute;width:17%;height:7%;left:41.5%;border:2px solid var(--line)}.goal.t{top:0}.goal.b{bottom:0}.slots{position:absolute;inset:0;z-index:2}.pslot{position:absolute;width:15.8%;height:13%;border:2px solid #d9f1da90;border-radius:9px;background:#23733855;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;cursor:pointer}.pslot.filled{background:#78bde04a;border-color:var(--blue);box-shadow:0 2px 5px #0004}.pslot.selected{border-color:#fff;box-shadow:0 0 0 2px var(--gold),0 3px 8px #0005}.pslot small{display:block;font-size:8px;opacity:.7}.pslot b{display:block;font-size:clamp(8px,1.5vw,12px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gk{left:42%;top:4%}.dl{left:1.5%;top:26.5%}.dcl{left:21%;top:26.5%}.dc{left:42%;top:26.5%}.dcr{left:63%;top:26.5%}.dr{left:83.5%;top:26.5%}.wl{left:1.5%;top:49%}.iml{left:21%;top:49%}.imc{left:42%;top:49%}.imr{left:63%;top:49%}.wr{left:83.5%;top:49%}.fwl{left:21%;top:72%}.fwc{left:42%;top:72%}.fwr{left:63%;top:72%}.board{position:absolute;right:7px;top:7px;width:31%;z-index:4;color:#fff;text-shadow:0 1px 3px #0008;font-weight:900;pointer-events:none}.rrow{display:grid;grid-template-columns:repeat(3,1fr);text-align:center}.rrow span,.rmid span{font-size:clamp(12px,2.2vw,20px)}.rmid{text-align:center;margin:3px}.rlabel{font-size:7px;text-align:right;opacity:.7}.bottom{padding:12px 14px;display:flex;gap:8px;align-items:center}.count{flex:1;color:var(--muted);font-size:11px}.btn{border:0;padding:10px 13px;background:var(--g);color:#fff}.btn.secondary{background:#f1f5f2;color:#25673f;border:1px solid #cfdcd3}.btn:disabled{opacity:.45}.result{padding:12px 14px}.ratings{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.rating{background:#f3f6f4;border-radius:9px;padding:8px 3px;text-align:center}.rating b{display:block;font-size:16px}.rating span{font-size:8px;color:#717a74}.status{padding:9px 14px;color:#68716c;font-size:10px;border-top:1px solid #edf1ee}.json-action{padding:0 14px 13px;display:flex;align-items:center;gap:9px}.json-btn{border:1px solid #cddbd1;background:#f4f8f5;color:#20663b;border-radius:10px;padding:9px 12px;font-size:11px;font-weight:900;letter-spacing:.03em;cursor:pointer}.json-btn:disabled{opacity:.45;cursor:not-allowed}.json-note{color:#7a827d;font-size:10px;line-height:1.35}.error{display:none;margin:0 14px 12px;padding:9px;border-radius:9px;background:#fff1ef;border:1px solid #e1aaa2;color:#963e34;font-size:11px;white-space:pre-wrap}.empty{text-align:center;padding:18px;color:#78817b;font-size:12px}@media(max-width:800px){.grid{grid-template-columns:1fr}.player-list{max-height:none}.ratings{grid-template-columns:repeat(4,1fr)}}@media(max-width:470px){.page{padding:8px}.controls{grid-template-columns:1fr}.movegrid{grid-template-columns:repeat(7,1fr)}.skills{grid-template-columns:repeat(9,1fr)}.pitch-wrap{padding:0 8px 8px}.pslot{border-width:1.5px}.pslot small{font-size:6px}.pslot b{font-size:8px}.board{width:38%}}
+:root{--bg:#edf1ee;--card:#fff;--ink:#26332c;--muted:#737c76;--g:#21804a;--p:#2f8444;--p2:#287a3c;--line:#d9f1da88;--blue:#bce9ff;--gold:#f0c34f}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif}.page{max-width:1100px;margin:auto;padding:12px}.top,.card{background:var(--card);border-radius:14px;box-shadow:0 2px 9px #0002}.top{padding:12px 15px;display:flex;align-items:center;gap:10px;margin-bottom:12px}.brand{font-size:21px;font-weight:900}.brand span{color:var(--g)}.crumb{flex:1;color:var(--muted);font-size:12px}.back,.btn,.move{cursor:pointer;font-weight:900;border-radius:9px}.back{border:1px solid #d1ddd5;background:#f6faf7;color:var(--g);padding:9px 12px}.grid{display:grid;grid-template-columns:minmax(340px,1fr) minmax(390px,1.05fr);gap:14px}.card{overflow:hidden;margin-bottom:14px}.head{padding:14px 16px;border-bottom:1px solid #edf1ee}.eyebrow{font-size:10px;font-weight:900;letter-spacing:.08em;color:#7c837f}.title{font-size:20px;font-weight:900;margin-top:3px}.sub{font-size:11px;color:var(--muted);line-height:1.35;margin-top:4px}.controls{padding:12px 14px;display:grid;grid-template-columns:1fr 1fr;gap:9px}.controls label{display:block;font-size:10px;font-weight:900;color:#6f7872;margin-bottom:4px}.image-import{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;gap:6px 9px;align-items:center}.image-import>label{grid-column:1/-1;margin:0}.image-import .btn{font-size:11px}.image-status{font-size:10px;color:#68716c;line-height:1.3}.controls select,.controls input{width:100%;height:39px;border:1px solid #d4dfd7;border-radius:9px;padding:0 10px;background:#fff;color:var(--ink)}.player-list{padding:0 12px 12px;max-height:680px;overflow:auto}.player{border:1px solid #dfe7e1;border-radius:11px;padding:9px;margin-top:8px}.player-main{display:flex;gap:8px;align-items:center}.pname{font-weight:900;font-size:13px;flex:1}.pmeta{font-size:9px;color:#7b837d}.skills{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-top:7px}.skill{background:#f3f6f4;border-radius:5px;text-align:center;padding:4px 1px}.skill b{display:block;font-size:11px}.skill span{font-size:7px;color:#778079}.movegrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:7px}.move{border:1px solid #d0ddd4;background:#f8faf9;color:#2a6943;padding:5px 1px;font-size:8px}.pitch-wrap{padding:0 12px 12px}.pitch{position:relative;aspect-ratio:1.03/1;background:linear-gradient(90deg,var(--p),var(--p2));border-radius:10px;overflow:hidden}.pitch:before{content:"";position:absolute;inset:15px;border:2px solid var(--line)}.mid{position:absolute;left:15px;right:15px;top:50%;border-top:2px solid var(--line)}.circle{position:absolute;width:30%;aspect-ratio:1;border:2px solid var(--line);border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%)}.box{position:absolute;width:42%;height:22%;left:29%;border:2px solid var(--line)}.box.t{top:15px}.box.b{bottom:15px}.goal{position:absolute;width:17%;height:7%;left:41.5%;border:2px solid var(--line)}.goal.t{top:0}.goal.b{bottom:0}.slots{position:absolute;inset:0;z-index:2}.pslot{position:absolute;width:15.8%;height:13%;border:2px solid #d9f1da90;border-radius:9px;background:#23733855;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:3px;cursor:pointer}.pslot.filled{background:#78bde04a;border-color:var(--blue);box-shadow:0 2px 5px #0004}.pslot.selected{border-color:#fff;box-shadow:0 0 0 2px var(--gold),0 3px 8px #0005}.pslot small{display:block;font-size:8px;opacity:.7}.pslot b{display:block;font-size:clamp(8px,1.5vw,12px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.gk{left:42%;top:4%}.dl{left:1.5%;top:26.5%}.dcl{left:21%;top:26.5%}.dc{left:42%;top:26.5%}.dcr{left:63%;top:26.5%}.dr{left:83.5%;top:26.5%}.wl{left:1.5%;top:49%}.iml{left:21%;top:49%}.imc{left:42%;top:49%}.imr{left:63%;top:49%}.wr{left:83.5%;top:49%}.fwl{left:21%;top:72%}.fwc{left:42%;top:72%}.fwr{left:63%;top:72%}.board{position:absolute;right:7px;top:7px;width:31%;z-index:4;color:#fff;text-shadow:0 1px 3px #0008;font-weight:900;pointer-events:none}.rrow{display:grid;grid-template-columns:repeat(3,1fr);text-align:center}.rrow span,.rmid span{font-size:clamp(12px,2.2vw,20px)}.rmid{text-align:center;margin:3px}.rlabel{font-size:7px;text-align:right;opacity:.7}.bottom{padding:12px 14px;display:flex;gap:8px;align-items:center}.count{flex:1;color:var(--muted);font-size:11px}.btn{border:0;padding:10px 13px;background:var(--g);color:#fff}.btn.secondary{background:#f1f5f2;color:#25673f;border:1px solid #cfdcd3}.btn:disabled{opacity:.45}.result{padding:12px 14px}.ratings{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.rating{background:#f3f6f4;border-radius:9px;padding:8px 3px;text-align:center}.rating b{display:block;font-size:16px}.rating span{font-size:8px;color:#717a74}.status{padding:9px 14px;color:#68716c;font-size:10px;border-top:1px solid #edf1ee}.json-action{padding:0 14px 13px;display:flex;align-items:center;gap:9px}.json-btn{border:1px solid #cddbd1;background:#f4f8f5;color:#20663b;border-radius:10px;padding:9px 12px;font-size:11px;font-weight:900;letter-spacing:.03em;cursor:pointer}.json-btn:disabled{opacity:.45;cursor:not-allowed}.json-note{color:#7a827d;font-size:10px;line-height:1.35}.error{display:none;margin:0 14px 12px;padding:9px;border-radius:9px;background:#fff1ef;border:1px solid #e1aaa2;color:#963e34;font-size:11px;white-space:pre-wrap}.empty{text-align:center;padding:18px;color:#78817b;font-size:12px}@media(max-width:800px){.grid{grid-template-columns:1fr}.player-list{max-height:none}.ratings{grid-template-columns:repeat(4,1fr)}}@media(max-width:470px){.page{padding:8px}.controls{grid-template-columns:1fr}.movegrid{grid-template-columns:repeat(7,1fr)}.skills{grid-template-columns:repeat(9,1fr)}.pitch-wrap{padding:0 8px 8px}.pslot{border-width:1.5px}.pslot small{font-size:6px}.pslot b{font-size:8px}.board{width:38%}}
 </style></head>
 <body><main class="page">
 <header class="top"><div class="brand">Hattrick<span>AI</span></div><div class="crumb">V5 • Manuel Rating Motoru Testi</div><button class="back" onclick="location.href='/'">← Ana sayfa</button></header>
 <div class="grid"><section><article class="card"><div class="head"><div class="eyebrow">OYUNCU HAVUZU</div><div class="title">Oyuncu seç</div><div class="sub">Üstten özelliği seç; en yüksek oyuncular üstte. Her oyuncunun altında 14 mevkiye taşıma düğmeleri var.</div></div>
-<div class="controls"><div><label>SIRALAMA</label><select id="sort"><option value="defending">Defans</option><option value="playmaking">Oyunkuruculuk</option><option value="passing">Pas</option><option value="winger">Kanat</option><option value="scoring">Golcülük</option><option value="keeper">Kalecilik</option><option value="form">Form</option><option value="stamina">Dayanıklılık</option><option value="experience">Tecrübe</option></select></div><div><label>ARAMA</label><input id="search" placeholder="Oyuncu adı ara…"></div></div>
+<div class="controls"><div class="image-import"><label>RESİMDEN KADRO</label><button class="btn secondary" id="imageImport" type="button">📷 RESİM YÜKLE</button><input id="imageFile" type="file" accept="image/*" hidden><span id="imageStatus" class="image-status">Ekran görüntüsündeki oyuncuları otomatik mevkilere yerleştirir.</span></div><div><label>SIRALAMA</label><select id="sort"><option value="defending">Defans</option><option value="playmaking">Oyunkuruculuk</option><option value="passing">Pas</option><option value="winger">Kanat</option><option value="scoring">Golcülük</option><option value="keeper">Kalecilik</option><option value="form">Form</option><option value="stamina">Dayanıklılık</option><option value="experience">Tecrübe</option></select></div><div><label>ARAMA</label><input id="search" placeholder="Oyuncu adı ara…"></div></div>
 <div class="error" id="error"></div><div class="player-list" id="players"><div class="empty">CHPP oyuncuları yükleniyor…</div></div></article></section>
 <section><article class="card"><div class="head"><div class="eyebrow">V5 MANUEL KADRO</div><div class="title" id="teamTitle">Takım kadrosu</div><div class="sub">1 oyuncu bile seçsen hesap yapılır. Oyuncu başka mevkiye taşınırsa önceki mevki boşalır.</div></div>
 <div class="pitch-wrap"><div class="pitch" id="pitch"><div class="mid"></div><div class="circle"></div><div class="box t"></div><div class="box b"></div><div class="goal t"></div><div class="goal b"></div><div class="slots"></div><div class="board" id="board"></div></div></div>
 <div class="bottom"><div class="count" id="count">0 / 11 oyuncu seçildi</div><button class="btn secondary" id="clear">TEMİZLE</button><button class="btn" id="calculate" disabled>V5 HESAPLA</button></div>
 <div class="result" id="result"></div><div class="json-action"><button class="json-btn" id="downloadJson" type="button" disabled>HESAP JSON İNDİR</button><span class="json-note">Seçilen oyuncular, 14 mevki yerleşimi, V5 hesap girdileri ve son hesap sonucu birlikte indirilir.</span></div><div class="status" id="status">Oyuncu verisi bekleniyor…</div></article></section></div></main>
-<script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script>
 const SLOTS=[['GK','gk','GK'],['WB-L','dl','WB-L'],['DEF-CL','dcl','DEF-L'],['DEF-C','dc','DEF-C'],['DEF-CR','dcr','DEF-R'],['WB-R','dr','WB-R'],['W-L','wl','W-L'],['IM-L','iml','IM-L'],['IM-C','imc','IM-C'],['IM-R','imr','IM-R'],['W-R','wr','W-R'],['FW-L','fwl','FW-L'],['FW-C','fwc','FW-C'],['FW-R','fwr','FW-R']];
 const SKILLS=[['keeper','KL'],['defending','DEF'],['playmaking','PM'],['passing','PAS'],['winger','KAN'],['scoring','GOL'],['form','FORM'],['stamina','STA'],['experience','EXP']];
 let players=[],selected=new Map(),activeSlot=null,lastRating=null,lastCalculation=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const fmt=x=>Number(x||0).toFixed(2).replace(/\.00$/,'');
+
+const OCR_SLOT_POINTS={
+  'GK':[.50,.09],
+  'WB-L':[.08,.29],'DEF-CL':[.29,.29],'DEF-C':[.50,.29],'DEF-CR':[.71,.29],'WB-R':[.92,.29],
+  'W-L':[.08,.51],'IM-L':[.29,.51],'IM-C':[.50,.51],'IM-R':[.71,.51],'W-R':[.92,.51],
+  'FW-L':[.29,.75],'FW-C':[.50,.75],'FW-R':[.71,.75]
+};
+const normText=s=>String(s||'').toLocaleLowerCase('tr-TR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').replace(/[^a-z0-9]+/g,' ').trim();
+function nameMatchScore(ocr,player){
+  const a=normText(ocr), b=normText(player.name);
+  if(!a||!b)return 0;
+  if(a===b)return 1;
+  const at=a.split(/\s+/), bt=b.split(/\s+/);
+  const al=at[at.length-1], bl=bt[bt.length-1];
+  if(al===bl){
+    if(at[0] && /^[a-z]\.?$/.test(at[0])) return at[0][0]===bt[0][0] ? .98 : .80;
+    return .94;
+  }
+  if(a.includes(bl)||b.includes(al))return .82;
+  let common=0; for(const x of at)if(bt.includes(x))common++;
+  return common/Math.max(at.length,bt.length)*.75;
+}
+function bestOcrPlayer(text){
+  let best=null,score=0;
+  for(const p of players){
+    const s=nameMatchScore(text,p);
+    if(s>score){score=s;best=p;}
+  }
+  return score>=.80?{player:best,score}:null;
+}
+function detectPitchBounds(canvas){
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const w=canvas.width,h=canvas.height,data=ctx.getImageData(0,0,w,h).data;
+  const row=[];
+  for(let y=0;y<h;y++){
+    let hit=0;
+    for(let x=0;x<w;x++){
+      const i=(y*w+x)*4,r=data[i],g=data[i+1],b=data[i+2];
+      if(g>r*1.15 && g>b*1.05 && g>55)hit++;
+    }
+    row[y]=hit/w;
+  }
+  let best={start:-1,end:-1,len:0},start=-1;
+  for(let y=250;y<Math.min(h-100,1400);y++){
+    if(row[y]>.40){if(start<0)start=y;}
+    else if(start>=0){
+      const len=y-start;
+      if(len>best.len)best={start,end:y,len};
+      start=-1;
+    }
+  }
+  if(start>=0&&h-start>best.len)best={start,end:h,len:h-start};
+  if(best.len<250)return{x:0,y:Math.max(0,h*.40),width:w,height:h*.40};
+  return{x:0,y:best.start,width:w,height:best.end-best.start};
+}
+function nearestSlot(nx,ny,used){
+  let best=null,dist=Infinity;
+  for(const [slot,[x,y]] of Object.entries(OCR_SLOT_POINTS)){
+    if(used.has(slot))continue;
+    const d=((nx-x)/.75)**2+((ny-y))**2;
+    if(d<dist){dist=d;best=slot;}
+  }
+  return best;
+}
+async function importLineupFromImage(file){
+  const status=document.getElementById('imageStatus'),err=document.getElementById('error');
+  if(!file)return;
+  if(!players.length){status.textContent='Önce CHPP oyuncu listesinin yüklenmesini bekle.';return;}
+  err.style.display='none';
+  status.textContent='Resim okunuyor…';
+  const img=new Image(),url=URL.createObjectURL(file);
+  try{
+    await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
+    const canvas=document.createElement('canvas'),scale=Math.min(1,1800/img.naturalWidth);
+    canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
+    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    status.textContent='Oyuncu isimleri OCR ile aranıyor…';
+    const worker=await Tesseract.createWorker('eng');
+    const out=await worker.recognize(canvas);
+    await worker.terminate();
+    const lines=(out.data.lines||[]).filter(x=>String(x.text||'').trim());
+    const pitch=detectPitchBounds(canvas);
+    const found=[],usedPlayers=new Set(),usedSlots=new Set();
+    for(const line of lines){
+      const match=bestOcrPlayer(line.text);
+      if(!match||usedPlayers.has(match.player.id))continue;
+      const cx=(line.bbox.x0+line.bbox.x1)/2,cy=(line.bbox.y0+line.bbox.y1)/2;
+      const nx=(cx-pitch.x)/pitch.width,ny=(cy-pitch.y)/pitch.height;
+      if(nx<0||nx>1||ny<0||ny>1)continue;
+      const slot=nearestSlot(nx,ny,usedSlots);
+      if(!slot)continue;
+      usedPlayers.add(match.player.id);usedSlots.add(slot);
+      found.push({player:match.player,slot,score:match.score,text:line.text});
+    }
+    selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);
+    for(const x of found)selected.set(x.slot,x.player);
+    renderPitch(null);renderPlayers();
+    if(found.length){
+      const names=found.map(x=>x.player.name).join(', ');
+      status.textContent=found.length+' oyuncu bulundu ve mevkilere yerleştirildi: '+names;
+    }else{
+      status.textContent='Oyuncu adı eşleşmedi. Daha net bir maç dizilişi ekranı yükle.';
+    }
+  }catch(e){
+    console.error(e);
+    status.textContent='Resim okunamadı.';
+    err.textContent='Resimden kadro okunamadı: '+(e.message||e);
+    err.style.display='block';
+  }finally{URL.revokeObjectURL(url)}
+}
 function renderPitch(r){lastRating=r;const layer=document.querySelector('.slots');layer.innerHTML='';for(const [code,cls,label] of SLOTS){const d=document.createElement('div');d.className='pslot '+cls+(selected.has(code)?' filled':'')+(activeSlot===code?' selected':'');const p=selected.get(code);d.innerHTML=p?'<div><small>'+label+'</small><b>'+esc(p.name)+'</b></div>':'<div><small>'+label+'</small><b>+</b></div>';d.onclick=()=>{activeSlot=code;renderPitch(lastRating);};layer.appendChild(d)}renderBoard(r)}
 function renderBoard(r){const b=document.getElementById('board');if(!r){b.innerHTML='';return}const v=[r.leftDefence,r.centralDefence,r.rightDefence,r.midfield,r.leftAttack,r.centralAttack,r.rightAttack];b.innerHTML='<div class="rrow">'+v.slice(0,3).map(x=>'<span>'+fmt(x)+'</span>').join('')+'</div><div class="rmid"><span>'+fmt(v[3])+'</span></div><div class="rrow">'+v.slice(4).map(x=>'<span>'+fmt(x)+'</span>').join('')+'</div><div class="rlabel">DEF-L • DEF-C • DEF-R / MID / ATT-L • ATT-C • ATT-R</div>'}
 function sorted(){const k=document.getElementById('sort').value,q=document.getElementById('search').value.trim().toLocaleLowerCase('tr-TR');return players.filter(p=>!q||p.name.toLocaleLowerCase('tr-TR').includes(q)).sort((a,b)=>(Number(b[k]||0)-Number(a[k]||0))||a.name.localeCompare(b.name,'tr'))}
@@ -29,5 +139,5 @@ function setJsonEnabled(enabled){const b=document.getElementById('downloadJson')
 function downloadManualJson(){if(!lastCalculation){alert('Önce V5 hesaplamasını çalıştırmalısın.');return}const blob=new Blob([JSON.stringify(lastCalculation,null,2)],{type:'application/json;charset=utf-8'});const url=URL.createObjectURL(blob);const team=String(document.getElementById('teamTitle').textContent||'takim').replace(/[^a-zA-Z0-9_-]+/g,'_');const stamp=new Date().toISOString().replace(/[:.]/g,'-');const a=document.createElement('a');a.href=url;a.download='hattrickai-v5-manual-rating-'+team+'-'+stamp+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function clearAll(){selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);renderPitch(null);renderPlayers();document.getElementById('result').innerHTML='';document.getElementById('status').textContent='Kadron temizlendi.'}
 async function load(){try{const r=await fetch('/api/v5/team-player-export',{cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.message||d.detail||'Oyuncu verisi alınamadı');players=d.players||[];document.getElementById('teamTitle').textContent=d.team?.teamName||'Takım kadrosu';document.getElementById('status').textContent=players.length+' oyuncu CHPP’den yüklendi.';renderPlayers();renderPitch(null)}catch(e){document.getElementById('error').textContent=e.message+' • Önce CHPP bağlantısını aç.';document.getElementById('error').style.display='block';document.getElementById('players').innerHTML='<div class="empty">Oyuncular yüklenemedi.</div>'}}
-document.getElementById('sort').onchange=renderPlayers;document.getElementById('search').oninput=renderPlayers;document.getElementById('calculate').onclick=calc;document.getElementById('clear').onclick=clearAll;document.getElementById('downloadJson').onclick=downloadManualJson;setJsonEnabled(false);load();
+document.getElementById('sort').onchange=renderPlayers;document.getElementById('search').oninput=renderPlayers;document.getElementById('imageImport').onclick=()=>document.getElementById('imageFile').click();document.getElementById('imageFile').onchange=e=>importLineupFromImage(e.target.files?.[0]);document.getElementById('calculate').onclick=calc;document.getElementById('clear').onclick=clearAll;document.getElementById('downloadJson').onclick=downloadManualJson;setJsonEnabled(false);load();
 </script></body></html>
