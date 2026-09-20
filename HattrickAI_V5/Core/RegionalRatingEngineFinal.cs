@@ -84,8 +84,7 @@ public sealed class RegionalRatingEngineFinal
         if (technicalIds is null || technicalIds.Count == 0)
             return rating;
 
-        var forwardCount = players.Count(p => RatingPositionMatrix.IsForward(RatingPositionMatrix.CanonicalSlot(p)));
-        var crowding = forwardCount == 2 ? .945 : forwardCount >= 3 ? .865 : 1.0;
+        var crowding = RatingCrowding.GetMultiplier("FW-C", players);
 
         var ld = rating.RawLeftDefence;
         var cd = rating.RawCentralDefence;
