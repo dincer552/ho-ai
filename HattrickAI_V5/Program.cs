@@ -195,7 +195,11 @@ app.MapGet("/api/v5/team-player-export", async (ChppV5 chpp, CancellationToken c
     try
     {
         var data = await new TeamPlayerChppExportService(chpp).ExportAsync(build, ct);
-        var bytes = JsonSerializer.SerializeToUtf8Bytes(data, new JsonSerializerOptions\n        {\n            WriteIndented = true,\n            PropertyNamingPolicy = JsonNamingPolicy.CamelCase\n        });
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(data, new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        });
         var filename = $"hattrickai-team-players-{DateTimeOffset.UtcNow:yyyy-MM-ddTHH-mm-ss-fffZ}.json";
         return Results.File(bytes, "application/json", filename);
     }
