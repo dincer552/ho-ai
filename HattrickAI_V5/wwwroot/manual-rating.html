@@ -40,8 +40,9 @@ function nameMatchScore(ocr,player){
   const at=a.split(/\s+/).filter(Boolean),bt=b.split(/\s+/).filter(Boolean);
   if(at.length<2||bt.length<2)return 0;
   const al=at[at.length-1],bl=bt[bt.length-1];
-  const lastScore=tokenSimilarity(al,bl);
-  const firstScore=tokenSimilarity(at[0],bt[0]);
+  const lastScore=editDistance(al,bl)<=Math.max(1,Math.floor(Math.max(al.length,bl.length)*0.18))
+    ? 1-editDistance(al,bl)/Math.max(al.length,bl.length) : 0;
+  const firstScore=1-editDistance(at[0],bt[0])/Math.max(at[0].length,bt[0].length);
   const initial=at[0].length===1&&at[0][0]===bt[0][0];
   if(al===bl&&initial)return .99;
   if(al===bl&&at[0].length<=2)return .96;
