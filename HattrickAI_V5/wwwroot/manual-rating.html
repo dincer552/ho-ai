@@ -117,7 +117,7 @@ async function importLineupFromImage(file){
     await worker.terminate();
     const lines=[
       ...(outMain.data.lines||[]).map(x=>({...x})),
-      ...(outTop.data.lines||[]).map(x=>({...x,bbox:{...x.bbox,y0:x.bbox.y0,y1:x.bbox.y1}})
+      ...(outTop.data.lines||[]).map(x=>({...x,bbox:{...x.bbox,y0:x.bbox.y0,y1:x.bbox.y1}}))
     ].filter(x=>String(x.text||'').trim());
     const pitch={x:0,y:0,width:ocrCanvas.width,height:ocrCanvas.height};
     const found=[],usedPlayers=new Set(),usedSlots=new Set();
