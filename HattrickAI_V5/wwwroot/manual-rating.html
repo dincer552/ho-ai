@@ -157,7 +157,6 @@ async function importLineupFromImage(file){
     const worker=await Tesseract.createWorker('tur+eng');
     await worker.setParameters({tessedit_pageseg_mode:'11',preserve_interword_spaces:'1'});
     const out=await worker.recognize(crop);
-    await worker.terminate();
 
     const texts=[];
     for(const line of (out.data.lines||[])){
@@ -170,6 +169,34 @@ async function importLineupFromImage(file){
       if(text.length>=3&&text.length<=30)
         texts.push({text,bbox:word.bbox,nx:((word.bbox.x0+word.bbox.x1)/2)/crop.width,ny:((word.bbox.y0+word.bbox.y1)/2)/crop.height});
     }
+
+    // Kaleci adı saha görüntüsünün en üstünde ve karakterler çok küçük
+    // olduğundan genel PSM-11 taramasında zaman zaman tamamen kaçabiliyor.
+    // Sadece GK bandını ikinci kez, daha büyük ve kontrastlı okuyalım.
+    // Bu ikinci tarama tüm resmi değil yalnızca küçük bir bölgeyi işler.
+    const gkBand=document.createElement('canvas');
+    const gx=Math.round(crop.width*.22), gy=0;
+    const gw=Math.round(crop.width*.56), gh=Math.round(crop.height*.30);
+    gkBand.width=Math.max(1,gw*2); gkBand.height=Math.max(1,gh*2);
+    gkBand.getContext('2d').drawImage(crop,gx,gy,gw,gh,0,0,gkBand.width,gkBand.height);
+    const gkOut=await worker.recognize(gkBand);
+    for(const line of (gkOut.data.lines||[])){
+      const text=String(line.text||'').trim().replace(/\s+/g,' ');
+      if(text.length>=2&&text.length<=42){
+        const x0=line.bbox.x0/2+gx,x1=line.bbox.x1/2+gx;
+        const y0=line.bbox.y0/2+gy,y1=line.bbox.y1/2+gy;
+        texts.push({text,bbox:line.bbox,nx:((x0+x1)/2)/crop.width,ny:((y0+y1)/2)/crop.height});
+      }
+    }
+    for(const word of (gkOut.data.words||[])){
+      const text=String(word.text||'').trim();
+      if(text.length>=2&&text.length<=30){
+        const x0=word.bbox.x0/2+gx,x1=word.bbox.x1/2+gx;
+        const y0=word.bbox.y0/2+gy,y1=word.bbox.y1/2+gy;
+        texts.push({text,bbox:word.bbox,nx:((x0+x1)/2)/crop.width,ny:((y0+y1)/2)/crop.height});
+      }
+    }
+    await worker.terminate();
 
     // Her OCR parçasını bir kez değil, CHPP kadrosundaki tüm oyuncularla
     // aynı anda karşılaştırıyoruz. Whitelist yok; kadro tamamen dinamik.
