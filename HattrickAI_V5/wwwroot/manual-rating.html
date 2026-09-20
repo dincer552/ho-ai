@@ -101,12 +101,16 @@ async function importLineupFromImage(file){
     const canvas=document.createElement('canvas'),scale=Math.min(1,1800/img.naturalWidth);
     canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
     canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+    const pitch=detectPitchBounds(canvas);
+    const ocrCanvas=document.createElement('canvas');
+    ocrCanvas.width=Math.max(1,Math.round(pitch.width));ocrCanvas.height=Math.max(1,Math.round(pitch.height));
+    ocrCanvas.getContext('2d').drawImage(canvas,pitch.x,pitch.y,pitch.width,pitch.height,0,0,ocrCanvas.width,ocrCanvas.height);
     status.textContent='Oyuncu isimleri OCR ile aranıyor…';
     const worker=await Tesseract.createWorker('tur+eng');
-    const out=await worker.recognize(canvas);
+    const out=await worker.recognize(ocrCanvas);
     await worker.terminate();
     const lines=(out.data.lines||[]).filter(x=>String(x.text||'').trim());
-    const pitch=detectPitchBounds(canvas);
+    const pitch={x:0,y:0,width:ocrCanvas.width,height:ocrCanvas.height};
     const found=[],usedPlayers=new Set(),usedSlots=new Set();
     const candidates=[];
     for(const line of lines){
