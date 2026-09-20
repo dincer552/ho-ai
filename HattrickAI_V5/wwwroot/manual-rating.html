@@ -46,13 +46,14 @@ function nameMatchScore(ocr,player){
   let common=0; for(const x of at)if(bt.includes(x))common++;
   return common/Math.max(at.length,bt.length)*.75;
 }
-function bestOcrPlayer(text){
+function bestOcrPlayer(text,blocked=new Set()){
   let best=null,score=0;
   for(const p of players){
+    if(blocked.has(p.id))continue;
     const s=nameMatchScore(text,p);
     if(s>score){score=s;best=p;}
   }
-  return score>=.80?{player:best,score}:null;
+  return best&&score>=.52?{player:best,score}:null;
 }
 function detectPitchBounds(canvas){
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
@@ -101,22 +102,30 @@ async function importLineupFromImage(file){
     canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
     canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
     status.textContent='Oyuncu isimleri OCR ile aranıyor…';
-    const worker=await Tesseract.createWorker('eng');
+    const worker=await Tesseract.createWorker('tur+eng');
     const out=await worker.recognize(canvas);
     await worker.terminate();
     const lines=(out.data.lines||[]).filter(x=>String(x.text||'').trim());
     const pitch=detectPitchBounds(canvas);
     const found=[],usedPlayers=new Set(),usedSlots=new Set();
+    const candidates=[];
     for(const line of lines){
-      const match=bestOcrPlayer(line.text);
-      if(!match||usedPlayers.has(match.player.id))continue;
+      const text=String(line.text||'').trim();
+      if(text.length<3||text.length>30)continue;
+      const match=bestOcrPlayer(text);
+      if(!match)continue;
       const cx=(line.bbox.x0+line.bbox.x1)/2,cy=(line.bbox.y0+line.bbox.y1)/2;
       const nx=(cx-pitch.x)/pitch.width,ny=(cy-pitch.y)/pitch.height;
       if(nx<0||nx>1||ny<0||ny>1)continue;
-      const slot=nearestSlot(nx,ny,usedSlots);
+      candidates.push({player:match.player,score:match.score,text,nx,ny});
+    }
+    candidates.sort((a,b)=>b.score-a.score);
+    for(const item of candidates){
+      if(usedPlayers.has(item.player.id))continue;
+      const slot=nearestSlot(item.nx,item.ny,usedSlots);
       if(!slot)continue;
-      usedPlayers.add(match.player.id);usedSlots.add(slot);
-      found.push({player:match.player,slot,score:match.score,text:line.text});
+      usedPlayers.add(item.player.id);usedSlots.add(slot);
+      found.push({player:item.player,slot,score:item.score,text:item.text});
     }
     selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);
     for(const x of found)selected.set(x.slot,x.player);
