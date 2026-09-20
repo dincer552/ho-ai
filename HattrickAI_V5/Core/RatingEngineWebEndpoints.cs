@@ -66,7 +66,7 @@ public static class RatingEngineWebEndpoints
         // Direct V5 endpoint for arbitrary partial/full manual testing. One player is enough;
         // missing slots simply contribute zero, which makes this endpoint useful for
         // isolating position/crowding behaviour without fabricating an XI.
-        app.MapPost("/api/v5/rating-engine/manual", (ManualV5RatingRequest request) =>
+        app.MapPost("/api/v5/rating-engine/manual", (CustomV5RatingRequest request) =>
         {
             try
             {
@@ -177,6 +177,8 @@ public static class CustomV5RatingValidation
         var activeIds = lineup.Slots.Select(x => x.PlayerId).Where(x => x > 0).ToArray();
         if (activeIds.Length != lineup.Slots.Count || activeIds.Distinct().Count() != activeIds.Length)
             throw new ArgumentException("Her oyuncu yalnızca bir mevkiye yerleştirilebilir.");
+        if (lineup.Slots.Select(x => x.Code).Distinct(StringComparer.Ordinal).Count() != lineup.Slots.Count)
+            throw new ArgumentException("Aynı mevki birden fazla kez seçilemez.");
         var playerIds = players.Select(x => x.Id).ToHashSet();
         var missing = activeIds.Where(x => !playerIds.Contains(x)).Distinct().ToArray();
         if (missing.Length > 0)
