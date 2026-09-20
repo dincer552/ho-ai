@@ -6,13 +6,24 @@ namespace HattrickAI.V5.Core;
 
 /// <summary>
 /// Single source of truth for V5 Hattrick position overcrowding.
-/// Crowding belongs to the player's own lineup role and is applied only
-/// to the skill contribution. Experience remains outside the penalty.
+///
+/// HO!/Schum applies overcrowding by LINEUP SECTOR, not by the individual
+/// left/center/right slot. Therefore:
+///   CD  = DEF-CL + DEF-C + DEF-CR
+///   IM  = IM-L + IM-C + IM-R
+///   FW  = FW-L + FW-C + FW-R
+///
+/// Only these three central sectors have a positional overcrowding penalty.
+/// GK, WB-L/WB-R and W-L/W-R always use 1.0.
+///
+/// The factor is applied to the player's skill contribution only; experience
+/// remains outside the penalty and is added after crowding.
 /// </summary>
 public static class RatingCrowding
 {
     public const double NoPenalty = 1.0;
 
+    // Exact HO!/Schum overcrowding map.
     public const double CentralDefenderTwo = .964;
     public const double CentralDefenderThree = .900;
 
@@ -23,27 +34,61 @@ public static class RatingCrowding
     public const double ForwardThree = .865;
 
     /// <summary>
-    /// Returns the crowding multiplier for a player based on the number of
-    /// players occupying the same crowded positional group.
-    /// WB and W positions are intentionally not crowded by CD/IM/FW counts.
+    /// Calculates the complete crowding state once for the active lineup.
+    /// Empty/placeholder players (Id <= 0) do not contribute to the count.
+    /// </summary>
+    public static RatingCrowdingState Evaluate(IReadOnlyList<RegionalPlayer> players)
+    {
+        ArgumentNullException.ThrowIfNull(players);
+
+        var centralDefenders = 0;
+        var innerMidfielders = 0;
+        var forwards = 0;
+
+        foreach (var player in players)
+        {
+            if (player.Id <= 0)
+                continue;
+
+            switch (CanonicalGroup(RatingPositionMatrix.CanonicalSlot(player)))
+            {
+                case "CD":
+                    centralDefenders++;
+                    break;
+                case "IM":
+                    innerMidfielders++;
+                    break;
+                case "FW":
+                    forwards++;
+                    break;
+            }
+        }
+
+        return new RatingCrowdingState(
+            centralDefenders,
+            innerMidfielders,
+            forwards);
+    }
+
+    /// <summary>
+    /// Convenience API: calculates the state and returns the factor for one slot.
     /// </summary>
     public static double GetMultiplier(string slot, IReadOnlyList<RegionalPlayer> players)
     {
         ArgumentNullException.ThrowIfNull(players);
-
-        var canonical = CanonicalGroup(slot);
-        if (canonical is null)
-            return NoPenalty;
-
-        var count = players.Count(p => CanonicalGroup(RatingPositionMatrix.CanonicalSlot(p)) == canonical);
-        return GetMultiplier(canonical, count);
+        return Evaluate(players).ForSlot(slot);
     }
 
     /// <summary>
-    /// Direct lookup used by regression tests and diagnostics.
+    /// Direct count lookup used by regression tests/diagnostics.
+    /// For the HO! map every other count (0, 1, 4+) is exactly 1.0.
     /// </summary>
     public static double GetMultiplier(string group, int count)
-        => group switch
+    {
+        if (count < 0)
+            throw new ArgumentOutOfRangeException(nameof(count));
+
+        return group switch
         {
             "CD" => count switch
             {
@@ -65,9 +110,11 @@ public static class RatingCrowding
             },
             _ => NoPenalty
         };
+    }
 
     /// <summary>
-    /// Maps a canonical 14-slot position to its crowding group.
+    /// Maps a canonical 14-slot position to the overcrowding sector.
+    /// Uncrowded positions return null.
     /// </summary>
     public static string? CanonicalGroup(string slot)
         => slot switch
@@ -77,4 +124,43 @@ public static class RatingCrowding
             "FW-L" or "FW-C" or "FW-R" => "FW",
             _ => null
         };
+}
+
+/// <summary>
+/// Immutable crowding state for one active lineup.
+/// Counts are sector-wide, so L/C/R variants in a central sector share one
+/// multiplier.
+/// </summary>
+public sealed record RatingCrowdingState(
+    int CentralDefenders,
+    int InnerMidfielders,
+    int Forwards)
+{
+    public double ForSlot(string slot)
+    {
+        var group = RatingCrowding.CanonicalGroup(slot);
+        return group is null
+            ? RatingCrowding.NoPenalty
+            : RatingCrowding.GetMultiplier(group, GroupCount(group));
+    }
+
+    public int GroupCount(string group)
+        => group switch
+        {
+            "CD" => CentralDefenders,
+            "IM" => InnerMidfielders,
+            "FW" => Forwards,
+            _ => 0
+        };
+
+    /// <summary>
+    /// Returns factors for all 14 canonical field slots.
+    /// </summary>
+    public IReadOnlyDictionary<string, double> AllSlotMultipliers()
+    {
+        var result = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (var slot in RatingPositionMatrix.CanonicalSlots)
+            result[slot] = ForSlot(slot);
+        return result;
+    }
 }
