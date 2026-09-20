@@ -196,6 +196,45 @@ async function importLineupFromImage(file){
         texts.push({text,bbox:word.bbox,nx:((x0+x1)/2)/crop.width,ny:((y0+y1)/2)/crop.height});
       }
     }
+    // Genel OCR bazı isimleri oyuncu görsellerinin üzerine bindirdiği
+    // için atlayabilir. Kadro eksik kaldıysa yalnızca isim etiketlerinin
+    // bulunduğu 14 küçük bantta ikinci bir tarama yapıyoruz. Böylece tüm
+    // ekranı tekrar OCR etmiyoruz; özellikle Takyi/Bozev/Pesalovo gibi
+    // alt tarafta veya kenarda kalan isimler kurtarılıyor.
+    if(texts.length<11){
+      const namePoints={
+        'GK':[.50,.23],
+        'WB-L':[.08,.50],'DEF-CL':[.29,.50],'DEF-C':[.50,.50],'DEF-CR':[.71,.50],'WB-R':[.92,.50],
+        'W-L':[.08,.75],'IM-L':[.29,.75],'IM-C':[.50,.75],'IM-R':[.71,.75],'W-R':[.92,.75],
+        'FW-L':[.29,.985],'FW-C':[.50,.985],'FW-R':[.71,.985]
+      };
+      await worker.setParameters({tessedit_pageseg_mode:'7',preserve_interword_spaces:'1'});
+      for(const [slot,[cx,cy]] of Object.entries(namePoints)){
+        const bw=Math.round(crop.width*.25),bh=Math.round(crop.height*.085);
+        const sx=Math.max(0,Math.min(crop.width-bw,Math.round(crop.width*cx-bw/2)));
+        const sy=Math.max(0,Math.min(crop.height-bh,Math.round(crop.height*cy-bh/2)));
+        const band=document.createElement('canvas');
+        band.width=Math.max(1,bw*2);band.height=Math.max(1,bh*2);
+        band.getContext('2d').drawImage(crop,sx,sy,bw,bh,0,0,band.width,band.height);
+        const bo=await worker.recognize(band);
+        for(const line of (bo.data.lines||[])){
+          const text=String(line.text||'').trim().replace(/\s+/g,' ');
+          if(text.length>=2&&text.length<=42){
+            const x0=line.bbox.x0/2+sx,x1=line.bbox.x1/2+sx;
+            const y0=line.bbox.y0/2+sy,y1=line.bbox.y1/2+sy;
+            texts.push({text,bbox:line.bbox,nx:((x0+x1)/2)/crop.width,ny:((y0+y1)/2)/crop.height});
+          }
+        }
+        for(const word of (bo.data.words||[])){
+          const text=String(word.text||'').trim();
+          if(text.length>=2&&text.length<=30){
+            const x0=word.bbox.x0/2+sx,x1=word.bbox.x1/2+sx;
+            const y0=word.bbox.y0/2+sy,y1=word.bbox.y1/2+sy;
+            texts.push({text,bbox:word.bbox,nx:((x0+x1)/2)/crop.width,ny:((y0+y1)/2)/crop.height});
+          }
+        }
+      }
+    }
     await worker.terminate();
 
     // Her OCR parçasını bir kez değil, CHPP kadrosundaki tüm oyuncularla
