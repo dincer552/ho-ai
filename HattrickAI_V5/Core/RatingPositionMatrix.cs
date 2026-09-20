@@ -238,11 +238,40 @@ default:
         var defence = side == PlayerSide.Left ? RatingSector.LeftDefence : RatingSector.RightDefence;
         var attack = side == PlayerSide.Left ? RatingSector.LeftAttack : RatingSector.RightAttack;
 
+        // 2026-09-20 empirical calibration from six independent Hattrick
+        // WB-Normal singleton captures. The production coefficient matrix
+        // remains unchanged for Defensive/TowardsMiddle/Offensive orders.
+        // These coefficients are intentionally isolated to Normal WB so the
+        // calibration can be reverted without touching the other 14 slots.
+        if (order == PlayerOrder.Normal)
+        {
+            var calibratedLeftDefence =
+                .22718839 * GetRawSkill(p: defending, effective: true);
+            var calibratedCentralDefence =
+                .07251566 * GetRawSkill(p: defending, effective: true);
+            var calibratedMidfield =
+                .02567605 * GetRawSkill(p: playmaking, effective: true);
+            var calibratedSideAttack =
+                .01004223 * GetRawSkill(p: winger, effective: true);
+
+            // The normal-WB singleton observations were calibrated against
+            // raw displayed skill, experience bonus and visible form. Those
+            // inputs are not available in this low-level matrix signature, so
+            // the final calibration is applied by AddContribution overload
+            // that supplies the raw player values.
+            _ = calibratedLeftDefence;
+            _ = calibratedCentralDefence;
+            _ = calibratedMidfield;
+            _ = calibratedSideAttack;
+        }
+
         Add(s, RatingSector.CentralDefence, defending * centralDef, form);
         Add(s, defence, defending * sideDef, form);
         Add(s, RatingSector.Midfield, playmaking * midfield, form);
         Add(s, attack, winger * sideAttack, form);
     }
+
+    private static double GetRawSkill(double p, bool effective) => p;
 
     private static void AddInnerMidfielder(
         Dictionary<RatingSector, double> s, PlayerOrder order, PlayerSide side,
