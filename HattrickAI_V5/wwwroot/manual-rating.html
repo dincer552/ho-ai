@@ -38,17 +38,20 @@ function nameMatchScore(ocr,player){
   const a=normText(ocr), b=normText(player.name);
   if(!a||!b)return 0;
   const at=a.split(/\s+/).filter(Boolean),bt=b.split(/\s+/).filter(Boolean);
-  if(at.length<2||bt.length<2)return 0;
+  if(!at.length||!bt.length)return 0;
   const al=at[at.length-1],bl=bt[bt.length-1];
-  const lastScore=editDistance(al,bl)<=Math.max(1,Math.floor(Math.max(al.length,bl.length)*0.18))
-    ? 1-editDistance(al,bl)/Math.max(al.length,bl.length) : 0;
+  const lastDistance=editDistance(al,bl),lastMax=Math.max(al.length,bl.length);
+  const lastScore=lastMax?1-lastDistance/lastMax:0;
   const firstScore=1-editDistance(at[0],bt[0])/Math.max(at[0].length,bt[0].length);
-  const initial=at[0].length===1&&at[0][0]===bt[0][0];
+  const initial=at[0]?.length===1&&bt[0]?.length>0&&at[0][0]===bt[0][0];
   if(al===bl&&initial)return .99;
-  if(al===bl&&at[0].length<=2)return .96;
-  if(lastScore>=.90&&firstScore>=.55)return .94;
-  if(lastScore>=.84&&initial)return .92;
-  if(lastScore>=.90)return .88;
+  if(al===bl&&at.length===1)return .97;
+  if(al===bl&&at[0]?.length<=2)return .96;
+  // Tesseract may turn Nocoń into Nocori or Akşın into Aksit.
+  const typoBudget=bl.length<=6?1:2;
+  if(initial&&lastDistance<=typoBudget)return .90;
+  if(at.length>=2&&lastDistance<=typoBudget&&firstScore>=.55)return .88;
+  if(lastScore>=.90&&at.length>=2)return .86;
   if(a===b)return 1;
   return 0;
 }
@@ -79,8 +82,8 @@ function imageVariant(source,mode,scale=2){
 function detectPitchBounds(canvas){
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
   const w=canvas.width,h=canvas.height,data=ctx.getImageData(0,0,w,h).data;
-  // Sadece Hattrick'in yeşil saha yüzeyini bul. Üst menü/bottom navigation
-  // gibi diğer yeşil UI bölgelerini OCR alanına dahil etme.
+  // Oyuncular ve saha çizgileri nedeniyle bazı satırlarda yeşil oranı düşer.
+  // Kısa boşlukları köprüleyerek sahanın üst bölümünü kesmiyoruz.
   const green=(x,y)=>{
     const i=(y*w+x)*4,r=data[i],g=data[i+1],b=data[i+2];
     return g>55 && g>r*1.22 && g>b*1.12 && (g-r)>18;
@@ -91,20 +94,25 @@ function detectPitchBounds(canvas){
     for(let x=0;x<w;x+=2)if(green(x,y))hit++;
     rowScore[y]=hit/Math.ceil(w/2);
   }
-  let best={start:0,end:0,len:0},run=-1;
+  const threshold=.45,maxGap=20;
+  let best={start:0,end:0,len:0},run=-1,gap=0;
+  const finish=end=>{
+    if(run<0)return;
+    const len=end-run;
+    if(len>best.len)best={start:run,end,len};
+    run=-1;gap=0;
+  };
   for(let y=0;y<h;y++){
-    const good=rowScore[y]>=.62;
-    if(good&&run<0)run=y;
-    if((!good||y===h-1)&&run>=0){
-      const end=good&&y===h-1?y+1:y, len=end-run;
-      if(len>best.len)best={start:run,end,len};
-      run=-1;
+    if(rowScore[y]>=threshold){
+      if(run<0)run=y;
+      gap=0;
+    }else if(run>=0){
+      gap++;
+      if(gap>maxGap)finish(y-gap);
     }
   }
-  if(best.len<220){
-    return{x:0,y:Math.round(h*.35),width:w,height:Math.round(h*.55)};
-  }
-  // Aynı yeşil bölgenin yatay sınırlarını da çıkar.
+  if(run>=0)finish(h);
+  if(best.len<300)return{x:0,y:Math.round(h*.35),width:w,height:Math.round(h*.55)};
   const top=best.start,bottom=best.end;
   const colScore=new Float32Array(w);
   for(let x=0;x<w;x++){
@@ -115,7 +123,6 @@ function detectPitchBounds(canvas){
   let left=0,right=w;
   while(left<w&&colScore[left]<.45)left++;
   while(right>left&&colScore[right-1]<.45)right--;
-  // Oyuncu isimlerinin/saha kenar çizgisinin kesilmemesi için küçük pay.
   const padX=Math.round((right-left)*.015),padY=Math.round((bottom-top)*.015);
   left=Math.max(0,left-padX);right=Math.min(w,right+padX);
   return{x:left,y:Math.max(0,top-padY),width:right-left,height:Math.min(h,bottom+padY)-Math.max(0,top-padY)};
