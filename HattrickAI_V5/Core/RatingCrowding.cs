@@ -47,7 +47,7 @@ public static class RatingCrowding
 
         foreach (var player in players)
         {
-            if (player.Id <= 0)
+            if (player is null || player.Id <= 0)
                 continue;
 
             switch (CanonicalGroup(RatingPositionMatrix.CanonicalSlot(player)))
