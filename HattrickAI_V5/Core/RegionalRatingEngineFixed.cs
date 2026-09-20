@@ -189,7 +189,7 @@ public sealed class RegionalRatingEngineFixed
                     contextMultipliers[sector],
                     reference,
                     sectors[sector],
-                    RegionalRatingEngine.Display(sectors[sector]),
+                    HattrickRatingDisplayConverter.ToDisplay(sector, sectors[sector]),
                     playerContributions);
             })
             .ToList();
@@ -408,13 +408,13 @@ public sealed class RegionalRatingEngineFixed
             s[RatingSector.LeftAttack],
             s[RatingSector.CentralAttack],
             s[RatingSector.RightAttack],
-            s[RatingSector.LeftDefence],
-            s[RatingSector.CentralDefence],
-            s[RatingSector.RightDefence],
-            s[RatingSector.Midfield],
-            s[RatingSector.LeftAttack],
-            s[RatingSector.CentralAttack],
-            s[RatingSector.RightAttack]);
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftDefence, s[RatingSector.LeftDefence]),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralDefence, s[RatingSector.CentralDefence]),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightDefence, s[RatingSector.RightDefence]),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.Midfield, s[RatingSector.Midfield]),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftAttack, s[RatingSector.LeftAttack]),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralAttack, s[RatingSector.CentralAttack]),
+            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightAttack, s[RatingSector.RightAttack]));
 
     private static RegionalPlayer ToRegionalPlayer(string formation, Slot slot, Player p)
     {
