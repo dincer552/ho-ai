@@ -48,7 +48,7 @@ function nameMatchScore(ocr,player){
   if(al===bl&&at.length===1)return .97;
   if(al===bl&&at[0]?.length<=2)return .96;
   // Tesseract may turn Nocoń into Nocori or Akşın into Aksit.
-  const typoBudget=bl.length<=5?2:2;
+  const typoBudget=2;
   if(initial&&lastDistance<=typoBudget)return .90;
   if(at.length>=2&&lastDistance<=typoBudget&&firstScore>=.55)return .88;
   if(lastScore>=.90&&at.length>=2)return .86;
