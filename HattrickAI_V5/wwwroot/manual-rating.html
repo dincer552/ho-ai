@@ -93,48 +93,44 @@ async function importLineupFromImage(file){
   const status=document.getElementById('imageStatus'),err=document.getElementById('error');
   if(!file)return;
   if(!players.length){status.textContent='Önce CHPP oyuncu listesinin yüklenmesini bekle.';return;}
-  err.style.display='none';
-  status.textContent='Resim okunuyor…';
+  err.style.display='none'; status.textContent='Resim hazırlanıyor…';
   const img=new Image(),url=URL.createObjectURL(file);
   try{
     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
-    const canvas=document.createElement('canvas'),scale=Math.min(1,1800/img.naturalWidth);
-    canvas.width=Math.round(img.naturalWidth*scale);canvas.height=Math.round(img.naturalHeight*scale);
-    canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-    const fieldPitch=detectPitchBounds(canvas);
-    const ocrCanvas=document.createElement('canvas');
-    ocrCanvas.width=Math.max(1,Math.round(fieldPitch.width));ocrCanvas.height=Math.max(1,Math.round(fieldPitch.height));
-    ocrCanvas.getContext('2d').drawImage(canvas,fieldPitch.x,fieldPitch.y,fieldPitch.width,fieldPitch.height,0,0,ocrCanvas.width,ocrCanvas.height);
-    status.textContent='Oyuncu isimleri OCR ile aranıyor…';
+    const source=document.createElement('canvas'),scale=Math.min(1.5,1800/img.naturalWidth);
+    source.width=Math.max(1,Math.round(img.naturalWidth*scale));source.height=Math.max(1,Math.round(img.naturalHeight*scale));
+    source.getContext('2d').drawImage(img,0,0,source.width,source.height);
+    const field=detectPitchBounds(source),crop=document.createElement('canvas');
+    crop.width=Math.max(1,Math.round(field.width));crop.height=Math.max(1,Math.round(field.height));
+    crop.getContext('2d').drawImage(source,field.x,field.y,field.width,field.height,0,0,crop.width,crop.height);
+    status.textContent='Oyuncu isimleri çoklu OCR ile taranıyor…';
     const worker=await Tesseract.createWorker('tur+eng');
-    await worker.setParameters({tessedit_pageseg_mode:'6'});
-    const outMain=await worker.recognize(ocrCanvas);
-    const topCanvas=document.createElement('canvas');
-    topCanvas.width=ocrCanvas.width;topCanvas.height=Math.round(ocrCanvas.height*.36);
-    topCanvas.getContext('2d').drawImage(ocrCanvas,0,0,ocrCanvas.width,topCanvas.height,0,0,topCanvas.width,topCanvas.height);
-    await worker.setParameters({tessedit_pageseg_mode:'11'});
-    const outTop=await worker.recognize(topCanvas);
-    await worker.terminate();
-    const lines=[
-      ...(outMain.data.lines||[]).map(x=>({...x})),
-      ...(outTop.data.lines||[]).map(x=>({...x,bbox:{...x.bbox,y0:x.bbox.y0,y1:x.bbox.y1}}))
-    ].filter(x=>String(x.text||'').trim());
-    const pitch={x:0,y:0,width:ocrCanvas.width,height:ocrCanvas.height};
-    const found=[],usedPlayers=new Set(),usedSlots=new Set();
+    await worker.setParameters({preserve_interword_spaces:'1'});
     const candidates=[];
-    for(const line of lines){
-      const text=String(line.text||'').trim();
-      if(text.length<3||text.length>30)continue;
-      const match=bestOcrPlayer(text);
-      if(!match)continue;
-      const cx=(line.bbox.x0+line.bbox.x1)/2,cy=(line.bbox.y0+line.bbox.y1)/2;
-      const nx=(cx-pitch.x)/pitch.width,ny=(cy-pitch.y)/pitch.height;
-      if(nx<0||nx>1||ny<0||ny>1)continue;
-      candidates.push({player:match.player,score:match.score,text,nx,ny});
+    for(const mode of ['color','gray','contrast','threshold']){
+      const variant=imageVariant(crop,mode,2);
+      for(const psm of ['11','12']){
+        await worker.setParameters({tessedit_pageseg_mode:psm});
+        const out=await worker.recognize(variant);
+        for(const line of (out.data.lines||[])){
+          const text=String(line.text||'').trim().replace(/\s+/g,' ');
+          if(text.length<3||text.length>42)continue;
+          const match=bestOcrPlayer(text);
+          if(match)candidates.push({player:match.player,score:match.score,text,nx:((line.bbox.x0+line.bbox.x1)/2)/variant.width,ny:((line.bbox.y0+line.bbox.y1)/2)/variant.height});
+        }
+        for(const word of (out.data.words||[])){
+          const text=String(word.text||'').trim();
+          if(text.length<3)continue;
+          const match=bestOcrPlayer(text);
+          if(match)candidates.push({player:match.player,score:match.score,text,nx:((word.bbox.x0+word.bbox.x1)/2)/variant.width,ny:((word.bbox.y0+word.bbox.y1)/2)/variant.height});
+        }
+      }
     }
+    await worker.terminate();
     candidates.sort((a,b)=>b.score-a.score);
+    const found=[],usedPlayers=new Set(),usedSlots=new Set();
     for(const item of candidates){
-      if(usedPlayers.has(item.player.id))continue;
+      if(usedPlayers.has(item.player.id)||item.score<.58)continue;
       const slot=nearestSlot(item.nx,item.ny,usedSlots);
       if(!slot)continue;
       usedPlayers.add(item.player.id);usedSlots.add(slot);
@@ -143,17 +139,12 @@ async function importLineupFromImage(file){
     selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);
     for(const x of found)selected.set(x.slot,x.player);
     renderPitch(null);renderPlayers();
-    if(found.length){
-      const names=found.map(x=>x.player.name).join(', ');
-      status.textContent=found.length+' oyuncu bulundu ve mevkilere yerleştirildi: '+names;
-    }else{
-      status.textContent='Oyuncu adı eşleşmedi. Daha net bir maç dizilişi ekranı yükle.';
-    }
+    status.textContent=found.length
+      ? found.length+' oyuncu bulundu ve mevkilere yerleştirildi: '+found.map(x=>x.player.name).join(', ')
+      : 'Oyuncu adı bulunamadı. Daha yüksek çözünürlüklü maç ekranı yükle.';
   }catch(e){
-    console.error(e);
-    status.textContent='Resim okunamadı.';
-    err.textContent='Resimden kadro okunamadı: '+(e.message||e);
-    err.style.display='block';
+    console.error(e);status.textContent='Resim okunamadı.';
+    err.textContent='Resimden kadro okunamadı: '+(e.message||e);err.style.display='block';
   }finally{URL.revokeObjectURL(url)}
 }
 function renderPitch(r){lastRating=r;const layer=document.querySelector('.slots');layer.innerHTML='';for(const [code,cls,label] of SLOTS){const d=document.createElement('div');d.className='pslot '+cls+(selected.has(code)?' filled':'')+(activeSlot===code?' selected':'');const p=selected.get(code);d.innerHTML=p?'<div><small>'+label+'</small><b>'+esc(p.name)+'</b></div>':'<div><small>'+label+'</small><b>+</b></div>';d.onclick=()=>{activeSlot=code;renderPitch(lastRating);};layer.appendChild(d)}renderBoard(r)}
