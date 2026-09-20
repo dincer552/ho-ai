@@ -107,9 +107,18 @@ async function importLineupFromImage(file){
     ocrCanvas.getContext('2d').drawImage(canvas,fieldPitch.x,fieldPitch.y,fieldPitch.width,fieldPitch.height,0,0,ocrCanvas.width,ocrCanvas.height);
     status.textContent='Oyuncu isimleri OCR ile aranıyor…';
     const worker=await Tesseract.createWorker('tur+eng');
-    const out=await worker.recognize(ocrCanvas);
+    await worker.setParameters({tessedit_pageseg_mode:'6'});
+    const outMain=await worker.recognize(ocrCanvas);
+    const topCanvas=document.createElement('canvas');
+    topCanvas.width=ocrCanvas.width;topCanvas.height=Math.round(ocrCanvas.height*.36);
+    topCanvas.getContext('2d').drawImage(ocrCanvas,0,0,ocrCanvas.width,topCanvas.height,0,0,topCanvas.width,topCanvas.height);
+    await worker.setParameters({tessedit_pageseg_mode:'11'});
+    const outTop=await worker.recognize(topCanvas);
     await worker.terminate();
-    const lines=(out.data.lines||[]).filter(x=>String(x.text||'').trim());
+    const lines=[
+      ...(outMain.data.lines||[]).map(x=>({...x})),
+      ...(outTop.data.lines||[]).map(x=>({...x,bbox:{...x.bbox,y0:x.bbox.y0,y1:x.bbox.y1}})
+    ].filter(x=>String(x.text||'').trim());
     const pitch={x:0,y:0,width:ocrCanvas.width,height:ocrCanvas.height};
     const found=[],usedPlayers=new Set(),usedSlots=new Set();
     const candidates=[];
