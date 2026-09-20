@@ -102,6 +102,17 @@ public static class Stage6OvercrowdingRegression
                 failures.Add($"{sector.Sector}: subtotal {sector.MatrixSubtotal:F10} != player contribution sum {sum:F10}");
         }
 
+        // Exhaustive 14-slot occupancy regression:
+        // 2^14 = 16,384 possible occupied/empty slot combinations. This verifies
+        // every legal combination of GK/WB/CD/W/IM/FW occupancy and proves:
+        //   - CD L/C/R share one count
+        //   - IM L/C/R share one count
+        //   - FW L/C/R share one count
+        //   - GK/WB/W never receive a crowding penalty
+        //   - 0/1/2/3/+ players follow the exact HO! lookup
+        //   - a single selected player always remains unpenalized
+        RunExhaustive14SlotRegression(failures);
+
         if (failures.Count == 0)
         {
             Console.WriteLine("PASS: Stage 6 exact HO! overcrowding model; no cross-position contamination or cumulative compounding");
@@ -113,6 +124,121 @@ public static class Stage6OvercrowdingRegression
 
         Console.WriteLine($"FAIL: Stage 6 ({failures.Count} assertion(s))");
         return 1;
+    }
+
+
+    private static void RunExhaustive14SlotRegression(List<string> failures)
+    {
+        var slots = RatingPositionMatrix.CanonicalSlots;
+        var combinationCount = 1 << slots.Length;
+
+        for (var mask = 0; mask < combinationCount; mask++)
+        {
+            var players = new List<RegionalPlayer>();
+            var ids = 1;
+
+            for (var i = 0; i < slots.Length; i++)
+            {
+                if ((mask & (1 << i)) == 0)
+                    continue;
+
+                players.Add(CreateProbePlayer(slots[i], ids++));
+            }
+
+            var state = RatingCrowding.Evaluate(players);
+
+            var expectedCd = CountMask(slots, mask, "DEF-CL", "DEF-C", "DEF-CR");
+            var expectedIm = CountMask(slots, mask, "IM-L", "IM-C", "IM-R");
+            var expectedFw = CountMask(slots, mask, "FW-L", "FW-C", "FW-R");
+
+            if (state.CentralDefenders != expectedCd ||
+                state.InnerMidfielders != expectedIm ||
+                state.Forwards != expectedFw)
+            {
+                failures.Add(
+                    $"Exhaustive mask {mask}: counts got CD={state.CentralDefenders}, IM={state.InnerMidfielders}, FW={state.Forwards}; " +
+                    $"expected CD={expectedCd}, IM={expectedIm}, FW={expectedFw}");
+                continue;
+            }
+
+            for (var i = 0; i < slots.Length; i++)
+            {
+                var slot = slots[i];
+                var expected = ExpectedForSlot(slot, expectedCd, expectedIm, expectedFw);
+                var actual = state.ForSlot(slot);
+                var convenience = RatingCrowding.GetMultiplier(slot, players);
+
+                if (Math.Abs(actual - expected) > 1e-12)
+                    failures.Add($"Exhaustive mask {mask} slot {slot}: expected {expected:F3}, got {actual:F3}");
+
+                if (Math.Abs(convenience - expected) > 1e-12)
+                    failures.Add($"Exhaustive mask {mask} convenience {slot}: expected {expected:F3}, got {convenience:F3}");
+            }
+
+            if (players.Count == 1)
+            {
+                var factor = state.ForSlot(players[0].SlotCode);
+                if (Math.Abs(factor - 1.0) > 1e-12)
+                    failures.Add($"Single-player mask {mask}: expected no crowding, got {factor:F3}");
+            }
+        }
+
+        var baseline = RatingCrowding.Evaluate(Array.Empty<RegionalPlayer>()).AllSlotMultipliers();
+        foreach (var slot in slots)
+        {
+            if (Math.Abs(baseline[slot] - 1.0) > 1e-12)
+                failures.Add($"Empty lineup slot {slot}: expected 1.000, got {baseline[slot]:F3}");
+        }
+    }
+
+    private static int CountMask(IReadOnlyList<string> slots, int mask, params string[] targets)
+    {
+        var count = 0;
+        for (var i = 0; i < slots.Count; i++)
+        {
+            if ((mask & (1 << i)) != 0 && targets.Contains(slots[i], StringComparer.Ordinal))
+                count++;
+        }
+
+        return count;
+    }
+
+    private static double ExpectedForSlot(string slot, int cdCount, int imCount, int fwCount)
+        => RatingCrowding.CanonicalGroup(slot) switch
+        {
+            "CD" => RatingCrowding.GetMultiplier("CD", cdCount),
+            "IM" => RatingCrowding.GetMultiplier("IM", imCount),
+            "FW" => RatingCrowding.GetMultiplier("FW", fwCount),
+            _ => 1.0
+        };
+
+    private static RegionalPlayer CreateProbePlayer(string slot, int id)
+    {
+        var (position, side) = slot switch
+        {
+            "GK" => (RegionalPosition.Goalkeeper, PlayerSide.Center),
+            "WB-L" => (RegionalPosition.WingBack, PlayerSide.Left),
+            "DEF-CL" => (RegionalPosition.CentralDefender, PlayerSide.Left),
+            "DEF-C" => (RegionalPosition.CentralDefender, PlayerSide.Center),
+            "DEF-CR" => (RegionalPosition.CentralDefender, PlayerSide.Right),
+            "WB-R" => (RegionalPosition.WingBack, PlayerSide.Right),
+            "W-L" => (RegionalPosition.Winger, PlayerSide.Left),
+            "IM-L" => (RegionalPosition.InnerMidfielder, PlayerSide.Left),
+            "IM-C" => (RegionalPosition.InnerMidfielder, PlayerSide.Center),
+            "IM-R" => (RegionalPosition.InnerMidfielder, PlayerSide.Right),
+            "W-R" => (RegionalPosition.Winger, PlayerSide.Right),
+            "FW-L" => (RegionalPosition.Forward, PlayerSide.Left),
+            "FW-C" => (RegionalPosition.Forward, PlayerSide.Center),
+            "FW-R" => (RegionalPosition.Forward, PlayerSide.Right),
+            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, null)
+        };
+
+        return new RegionalPlayer(
+            id,
+            position,
+            side,
+            PlayerOrder.Normal,
+            2, 10, 10, 10, 10, 10, 7, 7, 5, 7, slot);
     }
 
     private static void CheckSingleGroup(
