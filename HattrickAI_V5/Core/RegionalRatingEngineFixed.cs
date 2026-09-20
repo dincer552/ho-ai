@@ -39,10 +39,6 @@ public sealed class RegionalRatingEngineFixed
         var sectors = Empty();
         var playerTraces = new List<PlayerRatingCalculationTrace>(players.Count);
 
-        var centralDefenders = players.Count(p => RatingPositionMatrix.CanonicalSlot(p) is "DEF-CL" or "DEF-C" or "DEF-CR");
-        var centralMidfielders = players.Count(p => RatingPositionMatrix.CanonicalSlot(p) is "IM-L" or "IM-C" or "IM-R");
-        var forwards = players.Count(p => RatingPositionMatrix.CanonicalSlot(p) is "FW-L" or "FW-C" or "FW-R");
-
         foreach (var p in players)
         {
             var formFactor = FormFactor(p.Form);
@@ -101,7 +97,7 @@ public sealed class RegionalRatingEngineFixed
                 x => x.Value - skillOnly[x.Key]);
 
             var slot = RatingPositionMatrix.CanonicalSlot(p);
-            var crowding = PositionCrowding(slot, centralDefenders, centralMidfielders, forwards);
+            var crowding = RatingCrowding.GetMultiplier(slot, players);
 
             // Only skill contribution is crowded. Experience is a post-crowding
             // flat contribution and therefore remains fully intact.
@@ -320,43 +316,6 @@ public sealed class RegionalRatingEngineFixed
 
     private static Dictionary<RatingSector, double> Empty()
         => Enum.GetValues<RatingSector>().ToDictionary(x => x, _ => 0d);
-
-    // HO! / Schum overcrowding factors. The penalty is determined by
-    // the number of players occupying the SAME central lineup sector and is
-    // applied to the player's COMPLETE contribution to every rating sector.
-    //
-    // Central defenders: 2 => 0.964, 3 => 0.900
-    // Inner midfielders: 2 => 0.935, 3 => 0.825
-    // Forwards:          2 => 0.945, 3 => 0.865
-    // One player (and non-crowded roles such as WB/W) => 1.0.
-    private static double CentralDefenderCrowding(int count) => count switch
-    {
-        2 => .964,
-        3 => .900,
-        _ => 1.0
-    };
-
-    private static double InnerMidfielderCrowding(int count) => count switch
-    {
-        2 => .935,
-        3 => .825,
-        _ => 1.0
-    };
-
-    private static double ForwardCrowding(int count) => count switch
-    {
-        2 => .945,
-        3 => .865,
-        _ => 1.0
-    };
-
-    private static double PositionCrowding(string slot, int cds, int ims, int fws) => slot switch
-    {
-        "DEF-CL" or "DEF-C" or "DEF-CR" => CentralDefenderCrowding(cds),
-        "IM-L" or "IM-C" or "IM-R" => InnerMidfielderCrowding(ims),
-        "FW-L" or "FW-C" or "FW-R" => ForwardCrowding(fws),
-        _ => 1.0
-    };
 
     private static void ApplyContext(Dictionary<RatingSector, double> s, RatingContext c)
     {
