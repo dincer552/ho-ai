@@ -168,6 +168,33 @@ public sealed record CustomV5RatingRequest(
 
 public static class CustomV5RatingValidation
 {
+    public static void ValidateManual(Lineup lineup, IReadOnlyList<Player> players)
+    {
+        ArgumentNullException.ThrowIfNull(lineup);
+        ArgumentNullException.ThrowIfNull(players);
+        if (lineup.Slots.Count < 1 || lineup.Slots.Count > 11)
+            throw new ArgumentException("Manuel V5 testinde 1 ile 11 arası dolu mevki seçilebilir.");
+        var activeIds = lineup.Slots.Select(x => x.PlayerId).Where(x => x > 0).ToArray();
+        if (activeIds.Length != lineup.Slots.Count || activeIds.Distinct().Count() != activeIds.Length)
+            throw new ArgumentException("Her oyuncu yalnızca bir mevkiye yerleştirilebilir.");
+        var playerIds = players.Select(x => x.Id).ToHashSet();
+        var missing = activeIds.Where(x => !playerIds.Contains(x)).Distinct().ToArray();
+        if (missing.Length > 0)
+            throw new ArgumentException($"Seçilen oyuncular takım verisinde bulunamadı: {string.Join(", ", missing)}");
+        ValidateSlotCodes(lineup);
+    }
+
+    private static void ValidateSlotCodes(Lineup lineup)
+    {
+        var allowed = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "GK","WB-L","DEF-CL","DEF-C","DEF-CR","WB-R","DEF-L","DEF-R",
+            "W-L","IM-L","IM-C","IM-R","W-R","FW-L","FW-C","FW-R"
+        };
+        var invalid = lineup.Slots.Select(x=>x.Code).Where(x=>!allowed.Contains(x)).Distinct().ToArray();
+        if (invalid.Length > 0) throw new ArgumentException($"Geçersiz V5 pozisyon kodu: {string.Join(", ", invalid)}");
+    }
+
     public static void Validate(Lineup lineup, IReadOnlyList<Player> players)
     {
         ArgumentNullException.ThrowIfNull(lineup);
