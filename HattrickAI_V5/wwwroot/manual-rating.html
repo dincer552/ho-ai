@@ -71,27 +71,46 @@ function imageVariant(source,mode,scale=2){
 function detectPitchBounds(canvas){
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
   const w=canvas.width,h=canvas.height,data=ctx.getImageData(0,0,w,h).data;
-  const row=[];
+  // Sadece Hattrick'in yeşil saha yüzeyini bul. Üst menü/bottom navigation
+  // gibi diğer yeşil UI bölgelerini OCR alanına dahil etme.
+  const green=(x,y)=>{
+    const i=(y*w+x)*4,r=data[i],g=data[i+1],b=data[i+2];
+    return g>55 && g>r*1.22 && g>b*1.12 && (g-r)>18;
+  };
+  const rowScore=new Float32Array(h);
   for(let y=0;y<h;y++){
     let hit=0;
-    for(let x=0;x<w;x++){
-      const i=(y*w+x)*4,r=data[i],g=data[i+1],b=data[i+2];
-      if(g>r*1.15 && g>b*1.05 && g>55)hit++;
-    }
-    row[y]=hit/w;
+    for(let x=0;x<w;x+=2)if(green(x,y))hit++;
+    rowScore[y]=hit/Math.ceil(w/2);
   }
-  let best={start:-1,end:-1,len:0},start=-1;
-  for(let y=250;y<Math.min(h-100,1400);y++){
-    if(row[y]>.40){if(start<0)start=y;}
-    else if(start>=0){
-      const len=y-start;
-      if(len>best.len)best={start,end:y,len};
-      start=-1;
+  let best={start:0,end:0,len:0},run=-1;
+  for(let y=0;y<h;y++){
+    const good=rowScore[y]>=.62;
+    if(good&&run<0)run=y;
+    if((!good||y===h-1)&&run>=0){
+      const end=good&&y===h-1?y+1:y, len=end-run;
+      if(len>best.len)best={start:run,end,len};
+      run=-1;
     }
   }
-  if(start>=0&&h-start>best.len)best={start,end:h,len:h-start};
-  if(best.len<250)return{x:0,y:Math.max(0,h*.40),width:w,height:h*.40};
-  return{x:0,y:best.start,width:w,height:best.end-best.start};
+  if(best.len<220){
+    return{x:0,y:Math.round(h*.35),width:w,height:Math.round(h*.55)};
+  }
+  // Aynı yeşil bölgenin yatay sınırlarını da çıkar.
+  const top=best.start,bottom=best.end;
+  const colScore=new Float32Array(w);
+  for(let x=0;x<w;x++){
+    let hit=0;
+    for(let y=top;y<bottom;y+=2)if(green(x,y))hit++;
+    colScore[x]=hit/Math.ceil((bottom-top)/2);
+  }
+  let left=0,right=w;
+  while(left<w&&colScore[left]<.45)left++;
+  while(right>left&&colScore[right-1]<.45)right--;
+  // Oyuncu isimlerinin/saha kenar çizgisinin kesilmemesi için küçük pay.
+  const padX=Math.round((right-left)*.015),padY=Math.round((bottom-top)*.015);
+  left=Math.max(0,left-padX);right=Math.min(w,right+padX);
+  return{x:left,y:Math.max(0,top-padY),width:right-left,height:Math.min(h,bottom+padY)-Math.max(0,top-padY)};
 }
 function nearestSlot(nx,ny,used){
   let best=null,dist=Infinity;
