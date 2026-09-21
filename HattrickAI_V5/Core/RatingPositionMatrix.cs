@@ -485,7 +485,13 @@ default:
             var midfield = 1.35839805
                 - .02179095 * playmaking
                 + 1.21013647 * ff
-                - .25824624 * playmaking * ff;
+                - .25824624 * playmaking * ff
+                // The singleton corpus shows a small defending-dependent
+                // shift in the displayed MID sector. Keep it deliberately
+                // low-amplitude so the existing winger calibration remains
+                // within the quarter-step regression band.
+                - .06900000
+                + .02000000 * (defending - 4.0);
             var sideAttack = .49722642
                 + .06380086 * passing
                 - .09069453 * winger
