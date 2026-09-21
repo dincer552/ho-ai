@@ -270,7 +270,7 @@ async function importLineupFromImage(file){
   const status=document.getElementById('imageStatus'),err=document.getElementById('error');
   if(!file)return;
   if(!players.length){status.textContent='Önce CHPP oyuncu listesinin yüklenmesini bekle.';return;}
-  err.style.display='none'; status.textContent='14 sabit koordinat + çoklu OCR okunuyor…';
+  err.style.display='none'; status.textContent='14 sabit bölge okunuyor…';
   const img=new Image(),url=URL.createObjectURL(file);
   try{
     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
@@ -286,23 +286,27 @@ async function importLineupFromImage(file){
     field.getContext('2d').drawImage(source,bounds.x,bounds.y,bounds.width,bounds.height,0,0,field.width,field.height);
 
     const worker=await Tesseract.createWorker('tur+eng');
+    await worker.setParameters({
+      tessedit_pageseg_mode:'7',
+      preserve_interword_spaces:'1',
+      user_defined_dpi:'300'
+    });
+
     const slotMatches=[],diagnostics=[];
     for(const [slot] of SLOTS){
       const info=buildFixedNameCrop(field,slot,4);
       const rawSet=[],ranked=[];
-      for(const variant of info.variants){
-        for(const psm of ['7','6','13']){
-          await worker.setParameters({
-            tessedit_pageseg_mode:psm,
-            preserve_interword_spaces:'1',
-            user_defined_dpi:'300'
-          });
-          const out=await worker.recognize(variant.canvas);
-          for(const text of ocrCandidatesFromResult(out)){
-            rawSet.push(variant.name+'/psm'+psm+': '+text);
-            for(const x of rankOcrPlayers(text,5))
-              ranked.push({text,...x,variant:variant.name,psm});
-          }
+      // İlk tur: normal renkli crop. Sadece eşleşemeyen kutular ikinci turda
+      // siyah/beyaz varyantıyla tekrar okutulur. Önceki 168 OCR çağrısını
+      // 14-28 çağrıya indiriyoruz.
+      const variants=info.variants.filter(v=>v.name==='renkli'||v.name==='beyaz105');
+      for(const variant of variants){
+        if(ranked.some(x=>x.score>=.84))break;
+        const out=await worker.recognize(variant.canvas);
+        for(const text of ocrCandidatesFromResult(out)){
+          rawSet.push(variant.name+': '+text);
+          for(const x of rankOcrPlayers(text,5))
+            ranked.push({text,...x,variant:variant.name});
         }
       }
       ranked.sort((a,b)=>b.score-a.score);
@@ -310,7 +314,7 @@ async function importLineupFromImage(file){
       const accepted=!!best&&best.score>=.84;
       diagnostics.push({
         slot,x:Math.round(info.x),y:Math.round(info.y),width:Math.round(info.width),height:Math.round(info.height),
-        raw:[...new Set(rawSet)].slice(0,30),
+        raw:[...new Set(rawSet)].slice(0,12),
         top:best?rankOcrPlayers(best.text,5):[],
         accepted,player:accepted?best.player:null,
         reason:accepted?'KABUL':'Eşleşme yok veya en iyi skor < 0.84'
