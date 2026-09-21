@@ -146,10 +146,10 @@ public static class RatingCalculationFormulaCatalog
     {
         var m = order switch
         {
-            PlayerOrder.Defensive => (0.050,0.148,0.054,0.185,0.044,0.009),
-            PlayerOrder.TowardsMiddle => (0.047,0.093,0.082,0.160,0.043,0.026),
-            PlayerOrder.Offensive => (0.016,0.055,0.054,0.247,0.062,0.024),
-            _ => (0.037,0.104,0.065,0.219,0.054,0.018)
+            PlayerOrder.Defensive => (0.050,0.148,0.054,0.044,0.185,0.009),
+            PlayerOrder.TowardsMiddle => (0.047,0.093,0.082,0.043,0.160,0.026),
+            PlayerOrder.Offensive => (0.016,0.055,0.054,0.062,0.247,0.024),
+            _ => (0.037,0.104,0.065,0.054,0.219,0.018)
         };
         return $"{side} W/{order}: CD=D×{m.Item1:0.###}; own DEF=D×{m.Item2:0.###}; MID=PM×{m.Item3:0.###}; own ATT=P×{m.Item4:0.###}+W×{m.Item5:0.###}; CA=P×{m.Item6:0.###}; each term × form multiplier.";
     }
