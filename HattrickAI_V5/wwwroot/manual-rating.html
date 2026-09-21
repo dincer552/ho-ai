@@ -358,7 +358,7 @@ function renderOcrPreview(image,sourceCanvas,bounds,layoutBoxes,diagnostics){
   const img=document.getElementById('ocrPreviewImage');
   const canvas=document.getElementById('ocrPreviewCanvas');
   if(!wrap||!img||!canvas)return;
-  const url=URL.createObjectURL(source);
+  const url=URL.createObjectURL(sourceCanvas.toDataURL('image/jpeg',0.92));
   if(img._ocrUrl)URL.revokeObjectURL(img._ocrUrl);
   img._ocrUrl=url;
   img.onload=()=>{
