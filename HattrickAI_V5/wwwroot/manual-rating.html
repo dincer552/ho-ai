@@ -184,7 +184,7 @@ const OCR_REFERENCE_SIZE={width:900,height:850};
 const OCR_NAME_BOXES={
   'GK':    {x1:381,y1:173,x2:509,y2:214},
   'WB-L':  {x1:34, y1:382,x2:157,y2:417},
-  'WB-R':  {x1:725,y1:381,x2:852,y2:416},
+  'WB-R':  {x1:630,y1:360,x2:890,y2:435},
   'DEF-CL':{x1:193,y1:381,x2:340,y2:423},
   'DEF-C': {x1:365,y1:381,x2:509,y2:414},
   'DEF-CR':{x1:544,y1:374,x2:696,y2:424},
@@ -229,7 +229,7 @@ function formationSlotBoxes(defenders,midfielders,forwards){
     // hedefliyoruz; mevcut 5'li savunma matrisi diğer formasyonlarda aynen kalır.
     result['WB-L']={x1:35,y1:382,x2:175,y2:430};
     result['DEF-C']={x1:350,y1:382,x2:540,y2:430};
-    result['WB-R']={x1:725,y1:382,x2:890,y2:430};
+    result['WB-R']={x1:630,y1:360,x2:890,y2:435};
   }
 
   return result;
