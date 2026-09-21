@@ -35,23 +35,27 @@ function tokenSimilarity(a,b){
   return max ? Math.max(0,1-d/max) : 0;
 }
 function nameMatchScore(ocr,player){
-  const a=normText(ocr), b=normText(player.name);
+  const a=normText(ocr),b=normText(player.name);
   if(!a||!b)return 0;
   const at=a.split(/\s+/).filter(Boolean),bt=b.split(/\s+/).filter(Boolean);
-  if(!at.length||!bt.length)return 0;
-  const al=at[at.length-1],bl=bt[bt.length-1];
-  const lastDistance=editDistance(al,bl),lastMax=Math.max(al.length,bl.length);
-  const lastScore=lastMax?1-lastDistance/lastMax:0;
-  const firstScore=1-editDistance(at[0],bt[0])/Math.max(at[0].length,bt[0].length);
-  const initial=at[0]?.length===1&&bt[0]?.length>0&&at[0][0]===bt[0][0];
+  if(at.length<2||bt.length<2)return 0;
+  const af=at[0],bf=bt[0],al=at[at.length-1],bl=bt[bt.length-1];
+  const dist=editDistance(al,bl);
+  const lastScore=1-dist/Math.max(al.length,bl.length);
+  const firstScore=1-editDistance(af,bf)/Math.max(af.length,bf.length);
+  const initial=af.length===1&&af[0]===bf[0];
+
+  // Mobil ekranda Tesseract soyadını sıkça kesiyor: "Dobi" -> "Dobovari".
+  const prefix=Math.min(al.length,bl.length)>=3 &&
+    (bl.startsWith(al)||al.startsWith(bl))
+      ? Math.min(al.length,bl.length)/Math.max(al.length,bl.length) : 0;
+
   if(al===bl&&initial)return .99;
-  if(al===bl&&at.length===1)return .97;
-  if(al===bl&&at[0]?.length<=2)return .96;
-  // Tesseract may turn Nocoń into Nocori or Akşın into Aksit.
-  const typoBudget=2;
-  if(initial&&lastDistance<=typoBudget)return .90;
-  if(at.length>=2&&lastDistance<=typoBudget&&firstScore>=.55)return .88;
-  if(lastScore>=.90&&at.length>=2)return .86;
+  if(al===bl&&af.length<=2)return .96;
+  if(initial&&prefix>=.45&&firstScore>=.45)return .93;
+  if(lastScore>=.90&&firstScore>=.55)return .94;
+  if(lastScore>=.84&&initial)return .92;
+  if(lastScore>=.90)return .88;
   if(a===b)return 1;
   return 0;
 }
@@ -143,8 +147,8 @@ function nearestSlot(nx,ny,used){
 const OCR_REFERENCE_SIZE={width:900,height:850};
 const OCR_NAME_BOXES={
   'GK':    {x1:381,y1:173,x2:509,y2:214},
-  'WB-R':  {x1:34, y1:382,x2:157,y2:417},
-  'WB-L':  {x1:725,y1:381,x2:852,y2:416},
+  'WB-L':  {x1:34, y1:382,x2:157,y2:417},
+  'WB-R':  {x1:725,y1:381,x2:852,y2:416},
   'DEF-CL':{x1:193,y1:381,x2:340,y2:423},
   'DEF-C': {x1:365,y1:381,x2:509,y2:414},
   'DEF-CR':{x1:544,y1:378,x2:696,y2:416},
@@ -162,7 +166,6 @@ function buildFixedNameCrop(field,slot,scale=4){
   const box=OCR_NAME_BOXES[slot];
   if(!box)throw new Error('OCR koordinatı bulunamadı: '+slot);
 
-  // Referans koordinatları gerçek yeşil saha crop'una ölçekle.
   const sx=Math.round(box.x1/OCR_REFERENCE_SIZE.width*field.width);
   const sy=Math.round(box.y1/OCR_REFERENCE_SIZE.height*field.height);
   const ex=Math.round(box.x2/OCR_REFERENCE_SIZE.width*field.width);
@@ -178,7 +181,36 @@ function buildFixedNameCrop(field,slot,scale=4){
   const ctx=c.getContext('2d',{willReadFrequently:true});
   ctx.imageSmoothingEnabled=true;
   ctx.drawImage(field,x,y,sw,sh,0,0,c.width,c.height);
-  return {canvas:c,x,y,width:sw,height:sh};
+
+  const src=ctx.getImageData(0,0,c.width,c.height);
+  const gray=new Uint8ClampedArray(src.data.length);
+  for(let i=0;i<src.data.length;i+=4){
+    const yv=.299*src.data[i]+.587*src.data[i+1]+.114*src.data[i+2];
+    gray[i]=gray[i+1]=gray[i+2]=yv;gray[i+3]=255;
+  }
+  const variants=[];
+  const make=(name,mode)=>{
+    const v=document.createElement('canvas');v.width=c.width;v.height=c.height;
+    const vx=v.getContext('2d',{willReadFrequently:true});
+    if(mode==='color')vx.drawImage(c,0,0);
+    else{
+      const d=new ImageData(new Uint8ClampedArray(gray),c.width,c.height);
+      for(let i=0;i<d.data.length;i+=4){
+        let q=d.data[i];
+        if(mode==='contrast') q=Math.max(0,Math.min(255,(q-70)*2.35));
+        else if(mode==='white') q=q>135?255:0;
+        else if(mode==='white2') q=q>105?255:0;
+        d.data[i]=d.data[i+1]=d.data[i+2]=q;
+      }
+      vx.putImageData(d,0,0);
+    }
+    variants.push({name,canvas:v});
+  };
+  make('renkli','color');
+  make('kontrast','contrast');
+  make('beyaz135','white');
+  make('beyaz105','white2');
+  return {variants,x,y,width:sw,height:sh};
 }
 
 function rankOcrPlayers(text,limit=5){
@@ -238,7 +270,7 @@ async function importLineupFromImage(file){
   const status=document.getElementById('imageStatus'),err=document.getElementById('error');
   if(!file)return;
   if(!players.length){status.textContent='Önce CHPP oyuncu listesinin yüklenmesini bekle.';return;}
-  err.style.display='none'; status.textContent='14 sabit koordinat okunuyor…';
+  err.style.display='none'; status.textContent='14 sabit koordinat + çoklu OCR okunuyor…';
   const img=new Image(),url=URL.createObjectURL(file);
   try{
     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
@@ -254,27 +286,32 @@ async function importLineupFromImage(file){
     field.getContext('2d').drawImage(source,bounds.x,bounds.y,bounds.width,bounds.height,0,0,field.width,field.height);
 
     const worker=await Tesseract.createWorker('tur+eng');
-    await worker.setParameters({
-      tessedit_pageseg_mode:'7',
-      preserve_interword_spaces:'1',
-      user_defined_dpi:'300'
-    });
-
     const slotMatches=[],diagnostics=[];
     for(const [slot] of SLOTS){
       const info=buildFixedNameCrop(field,slot,4);
-      const out=await worker.recognize(info.canvas);
-      const raw=ocrCandidatesFromResult(out);
-      const ranked=[];
-      for(const text of raw){
-        for(const x of rankOcrPlayers(text,5))ranked.push({text,...x});
+      const rawSet=[],ranked=[];
+      for(const variant of info.variants){
+        for(const psm of ['7','6','13']){
+          await worker.setParameters({
+            tessedit_pageseg_mode:psm,
+            preserve_interword_spaces:'1',
+            user_defined_dpi:'300'
+          });
+          const out=await worker.recognize(variant.canvas);
+          for(const text of ocrCandidatesFromResult(out)){
+            rawSet.push(variant.name+'/psm'+psm+': '+text);
+            for(const x of rankOcrPlayers(text,5))
+              ranked.push({text,...x,variant:variant.name,psm});
+          }
+        }
       }
       ranked.sort((a,b)=>b.score-a.score);
       const best=ranked[0]||null;
       const accepted=!!best&&best.score>=.84;
       diagnostics.push({
         slot,x:Math.round(info.x),y:Math.round(info.y),width:Math.round(info.width),height:Math.round(info.height),
-        raw,top:best?rankOcrPlayers(best.text,5):[],
+        raw:[...new Set(rawSet)].slice(0,30),
+        top:best?rankOcrPlayers(best.text,5):[],
         accepted,player:accepted?best.player:null,
         reason:accepted?'KABUL':'Eşleşme yok veya en iyi skor < 0.84'
       });
