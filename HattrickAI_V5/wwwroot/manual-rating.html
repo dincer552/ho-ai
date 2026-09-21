@@ -471,7 +471,7 @@ async function importLineupFromImage(file){
       const info=buildFixedNameCrop(field,slot,4,layoutBoxes[slot]);
       const rawSet=[],ranked=[];
       const runVariants=async (cropInfo,prefix='')=>{
-        const variants=cropInfo.variants.filter(v=>v.name==='renkli'||v.name==='beyaz-maske');
+        const variants=cropInfo.variants.filter(v=>['renkli','kontrast','beyaz135','beyaz105','beyaz-maske'].includes(v.name));
         for(const variant of variants){
           if(ranked.some(x=>x.score>=.84))break;
           const out=await worker.recognize(variant.canvas);
