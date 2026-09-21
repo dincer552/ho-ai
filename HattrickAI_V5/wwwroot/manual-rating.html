@@ -446,7 +446,8 @@ async function importLineupFromImage(file){
     await worker.setParameters({
       tessedit_pageseg_mode:'7',
       preserve_interword_spaces:'1',
-      user_defined_dpi:'300'
+      user_defined_dpi:'300',
+      thresholding_method:'2'
     });
 
     // Eski 2-5-3 koordinatları korunuyor. Sadece formasyon okunursa,
