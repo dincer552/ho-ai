@@ -353,7 +353,7 @@ function ocrCandidatesFromResult(out){
   return [...new Set(values)].filter(x=>x.length>=2&&x.length<=42);
 }
 
-function renderOcrPreview(image,source,bounds,layoutBoxes,diagnostics){
+function renderOcrPreview(image,sourceCanvas,bounds,layoutBoxes,diagnostics){
   const wrap=document.getElementById('ocrPreview');
   const img=document.getElementById('ocrPreviewImage');
   const canvas=document.getElementById('ocrPreviewCanvas');
@@ -365,7 +365,7 @@ function renderOcrPreview(image,source,bounds,layoutBoxes,diagnostics){
     canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
     const ctx=canvas.getContext('2d');
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    const sx=img.naturalWidth/image.naturalWidth, sy=img.naturalHeight/image.naturalHeight;
+    const sx=img.naturalWidth/sourceCanvas.width, sy=img.naturalHeight/sourceCanvas.height;
     const fx=bounds.x*sx, fy=bounds.y*sy, fw=bounds.width*sx, fh=bounds.height*sy;
     const scaleX=fw/OCR_REFERENCE_SIZE.width, scaleY=fh/OCR_REFERENCE_SIZE.height;
     for(const [slot,box] of Object.entries(layoutBoxes)){
@@ -594,7 +594,7 @@ async function importLineupFromImage(file){
       slots:diagnostics
     };
     setOcrJsonEnabled(true);
-    renderOcrPreview(img,file,bounds,layoutBoxes,diagnostics);
+    renderOcrPreview(img,source,bounds,layoutBoxes,diagnostics);
     renderOcrDiagnostics(ocrMeta,diagnostics);
 
     slotMatches.sort((a,b)=>b.score-a.score);
