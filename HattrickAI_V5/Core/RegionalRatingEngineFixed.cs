@@ -12,9 +12,6 @@ namespace HattrickAI.V5.Core;
 public sealed class RegionalRatingEngineFixed
 {
     private const double BaselineFormFactor = .756;
-    private const double ReferenceMidfieldCalibration = .8285714285714286;
-    private const double ReferenceLeftAttackCalibration = 1.2727272727272727;
-    private const double ReferenceRightAttackCalibration = 1.2258064516129032;
 
     public RegionalRatingSnapshot Calculate(IReadOnlyList<RegionalPlayer> players, RatingContext? context = null)
         => CalculateCore(players, context, null, null, null).Rating;
