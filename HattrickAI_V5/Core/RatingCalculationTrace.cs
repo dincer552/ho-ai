@@ -172,7 +172,7 @@ public static class RatingCalculationFormulaCatalog
         {
             PlayerOrder.TowardsWing => $"{side} FW/TowardsWing: MID=PM×0.024; own ATT=S×0.093+P×0.101+W×0.044; opposite ATT=W×0.017; CA=P×0.102+S×0.044; each term × form multiplier.",
             PlayerOrder.Defensive => $"{side} FW/Defensive: MID=PM×0.058; own ATT=S×0.030+P×0.033+W×0.059; opposite ATT=S×0.030+P×0.033; CA=S×0.102+P×0.108; each term × form multiplier.",
-            _ => $"{side} FW/Normal production matrix."
+            _ => $"{side} FW/Normal: MID=PM×0.041; own/opposite ATT=P×0.032+S×0.048+W×0.178; CA=P×0.178+S×0.066; each term × form multiplier."
         };
     }
 }
