@@ -48,13 +48,17 @@ public sealed class RegionalRatingEngineFixed
             var loyalty = LoyaltyEffect(p.Loyalty);
             var experienceBonus = ExperienceBonus(p.Experience);
 
+            // Wiki contribution coefficients already include a standard
+            // form/stamina/experience uplift. Keep loyalty as the separate
+            // additive skill layer; do not fold ExperienceBonus into skills
+            // before the coefficient matrix.
             var k = new EffectiveSkillsFixed(
-                SkillRating(p.Keeper) + loyalty + experienceBonus,
-                SkillRating(p.Defending) + loyalty + experienceBonus,
-                SkillRating(p.Playmaking) + loyalty + experienceBonus,
-                SkillRating(p.Passing) + loyalty + experienceBonus,
-                SkillRating(p.Winger) + loyalty + experienceBonus,
-                SkillRating(p.Scoring) + loyalty + experienceBonus,
+                SkillRating(p.Keeper) + loyalty,
+                SkillRating(p.Defending) + loyalty,
+                SkillRating(p.Playmaking) + loyalty,
+                SkillRating(p.Passing) + loyalty,
+                SkillRating(p.Winger) + loyalty,
+                SkillRating(p.Scoring) + loyalty,
                 formMultiplier);
 
             // Schum/HO! ordering is critical:
@@ -93,9 +97,10 @@ public sealed class RegionalRatingEngineFixed
                 skillOnly, p, skillK.Keeper, skillK.Defending, skillK.Playmaking,
                 skillK.Passing, skillK.Winger, skillK.Scoring, skillK.FormMultiplier, 0.0);
 
-            var experienceContributions = direct.ToDictionary(
-                x => x.Key,
-                x => x.Value - skillOnly[x.Key]);
+            // The wiki coefficient layer is the base calculation. Its
+            // published coefficients already contain the standard experience
+            // uplift, so this phase intentionally has no independent XP term.
+            var experienceContributions = Empty();
 
             var slot = RatingPositionMatrix.CanonicalSlot(p);
             var crowding = crowdingState.ForSlot(slot);
@@ -170,7 +175,8 @@ public sealed class RegionalRatingEngineFixed
                     ? 1.0
                     : contextAdjusted[sector] / matrixSubtotal[sector]);
 
-        ApplyReferenceCalibration(sectors);
+        // The wiki contribution table is the base sector ledger.
+        // No empirical reference multiplier is applied here.
         var sectorTraces = Enum.GetValues<RatingSector>()
             .Select(sector =>
             {
@@ -373,13 +379,6 @@ public sealed class RegionalRatingEngineFixed
             s[RatingSector.CentralAttack] *= attack;
             s[RatingSector.RightAttack] *= attack;
         }
-    }
-
-    private static void ApplyReferenceCalibration(Dictionary<RatingSector, double> s)
-    {
-        s[RatingSector.Midfield] *= ReferenceMidfieldCalibration;
-        s[RatingSector.LeftAttack] *= ReferenceLeftAttackCalibration;
-        s[RatingSector.RightAttack] *= ReferenceRightAttackCalibration;
     }
 
     private static double LoyaltyEffect(double loyalty)
