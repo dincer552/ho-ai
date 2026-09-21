@@ -494,6 +494,20 @@ async function importLineupFromImage(file){
         await worker.setParameters({tessedit_pageseg_mode:'7'});
       }
 
+      // 4-5-1 sağ kanatta isim etiketi oyuncunun altına sola doğru taşabiliyor.
+      // Standart WB-R crop başarısızsa sadece bu aktif bölgede sola/geniş tarama yap.
+      if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='WB-R'){
+        for(const box of [
+          {...layoutBoxes[slot],x1:1180,x2:1565,y1:360,y2:455},
+          {...layoutBoxes[slot],x1:1140,x2:1565,y1:350,y2:475},
+          {...layoutBoxes[slot],x1:1080,x2:1565,y1:335,y2:495}
+        ]){
+          const fallback=buildFixedNameCrop(field,slot,4,box);
+          await runVariants(fallback,'wb-r-wide: ');
+          if(ranked.some(x=>x.score>=.84))break;
+        }
+      }
+
       ranked.sort((a,b)=>b.score-a.score);
       const best=ranked[0]||null;
       const accepted=!!best&&best.score>=.84;
