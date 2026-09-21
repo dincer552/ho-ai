@@ -72,7 +72,7 @@ function nameMatchScore(ocr,player){
 
   if(al===bl&&initial)return .99;
   if(al===bl&&af.length<=2)return .96;
-  if(initial&&prefix>=.78&&firstScore>=.45)return .93;
+  if(initial&&prefix>=.78)return .93;
   if(initial&&prefix>=.70&&firstScore>=.45)return .89;
   if(lastScore>=.90&&firstScore>=.55)return .94;
   if(lastScore>=.84&&initial)return .92;
