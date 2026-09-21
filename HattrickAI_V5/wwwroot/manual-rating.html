@@ -456,6 +456,23 @@ async function importLineupFromImage(file){
           if(ranked.some(x=>x.score>=.84))break;
         }
       }
+
+      // 4-5-1'in sol kanadında C. Pesalovo gibi isimler eski W-L
+      // kutusunun sol kenarına ve isim satırının altına taşabiliyor.
+      // Yalnızca W-L başarısızsa daha geniş yatay/alt tolerans uygula.
+      if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='W-L'){
+        const base=layoutBoxes[slot];
+        const variants=[
+          {...base,x1:5,x2:205,y1:400,y2:475},
+          {...base,x1:5,x2:225,y1:390,y2:490},
+          {...base,x1:0,x2:245,y1:410,y2:500}
+        ];
+        for(const box of variants){
+          const fallback=buildFixedNameCrop(field,slot,4,box);
+          await runVariants(fallback,'wide-fallback: ');
+          if(ranked.some(x=>x.score>=.84))break;
+        }
+      }
       ranked.sort((a,b)=>b.score-a.score);
       const best=ranked[0]||null;
       const accepted=!!best&&best.score>=.84;
