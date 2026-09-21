@@ -473,8 +473,28 @@ async function importLineupFromImage(file){
           if(ranked.some(x=>x.score>=.84))break;
         }
       }
+      // W-L (özellikle 4-5-1'de) isim satırı doğru crop içinde olsa bile
+      // tek satır PSM 7 bazen beyaz yazıyı tamamen kaçırıyor. Başka mevkilere
+      // dokunmadan yalnızca bu zor bölge için daha toleranslı sayfa segmentasyonu dene.
+      if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='W-L'){
+        for(const psm of ['6','11']){
+          await worker.setParameters({tessedit_pageseg_mode:psm});
+          await runVariants(info,'psm'+psm+': ');
+          if(ranked.some(x=>x.score>=.84))break;
+          for(const box of [
+            {...layoutBoxes[slot],x1:0,x2:215,y1:700,y2:815},
+            {...layoutBoxes[slot],x1:0,x2:235,y1:680,y2:830}
+          ]){
+            const fallback=buildFixedNameCrop(field,slot,4,box);
+            await runVariants(fallback,'psm'+psm+'-wide: ');
+            if(ranked.some(x=>x.score>=.84))break;
+          }
+          if(ranked.some(x=>x.score>=.84))break;
+        }
+        await worker.setParameters({tessedit_pageseg_mode:'7'});
+      }
+
       ranked.sort((a,b)=>b.score-a.score);
-      const best=ranked[0]||null;
       const accepted=!!best&&best.score>=.84;
       diagnostics.push({
         slot,x:Math.round(info.x),y:Math.round(info.y),width:Math.round(info.width),height:Math.round(info.height),
