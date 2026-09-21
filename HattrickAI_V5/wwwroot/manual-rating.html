@@ -85,6 +85,7 @@ function nameMatchScore(ocr,player){
   if(bestLast.value===bl&&initial)return .99;
   if(bestLast.value===bl&&af.length<=2)return .96;
   // "A Taki" -> "Abeiku Takyi", "D Noconi" -> "Dawid Nocoń".
+  if(initial&&lastScore>=.72&&Math.min(bestLast.value.length,bl.length)>=7)return .93;
   if(initial&&lastScore>=.78&&Math.min(bestLast.value.length,bl.length)>=4)return .93;
   if(initial&&prefix>=.70)return .90;
   // OCR ilk adı bozduğunda, güçlü ve ayırt edici soyadı da tek başına
@@ -319,6 +320,18 @@ function buildFixedNameCrop(field,slot,scale=4,boxOverride=null){
   return {variants,x,y,width:sw,height:sh};
 }
 
+function buildVerticalFallbackCrops(field,slot,box,scale=4){
+  const base=buildFixedNameCrop(field,slot,scale,box);
+  const shifts=[-70,70];
+  const crops=[];
+  for(const shift of shifts){
+    const ref={...box,y1:box.y1+shift,y2:box.y2+shift};
+    if(ref.y2<=0||ref.y1>=OCR_REFERENCE_SIZE.height)continue;
+    crops.push(buildFixedNameCrop(field,slot,scale,ref));
+  }
+  return crops;
+}
+
 function rankOcrPlayers(text,limit=5){
   const ranked=[];
   for(const p of players){
@@ -420,17 +433,27 @@ async function importLineupFromImage(file){
 
       const info=buildFixedNameCrop(field,slot,4,layoutBoxes[slot]);
       const rawSet=[],ranked=[];
-      // İlk tur: normal renkli crop. Sadece eşleşemeyen kutular ikinci turda
-      // siyah/beyaz varyantıyla tekrar okutulur. Önceki 168 OCR çağrısını
-      // 14-28 çağrıya indiriyoruz.
-      const variants=info.variants.filter(v=>v.name==='renkli'||v.name==='beyaz-maske');
-      for(const variant of variants){
-        if(ranked.some(x=>x.score>=.84))break;
-        const out=await worker.recognize(variant.canvas);
-        for(const text of ocrCandidatesFromResult(out)){
-          rawSet.push(variant.name+': '+text);
-          for(const x of rankOcrPlayers(text,5))
-            ranked.push({text,...x,variant:variant.name});
+      const runVariants=async (cropInfo,prefix='')=>{
+        const variants=cropInfo.variants.filter(v=>v.name==='renkli'||v.name==='beyaz-maske');
+        for(const variant of variants){
+          if(ranked.some(x=>x.score>=.84))break;
+          const out=await worker.recognize(variant.canvas);
+          for(const text of ocrCandidatesFromResult(out)){
+            rawSet.push(prefix+variant.name+': '+text);
+            for(const x of rankOcrPlayers(text,5))
+              ranked.push({text,...x,variant:variant.name});
+          }
+        }
+      };
+
+      // Önce mevcut koordinat matrisi. Sadece başarısızsa dikey tolerans
+      // taraması yapılır; böylece farklı ekran oranlarında isim satırının
+      // birkaç on piksel yukarı/aşağı kayması sorun olmaz.
+      await runVariants(info);
+      if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && (slot==='W-L'||slot==='IM-L')){
+        for(const fallback of buildVerticalFallbackCrops(field,slot,layoutBoxes[slot],4)){
+          await runVariants(fallback,'fallback: ');
+          if(ranked.some(x=>x.score>=.84))break;
         }
       }
       ranked.sort((a,b)=>b.score-a.score);
