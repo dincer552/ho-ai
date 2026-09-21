@@ -38,21 +38,42 @@ function nameMatchScore(ocr,player){
   const a=normText(ocr),b=normText(player.name);
   if(!a||!b)return 0;
   const at=a.split(/\s+/).filter(Boolean),bt=b.split(/\s+/).filter(Boolean);
-  if(at.length<2||bt.length<2)return 0;
-  const af=at[0],bf=bt[0],al=at[at.length-1],bl=bt[bt.length-1];
+  if(!at.length||!bt.length)return 0;
+
+  const bf=bt[0],bl=bt[bt.length-1];
+
+  // Tesseract bazen ilk adı tamamen kaybediyor: "Bultot." -> "Bultot".
+  // Soyad tek başına yeterince güçlü ve ayırt ediciyse kabul edilir.
+  if(at.length===1){
+    const t=at[0];
+    const d=editDistance(t,bl);
+    const exact=t===bl;
+    const similarity=1-d/Math.max(t.length,bl.length);
+    const prefix=t.length>=4 && bl.length>=4 &&
+      (t.startsWith(bl)||bl.startsWith(t))
+      ? Math.min(t.length,bl.length)/Math.max(t.length,bl.length) : 0;
+    if(exact)return .97;
+    if(similarity>=.90)return .91;
+    if(prefix>=.80)return .86;
+    return 0;
+  }
+
+  const af=at[0],al=at[at.length-1];
   const dist=editDistance(al,bl);
   const lastScore=1-dist/Math.max(al.length,bl.length);
   const firstScore=1-editDistance(af,bf)/Math.max(af.length,bf.length);
   const initial=af.length===1&&af[0]===bf[0];
 
-  // Mobil ekranda Tesseract soyadını sıkça kesiyor: "Dobi" -> "Dobovari".
+  // Tesseract mobil ekranlarda soyadının sonuna fazladan karakter ekleyebiliyor:
+  // "Nocoń" -> "Noconi".
   const prefix=Math.min(al.length,bl.length)>=3 &&
     (bl.startsWith(al)||al.startsWith(bl))
       ? Math.min(al.length,bl.length)/Math.max(al.length,bl.length) : 0;
 
   if(al===bl&&initial)return .99;
   if(al===bl&&af.length<=2)return .96;
-  if(initial&&prefix>=.45&&firstScore>=.45)return .93;
+  if(initial&&prefix>=.78&&firstScore>=.45)return .93;
+  if(initial&&prefix>=.70&&firstScore>=.45)return .89;
   if(lastScore>=.90&&firstScore>=.55)return .94;
   if(lastScore>=.84&&initial)return .92;
   if(lastScore>=.90)return .88;
