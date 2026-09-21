@@ -490,7 +490,7 @@ default:
                 // shift in the displayed MID sector. Keep it deliberately
                 // low-amplitude so the existing winger calibration remains
                 // within the quarter-step regression band.
-                - .06900000
+                - .07100000
                 + .02000000 * (defending - 4.0);
             var sideAttack = .49722642
                 + .06380086 * passing
