@@ -494,6 +494,26 @@ async function importLineupFromImage(file){
         await worker.setParameters({tessedit_pageseg_mode:'7'});
       }
 
+      // WB-R'de C. Pesalovo gibi kısa ad + uzun soyad etiketleri,
+      // PSM 7 ile karakterleri birleştirip bozabiliyor. Mevcut crop ve
+      // koordinat matrisi korunur; yalnızca başarısız WB-R için PSM 6/11
+      // ile aynı geniş fallback alanlarını tekrar tara.
+      if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='WB-R'){
+        for(const psm of ['6','11']){
+          await worker.setParameters({tessedit_pageseg_mode:psm});
+          for(const box of [
+            {...layoutBoxes[slot],x1:1080,x2:1565,y1:330,y2:500},
+            {...layoutBoxes[slot],x1:980,x2:1565,y1:300,y2:530}
+          ]){
+            const fallback=buildFixedNameCrop(field,slot,4,box);
+            await runVariants(fallback,'wb-r-psm'+psm+': ');
+            if(ranked.some(x=>x.score>=.84))break;
+          }
+          if(ranked.some(x=>x.score>=.84))break;
+        }
+        await worker.setParameters({tessedit_pageseg_mode:'7'});
+      }
+
       // 4-5-1 sağ kanatta isim etiketi oyuncunun altına sola doğru taşabiliyor.
       // Standart WB-R crop başarısızsa sadece bu aktif bölgede sola/geniş tarama yap.
       if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='WB-R'){
