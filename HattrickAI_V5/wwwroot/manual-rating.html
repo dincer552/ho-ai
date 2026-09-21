@@ -481,6 +481,30 @@ async function importLineupFromImage(file){
               ranked.push({text,...x,variant:variant.name});
           }
         }
+
+        if(!ranked.some(x=>x.score>=.84)){
+          const base=variants[0]?.canvas;
+          if(base){
+            for(const start of [.30,.42]){
+              if(ranked.some(x=>x.score>=.84))break;
+              const band=document.createElement('canvas');
+              band.width=base.width;
+              band.height=Math.max(1,Math.round(base.height*(1-start)));
+              const bx=band.getContext('2d');
+              for(const variant of variants){
+                if(ranked.some(x=>x.score>=.84))break;
+                bx.clearRect(0,0,band.width,band.height);
+                bx.drawImage(variant.canvas,0,Math.round(base.height*start),band.width,band.height,0,0,band.width,band.height);
+                const out=await worker.recognize(band);
+                for(const text of ocrCandidatesFromResult(out)){
+                  rawSet.push(prefix+'name-band-'+variant.name+': '+text);
+                  for(const x of rankOcrPlayers(text,5))
+                    ranked.push({text,...x,variant:'name-band-'+variant.name});
+                }
+              }
+            }
+          }
+        }
       };
 
       // Önce mevcut koordinat matrisi. Sadece başarısızsa dikey tolerans
