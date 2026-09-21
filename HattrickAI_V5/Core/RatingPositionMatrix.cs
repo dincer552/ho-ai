@@ -263,10 +263,10 @@ default:
     {
         var v = order switch
         {
-            PlayerOrder.Defensive => new WingerMatrix(.050, .148, .054, .185, .044, .009),
-            PlayerOrder.TowardsMiddle => new WingerMatrix(.047, .093, .082, .160, .043, .026),
-            PlayerOrder.Offensive => new WingerMatrix(.016, .055, .054, .247, .062, .024),
-            _ => new WingerMatrix(.037, .104, .065, .219, .054, .018)
+            PlayerOrder.Defensive => new WingerMatrix(.050, .148, .054, .044, .185, .009),
+            PlayerOrder.TowardsMiddle => new WingerMatrix(.047, .093, .082, .043, .160, .026),
+            PlayerOrder.Offensive => new WingerMatrix(.016, .055, .054, .062, .247, .024),
+            _ => new WingerMatrix(.037, .104, .065, .054, .219, .018)
         };
 
         Add(s, RatingSector.CentralDefence, defending * v.CentralDefence, form);
