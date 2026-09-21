@@ -256,10 +256,10 @@ async function detectFormation(field,worker){
     });
     const text=String(out?.data?.text||'').replace(/\n/g,' ');
     const m=text.match(/([1-5])\s*[-–—]\s*([1-5])\s*[-–—]\s*([1-3])/);
-    await worker.setParameters({tessedit_pageseg_mode:'7'});
+    await worker.setParameters({tessedit_pageseg_mode:'7',thresholding_method:'2'});
     return m?{text,defenders:+m[1],midfielders:+m[2],forwards:+m[3]}:{text,defenders:null,midfielders:null,forwards:null};
   }catch{
-    await worker.setParameters({tessedit_pageseg_mode:'7'}).catch(()=>{});
+    await worker.setParameters({tessedit_pageseg_mode:'7',thresholding_method:'2'}).catch(()=>{});
     return {text:'',defenders:null,midfielders:null,forwards:null};
   }
 }
@@ -534,47 +534,6 @@ async function importLineupFromImage(file){
           if(ranked.some(x=>x.score>=.84))break;
         }
       }
-      // W-L (özellikle 4-5-1'de) isim satırı doğru crop içinde olsa bile
-      // tek satır PSM 7 bazen beyaz yazıyı tamamen kaçırıyor. Başka mevkilere
-      // dokunmadan yalnızca bu zor bölge için daha toleranslı sayfa segmentasyonu dene.
-      if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='W-L'){
-        for(const psm of ['6','11']){
-          await worker.setParameters({tessedit_pageseg_mode:psm});
-          await runVariants(info,'psm'+psm+': ');
-          if(ranked.some(x=>x.score>=.84))break;
-          for(const box of [
-            {...layoutBoxes[slot],x1:0,x2:215,y1:700,y2:815},
-            {...layoutBoxes[slot],x1:0,x2:235,y1:680,y2:830}
-          ]){
-            const fallback=buildFixedNameCrop(field,slot,4,box);
-            await runVariants(fallback,'psm'+psm+'-wide: ');
-            if(ranked.some(x=>x.score>=.84))break;
-          }
-          if(ranked.some(x=>x.score>=.84))break;
-        }
-        await worker.setParameters({tessedit_pageseg_mode:'7'});
-      }
-
-      // WB-R'de C. Pesalovo gibi kısa ad + uzun soyad etiketleri,
-      // PSM 7 ile karakterleri birleştirip bozabiliyor. Mevcut crop ve
-      // koordinat matrisi korunur; yalnızca başarısız WB-R için PSM 6/11
-      // ile aynı geniş fallback alanlarını tekrar tara.
-      if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='WB-R'){
-        for(const psm of ['6','11']){
-          await worker.setParameters({tessedit_pageseg_mode:psm});
-          for(const box of [
-            {...layoutBoxes[slot],x1:1080,x2:1565,y1:330,y2:500},
-            {...layoutBoxes[slot],x1:980,x2:1565,y1:300,y2:530}
-          ]){
-            const fallback=buildFixedNameCrop(field,slot,4,box);
-            await runVariants(fallback,'wb-r-psm'+psm+': ');
-            if(ranked.some(x=>x.score>=.84))break;
-          }
-          if(ranked.some(x=>x.score>=.84))break;
-        }
-        await worker.setParameters({tessedit_pageseg_mode:'7'});
-      }
-
       // 4-5-1 sağ kanatta isim etiketi oyuncunun altına sola doğru taşabiliyor.
       // Standart WB-R crop başarısızsa sadece bu aktif bölgede sola/geniş tarama yap.
       if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='WB-R'){
