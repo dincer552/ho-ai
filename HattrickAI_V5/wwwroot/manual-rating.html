@@ -216,6 +216,21 @@ function formationSlotBoxes(defenders,midfielders,forwards){
   pick(midBase,midfielders).forEach((slot)=>{ result[slot]=OCR_NAME_BOXES[slot]; });
   pick(fwBase,forwards).forEach((slot)=>{ result[slot]=OCR_NAME_BOXES[slot]; });
   result.GK=OCR_NAME_BOXES.GK;
+
+  // 3-4-3'te savunma oyuncuları fiziksel olarak sol/merkez/sağ
+  // kolonlara oturur. Eski 5'li savunma kutuları özellikle sağdaki
+  // uzun isimleri kesebiliyor. Eski matrisi bozmadan yalnızca 3'lü
+  // savunma tespit edildiğinde bu üç kutuyu merkezleyip genişletiyoruz.
+  if(defenders===3){
+    const centers={'WB-L':.08,'DEF-C':.50,'WB-R':.92};
+    for(const slot of Object.keys(centers)){
+      const base=OCR_NAME_BOXES[slot];
+      const center=centers[slot]*OCR_REFERENCE_SIZE.width;
+      const width=190;
+      result[slot]={...base,x1:Math.max(0,Math.round(center-width/2)),x2:Math.min(OCR_REFERENCE_SIZE.width,Math.round(center+width/2))};
+    }
+  }
+
   return result;
 }
 
@@ -334,7 +349,7 @@ function renderOcrDiagnostics(meta,rows){
     '<br><b>Yeşil saha crop:</b> x='+meta.fieldX+', y='+meta.fieldY+', w='+meta.fieldWidth+', h='+meta.fieldHeight+
     '<br><b>Formasyon:</b> '+esc(meta.formation||'okunamadı')+
     (meta.formationOcr?'<br><b>Formasyon OCR:</b> '+esc(meta.formationOcr): '')+
-    '<br><b>Sonuç:</b> '+rows.filter(x=>x.accepted).length+' kabul / '+rows.length+' bölge</div>'+
+    '<br><b>Sonuç:</b> '+rows.filter(x=>x.accepted).length+' kabul / '+rows.filter(x=>x.active!==false).length+' aktif bölge</div>'+
     rows.map(r=>{
       const raw=r.raw.length?r.raw.map(x=>'<code>'+esc(x)+'</code>').join(' | '):'<span class="bad">OCR metni yok</span>';
       const tops=r.top.length?r.top.map(x=>esc(x.player.name)+' ('+x.score.toFixed(2)+')').join(' · '):'eşleşme yok';
@@ -363,7 +378,7 @@ async function importLineupFromImage(file){
   const status=document.getElementById('imageStatus'),err=document.getElementById('error');
   if(!file)return;
   if(!players.length){status.textContent='Önce CHPP oyuncu listesinin yüklenmesini bekle.';return;}
-  err.style.display='none'; status.textContent='14 sabit bölge okunuyor…';
+  err.style.display='none'; status.textContent='Formasyon ve mevki bölgeleri okunuyor…';
   const img=new Image(),url=URL.createObjectURL(file);
   try{
     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
@@ -393,7 +408,16 @@ async function importLineupFromImage(file){
       : OCR_NAME_BOXES;
 
     const slotMatches=[],diagnostics=[];
+    const activeSlots=new Set(Object.keys(layoutBoxes));
     for(const [slot] of SLOTS){
+      if(!activeSlots.has(slot)){
+        diagnostics.push({
+          slot,x:0,y:0,width:0,height:0,raw:[],top:[],accepted:false,player:null,
+          active:false,reason:'Formasyonda aktif değil'
+        });
+        continue;
+      }
+
       const info=buildFixedNameCrop(field,slot,4,layoutBoxes[slot]);
       const rawSet=[],ranked=[];
       // İlk tur: normal renkli crop. Sadece eşleşemeyen kutular ikinci turda
@@ -417,6 +441,7 @@ async function importLineupFromImage(file){
         raw:[...new Set(rawSet)].slice(0,12),
         top:best?rankOcrPlayers(best.text,5):[],
         accepted,player:accepted?best.player:null,
+        active:true,
         reason:accepted?'KABUL':'Eşleşme yok veya en iyi skor < 0.84'
       });
       if(accepted)slotMatches.push({slot,player:best.player,score:best.score,text:best.text});
