@@ -87,6 +87,10 @@ function nameMatchScore(ocr,player){
   // "A Taki" -> "Abeiku Takyi", "D Noconi" -> "Dawid Nocoń".
   if(initial&&lastScore>=.72&&Math.min(bestLast.value.length,bl.length)>=7)return .93;
   if(initial&&lastScore>=.78&&Math.min(bestLast.value.length,bl.length)>=4)return .93;
+  // Uzun soyadlarda Tesseract harfleri bozup/birleştirerek daha düşük edit
+  // skoru üretebiliyor: "G u stay ssor" -> "gustayssor" / "Gustavsson".
+  // Baş harfi + uzun soyad + yeterli benzerlik varsa kabul ediyoruz.
+  if(initial&&lastScore>=.70&&Math.min(bestLast.value.length,bl.length)>=8)return .90;
   if(initial&&prefix>=.70)return .90;
   // OCR ilk adı bozduğunda, güçlü ve ayırt edici soyadı da tek başına
   // aday olabilir. Bu eşik genel tutuluyor; CHPP adayları zaten sıralanıyor.
