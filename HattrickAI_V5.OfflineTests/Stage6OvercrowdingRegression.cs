@@ -9,6 +9,51 @@ public static class Stage6OvercrowdingRegression
         var failures = new List<string>();
         var engine = new RegionalRatingEngineFixed();
 
+        // Exhaustive crowding-layer regression: every possible occupancy
+        // combination of the 14 canonical slots must resolve to the same
+        // CD/IM/FW counts and multipliers as the direct count law.
+        if (RatingCrowding.AllCombinations.Count != RatingCrowding.CombinationCount)
+            failures.Add($"Crowding table size expected {RatingCrowding.CombinationCount}, got {RatingCrowding.AllCombinations.Count}");
+
+        for (var mask = 0; mask < RatingCrowding.CombinationCount; mask++)
+        {
+            var state = RatingCrowding.ForMask(mask);
+            var expectedCd = 0;
+            var expectedIm = 0;
+            var expectedFw = 0;
+
+            for (var bit = 0; bit < RatingPositionMatrix.CanonicalSlots.Length; bit++)
+            {
+                if ((mask & (1 << bit)) == 0)
+                    continue;
+
+                switch (RatingCrowding.CanonicalGroup(RatingPositionMatrix.CanonicalSlots[bit]))
+                {
+                    case "CD": expectedCd++; break;
+                    case "IM": expectedIm++; break;
+                    case "FW": expectedFw++; break;
+                }
+            }
+
+            if (state.CentralDefenders != expectedCd ||
+                state.InnerMidfielders != expectedIm ||
+                state.Forwards != expectedFw)
+            {
+                failures.Add($"mask {mask}: crowding counts mismatch");
+                continue;
+            }
+
+            var expectedCdFactor = RatingCrowding.GetMultiplier("CD", expectedCd);
+            var expectedImFactor = RatingCrowding.GetMultiplier("IM", expectedIm);
+            var expectedFwFactor = RatingCrowding.GetMultiplier("FW", expectedFw);
+
+            if (Math.Abs(state.ForSlot("DEF-C") - expectedCdFactor) > 1e-12 ||
+                Math.Abs(state.ForSlot("IM-C") - expectedImFactor) > 1e-12 ||
+                Math.Abs(state.ForSlot("FW-C") - expectedFwFactor) > 1e-12)
+                failures.Add($"mask {mask}: crowding multiplier mismatch");
+        }
+
+
         // Exact HO!/Schum crowding law:
         // CD sector: 2=.964, 3=.900; otherwise 1.0
         // IM sector: 2=.935, 3=.825; otherwise 1.0
