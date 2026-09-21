@@ -7,7 +7,7 @@
 <header class="top"><div class="brand">Hattrick<span>AI</span></div><div class="crumb">V5 • Manuel Rating Motoru Testi</div><button class="back" onclick="location.href='/'">← Ana sayfa</button></header>
 <div class="grid"><section><article class="card"><div class="head"><div class="eyebrow">OYUNCU HAVUZU</div><div class="title">Oyuncu seç</div><div class="sub">Üstten özelliği seç; en yüksek oyuncular üstte. Her oyuncunun altında 14 mevkiye taşıma düğmeleri var.</div></div>
 <div class="controls"><div class="image-import"><label>RESİMDEN KADRO</label><button class="btn secondary" id="imageImport" type="button">📷 RESİM YÜKLE</button><input id="imageFile" type="file" accept="image/*" hidden><span id="imageStatus" class="image-status">Ekran görüntüsündeki oyuncuları otomatik mevkilere yerleştirir.</span></div><div><label>SIRALAMA</label><select id="sort"><option value="defending">Defans</option><option value="playmaking">Oyunkuruculuk</option><option value="passing">Pas</option><option value="winger">Kanat</option><option value="scoring">Golcülük</option><option value="keeper">Kalecilik</option><option value="form">Form</option><option value="stamina">Dayanıklılık</option><option value="experience">Tecrübe</option></select></div><div><label>ARAMA</label><input id="search" placeholder="Oyuncu adı ara…"></div></div>
-<div class="error" id="error"></div><details class="ocr-debug" id="ocrDebug"><summary>OCR TEŞHİSİ — 14 SABİT BÖLGE</summary><div class="ocr-debug-body" id="ocrDebugBody"><div class="ocr-meta">Resim yüklendiğinde her mevkinin gerçek crop koordinatı, ham OCR çıktısı, CHPP adayları ve kabul/red nedeni burada görünür.</div></div></details><div class="player-list" id="players"><div class="empty">CHPP oyuncuları yükleniyor…</div></div></article></section>
+<div class="error" id="error"></div><details class="ocr-debug" id="ocrDebug"><summary>OCR TEŞHİSİ — 14 SABİT BÖLGE</summary><div class="ocr-debug-body" id="ocrDebugBody"><div class="ocr-meta">Resim yüklendiğinde her mevkinin gerçek crop koordinatı, ham OCR çıktısı, CHPP adayları ve kabul/red nedeni burada görünür.</div></div></details><div class="json-action"><button class="json-btn" id="downloadOcrJson" type="button" disabled>OCR JSON İNDİR</button><span class="json-note">Son OCR keşfinin ham metinlerini, crop koordinatlarını, adaylarını ve formasyon bilgisini indirir.</span></div><div class="player-list" id="players"><div class="empty">CHPP oyuncuları yükleniyor…</div></div></article></section>
 <section><article class="card"><div class="head"><div class="eyebrow">V5 MANUEL KADRO</div><div class="title" id="teamTitle">Takım kadrosu</div><div class="sub">1 oyuncu bile seçsen hesap yapılır. Oyuncu başka mevkiye taşınırsa önceki mevki boşalır.</div></div>
 <div class="pitch-wrap"><div class="pitch" id="pitch"><div class="mid"></div><div class="circle"></div><div class="box t"></div><div class="box b"></div><div class="goal t"></div><div class="goal b"></div><div class="slots"></div><div class="board" id="board"></div></div></div>
 <div class="bottom"><div class="count" id="count">0 / 11 oyuncu seçildi</div><button class="btn secondary" id="clear">TEMİZLE</button><button class="btn" id="calculate" disabled>V5 HESAPLA</button></div>
@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script><script>
 const SLOTS=[['GK','gk','GK'],['WB-L','dl','WB-L'],['DEF-CL','dcl','DEF-L'],['DEF-C','dc','DEF-C'],['DEF-CR','dcr','DEF-R'],['WB-R','dr','WB-R'],['W-L','wl','W-L'],['IM-L','iml','IM-L'],['IM-C','imc','IM-C'],['IM-R','imr','IM-R'],['W-R','wr','W-R'],['FW-L','fwl','FW-L'],['FW-C','fwc','FW-C'],['FW-R','fwr','FW-R']];
 const SKILLS=[['keeper','KL'],['defending','DEF'],['playmaking','PM'],['passing','PAS'],['winger','KAN'],['scoring','GOL'],['form','FORM'],['stamina','STA'],['experience','EXP']];
-let players=[],selected=new Map(),activeSlot=null,lastRating=null,lastCalculation=null;
+let players=[],selected=new Map(),activeSlot=null,lastRating=null,lastCalculation=null,lastOcrDiagnostics=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const fmt=x=>Number(x||0).toFixed(2).replace(/\.00$/,'');
 
@@ -463,9 +463,9 @@ async function importLineupFromImage(file){
       if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='W-L'){
         const base=layoutBoxes[slot];
         const variants=[
-          {...base,x1:5,x2:205,y1:400,y2:475},
-          {...base,x1:5,x2:225,y1:390,y2:490},
-          {...base,x1:0,x2:245,y1:410,y2:500}
+          {...base,x1:0,x2:215,y1:545,y2:635},
+          {...base,x1:0,x2:235,y1:535,y2:655},
+          {...base,x1:0,x2:255,y1:525,y2:670}
         ];
         for(const box of variants){
           const fallback=buildFixedNameCrop(field,slot,4,box);
@@ -488,7 +488,7 @@ async function importLineupFromImage(file){
     }
     await worker.terminate();
 
-    renderOcrDiagnostics({
+    const ocrMeta={
       source:file.name,
       imageWidth:img.naturalWidth,imageHeight:img.naturalHeight,scale,
       fieldX:Math.round(bounds.x),fieldY:Math.round(bounds.y),
@@ -497,7 +497,19 @@ async function importLineupFromImage(file){
         ? formation.defenders+'-'+formation.midfielders+'-'+formation.forwards
         : 'okunamadı',
       formationOcr:formation.text||''
-    },diagnostics);
+    };
+    lastOcrDiagnostics={
+      schema:'hattrickai-v5-ocr-discovery-v1',
+      createdAt:new Date().toISOString(),
+      engine:'Tesseract.js tur+eng',
+      metadata:ocrMeta,
+      activeSlots:Object.keys(layoutBoxes),
+      acceptedCount:diagnostics.filter(x=>x.accepted).length,
+      activeCount:diagnostics.filter(x=>x.active!==false).length,
+      slots:diagnostics
+    };
+    setOcrJsonEnabled(true);
+    renderOcrDiagnostics(ocrMeta,diagnostics);
 
     slotMatches.sort((a,b)=>b.score-a.score);
     const found=[],usedPlayers=new Set();
@@ -527,8 +539,20 @@ function place(p,slot){for(const [s,x] of selected)if(x.id===p.id)selected.delet
 function payload(){const slots=[...selected].map(([code,p])=>({code,label:code,description:'Manual V5',playerName:p.name,playerId:p.id,rating:0,x:0,y:0,order:0}));return{lineup:{teamName:'MANUEL V5',formation:'MANUEL',slots},players:[...new Map([...selected.values()].map(p=>[p.id,p])).values()],context:{matchLocation:0,attitude:0,tactic:0,matchMinute:0,goalDifference:0,ignoreLeadRetreat:false}}}
 async function calc(){const btn=document.getElementById('calculate'),err=document.getElementById('error');err.style.display='none';btn.disabled=true;document.getElementById('status').textContent='V5 motoru hesaplıyor…';try{const request=payload();const r=await fetch('/api/v5/rating-engine/manual',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)}),d=await r.json();if(!r.ok)throw Error(d.message||d.detail||'V5 hesaplama hatası');const v=d.rating||d;renderPitch(v);document.getElementById('result').innerHTML='<div class="eyebrow">V5 SONUCU</div><div class="ratings">'+[['DEF-L',v.leftDefence],['DEF-C',v.centralDefence],['DEF-R',v.rightDefence],['MID',v.midfield],['ATT-L',v.leftAttack],['ATT-C',v.centralAttack],['ATT-R',v.rightAttack]].map(x=>'<div class="rating"><b>'+fmt(x[1])+'</b><span>'+x[0]+'</span></div>').join('')+'</div>';lastCalculation={schema:'hattrickai-v5-manual-rating-v1',engine:'V5',calculatedAt:new Date().toISOString(),endpoint:'/api/v5/rating-engine/manual',request,response:d,selectedSlots:[...selected].map(([slot,p])=>({slot,playerId:p.id,playerName:p.name,skills:Object.fromEntries(SKILLS.map(([k])=>[k,Number(p[k]||0)]))}))};setJsonEnabled(true);document.getElementById('status').textContent='V5 hesaplandı • '+selected.size+' oyuncu'}catch(e){lastCalculation=null;setJsonEnabled(false);err.textContent=e.message;err.style.display='block';document.getElementById('status').textContent='Hesaplama başarısız'}finally{btn.disabled=!selected.size}}
 function setJsonEnabled(enabled){const b=document.getElementById('downloadJson');if(b)b.disabled=!enabled}
+function setOcrJsonEnabled(enabled){const b=document.getElementById('downloadOcrJson');if(b)b.disabled=!enabled}
+function downloadOcrJson(){
+  if(!lastOcrDiagnostics){alert('Önce bir ekran görüntüsü ile OCR keşfi çalıştırmalısın.');return}
+  const blob=new Blob([JSON.stringify(lastOcrDiagnostics,null,2)],{type:'application/json;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const source=String(lastOcrDiagnostics.metadata?.source||'ocr').replace(/[^a-zA-Z0-9_-]+/g,'_');
+  const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+  const a=document.createElement('a');a.href=url;
+  a.download='hattrickai-v5-ocr-'+source+'-'+stamp+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 function downloadManualJson(){if(!lastCalculation){alert('Önce V5 hesaplamasını çalıştırmalısın.');return}const blob=new Blob([JSON.stringify(lastCalculation,null,2)],{type:'application/json;charset=utf-8'});const url=URL.createObjectURL(blob);const team=String(document.getElementById('teamTitle').textContent||'takim').replace(/[^a-zA-Z0-9_-]+/g,'_');const stamp=new Date().toISOString().replace(/[:.]/g,'-');const a=document.createElement('a');a.href=url;a.download='hattrickai-v5-manual-rating-'+team+'-'+stamp+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function clearAll(){selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;setJsonEnabled(false);renderPitch(null);renderPlayers();document.getElementById('result').innerHTML='';document.getElementById('status').textContent='Kadron temizlendi.'}
+function clearAll(){selected.clear();activeSlot=null;lastRating=null;lastCalculation=null;lastOcrDiagnostics=null;setJsonEnabled(false);setOcrJsonEnabled(false);renderPitch(null);renderPlayers();document.getElementById('result').innerHTML='';document.getElementById('status').textContent='Kadron temizlendi.'}
 async function load(){try{const r=await fetch('/api/v5/team-player-export',{cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.message||d.detail||'Oyuncu verisi alınamadı');players=d.players||[];document.getElementById('teamTitle').textContent=d.team?.teamName||'Takım kadrosu';document.getElementById('status').textContent=players.length+' oyuncu CHPP’den yüklendi.';renderPlayers();renderPitch(null)}catch(e){document.getElementById('error').textContent=e.message+' • Önce CHPP bağlantısını aç.';document.getElementById('error').style.display='block';document.getElementById('players').innerHTML='<div class="empty">Oyuncular yüklenemedi.</div>'}}
-document.getElementById('sort').onchange=renderPlayers;document.getElementById('search').oninput=renderPlayers;document.getElementById('imageImport').onclick=()=>document.getElementById('imageFile').click();document.getElementById('imageFile').onchange=e=>importLineupFromImage(e.target.files?.[0]);document.getElementById('calculate').onclick=calc;document.getElementById('clear').onclick=clearAll;document.getElementById('downloadJson').onclick=downloadManualJson;setJsonEnabled(false);load();
+document.getElementById('sort').onchange=renderPlayers;document.getElementById('search').oninput=renderPlayers;document.getElementById('imageImport').onclick=()=>document.getElementById('imageFile').click();document.getElementById('imageFile').onchange=e=>importLineupFromImage(e.target.files?.[0]);document.getElementById('calculate').onclick=calc;document.getElementById('clear').onclick=clearAll;document.getElementById('downloadJson').onclick=downloadManualJson;document.getElementById('downloadOcrJson').onclick=downloadOcrJson;setJsonEnabled(false);setOcrJsonEnabled(false);load();
 </script></body></html>
