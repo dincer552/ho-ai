@@ -498,9 +498,9 @@ async function importLineupFromImage(file){
       // Standart WB-R crop başarısızsa sadece bu aktif bölgede sola/geniş tarama yap.
       if(!ranked.some(x=>x.score>=.84) && formation.defenders===4 && slot==='WB-R'){
         for(const box of [
-          {...layoutBoxes[slot],x1:1180,x2:1565,y1:360,y2:455},
-          {...layoutBoxes[slot],x1:1140,x2:1565,y1:350,y2:475},
-          {...layoutBoxes[slot],x1:1080,x2:1565,y1:335,y2:495}
+          {...layoutBoxes[slot],x1:1080,x2:1565,y1:350,y2:470},
+          {...layoutBoxes[slot],x1:1020,x2:1565,y1:330,y2:495},
+          {...layoutBoxes[slot],x1:950,x2:1565,y1:310,y2:515}
         ]){
           const fallback=buildFixedNameCrop(field,slot,4,box);
           await runVariants(fallback,'wb-r-wide: ');
