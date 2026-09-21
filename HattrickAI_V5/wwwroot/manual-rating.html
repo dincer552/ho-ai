@@ -197,8 +197,51 @@ const OCR_NAME_BOXES={
   'FW-R':  {x1:535,y1:801,x2:705,y2:850}
 };
 
-function buildFixedNameCrop(field,slot,scale=4){
-  const box=OCR_NAME_BOXES[slot];
+function formationSlotBoxes(defenders,midfielders,forwards){
+  const defBase=['WB-L','DEF-CL','DEF-C','DEF-CR','WB-R'];
+  const midBase=['W-L','IM-L','IM-C','IM-R','W-R'];
+  const fwBase=['FW-L','FW-C','FW-R'];
+
+  const pick=(base,count)=>{
+    if(count>=base.length)return base.slice();
+    if(count===1)return [base[Math.floor(base.length/2)]];
+    if(count===2)return [base[0],base[base.length-1]];
+    if(count===3)return [base[0],base[Math.floor(base.length/2)],base[base.length-1]];
+    if(count===4)return [base[0],base[1],base[3],base[4]];
+    return base.slice();
+  };
+
+  const result={};
+  pick(defBase,defenders).forEach((slot)=>{ result[slot]=OCR_NAME_BOXES[slot]; });
+  pick(midBase,midfielders).forEach((slot)=>{ result[slot]=OCR_NAME_BOXES[slot]; });
+  pick(fwBase,forwards).forEach((slot)=>{ result[slot]=OCR_NAME_BOXES[slot]; });
+  result.GK=OCR_NAME_BOXES.GK;
+  return result;
+}
+
+async function detectFormation(field,worker){
+  try{
+    await worker.setParameters({tessedit_pageseg_mode:'11'});
+    const out=await worker.recognize(field,{
+      rectangle:{
+        left:0,
+        top:0,
+        width:Math.round(field.width*.45),
+        height:Math.round(field.height*.22)
+      }
+    });
+    const text=String(out?.data?.text||'').replace(/\n/g,' ');
+    const m=text.match(/([1-5])\s*[-–—]\s*([1-5])\s*[-–—]\s*([1-3])/);
+    await worker.setParameters({tessedit_pageseg_mode:'7'});
+    return m?{text,defenders:+m[1],midfielders:+m[2],forwards:+m[3]}:{text,defenders:null,midfielders:null,forwards:null};
+  }catch{
+    await worker.setParameters({tessedit_pageseg_mode:'7'}).catch(()=>{});
+    return {text:'',defenders:null,midfielders:null,forwards:null};
+  }
+}
+
+function buildFixedNameCrop(field,slot,scale=4,boxOverride=null){
+  const box=boxOverride||OCR_NAME_BOXES[slot];
   if(!box)throw new Error('OCR koordinatı bulunamadı: '+slot);
 
   const sx=Math.round(box.x1/OCR_REFERENCE_SIZE.width*field.width);
@@ -289,6 +332,8 @@ function renderOcrDiagnostics(meta,rows){
     '<br><b>Resim:</b> '+meta.imageWidth+'×'+meta.imageHeight+
     '<br><b>Ölçek:</b> '+meta.scale.toFixed(3)+
     '<br><b>Yeşil saha crop:</b> x='+meta.fieldX+', y='+meta.fieldY+', w='+meta.fieldWidth+', h='+meta.fieldHeight+
+    '<br><b>Formasyon:</b> '+esc(meta.formation||'okunamadı')+
+    (meta.formationOcr?'<br><b>Formasyon OCR:</b> '+esc(meta.formationOcr): '')+
     '<br><b>Sonuç:</b> '+rows.filter(x=>x.accepted).length+' kabul / '+rows.length+' bölge</div>'+
     rows.map(r=>{
       const raw=r.raw.length?r.raw.map(x=>'<code>'+esc(x)+'</code>').join(' | '):'<span class="bad">OCR metni yok</span>';
@@ -340,9 +385,16 @@ async function importLineupFromImage(file){
       user_defined_dpi:'300'
     });
 
+    // Eski 2-5-3 koordinatları korunuyor. Sadece formasyon okunursa,
+    // aynı koordinat matrisi o formasyondaki gerçek mevkilere yeniden eşleniyor.
+    const formation=await detectFormation(field,worker);
+    const layoutBoxes=(formation.defenders&&formation.midfielders&&formation.forwards)
+      ? formationSlotBoxes(formation.defenders,formation.midfielders,formation.forwards)
+      : OCR_NAME_BOXES;
+
     const slotMatches=[],diagnostics=[];
     for(const [slot] of SLOTS){
-      const info=buildFixedNameCrop(field,slot,4);
+      const info=buildFixedNameCrop(field,slot,4,layoutBoxes[slot]);
       const rawSet=[],ranked=[];
       // İlk tur: normal renkli crop. Sadece eşleşemeyen kutular ikinci turda
       // siyah/beyaz varyantıyla tekrar okutulur. Önceki 168 OCR çağrısını
@@ -375,7 +427,11 @@ async function importLineupFromImage(file){
       source:file.name,
       imageWidth:img.naturalWidth,imageHeight:img.naturalHeight,scale,
       fieldX:Math.round(bounds.x),fieldY:Math.round(bounds.y),
-      fieldWidth:Math.round(bounds.width),fieldHeight:Math.round(bounds.height)
+      fieldWidth:Math.round(bounds.width),fieldHeight:Math.round(bounds.height),
+      formation:formation.defenders
+        ? formation.defenders+'-'+formation.midfielders+'-'+formation.forwards
+        : 'okunamadı',
+      formationOcr:formation.text||''
     },diagnostics);
 
     slotMatches.sort((a,b)=>b.score-a.score);
