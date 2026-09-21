@@ -136,35 +136,48 @@ function nearestSlot(nx,ny,used){
   }
   return best;
 }
-const OCR_NAME_SLOTS={
-  // Koordinatlar yeşil saha crop'ına göre normalize edilmiştir.
-  // Bu Hattrick "Maç dizilişi" ekranında isim etiketleri her formasyonda
-  // aynı 14 ızgara noktasında kalır.
-  'GK':[.500,.245],
-  'WB-L':[.105,.490],'DEF-CL':[.300,.490],'DEF-C':[.500,.490],'DEF-CR':[.700,.490],'WB-R':[.895,.490],
-  'W-L':[.105,.735],'IM-L':[.300,.735],'IM-C':[.500,.735],'IM-R':[.700,.735],'W-R':[.895,.735],
-  'FW-L':[.300,.970],'FW-C':[.500,.970],'FW-R':[.700,.970]
+// Kullanıcının işaretlediği referans görüntüdeki gerçek piksel kutuları.
+// Referans saha görüntüsü yaklaşık 900x850 px'tir. Gerçek yüklenen görüntüde
+// saha crop'u farklı çözünürlükteyse X/Y eksenleri ayrı ayrı ölçeklenir.
+// Böylece OCR her zaman aynı 14 isim kutusunu okur.
+const OCR_REFERENCE_SIZE={width:900,height:850};
+const OCR_NAME_BOXES={
+  'GK':    {x1:381,y1:173,x2:509,y2:214},
+  'WB-R':  {x1:34, y1:382,x2:157,y2:417},
+  'WB-L':  {x1:725,y1:381,x2:852,y2:416},
+  'DEF-CL':{x1:193,y1:381,x2:340,y2:423},
+  'DEF-C': {x1:365,y1:381,x2:509,y2:414},
+  'DEF-CR':{x1:544,y1:378,x2:696,y2:416},
+  'W-L':   {x1:19, y1:586,x2:173,y2:628},
+  'IM-L':  {x1:183,y1:588,x2:348,y2:624},
+  'IM-C':  {x1:358,y1:591,x2:521,y2:620},
+  'IM-R':  {x1:541,y1:586,x2:692,y2:622},
+  'W-R':   {x1:716,y1:588,x2:874,y2:622},
+  'FW-L':  {x1:197,y1:797,x2:345,y2:831},
+  'FW-C':  {x1:355,y1:797,x2:523,y2:831},
+  'FW-R':  {x1:535,y1:793,x2:705,y2:828}
 };
 
 function buildFixedNameCrop(field,slot,scale=4){
-  const [cx,cy]=OCR_NAME_SLOTS[slot];
-  // Her etiketin tamamını kapsayacak kadar geniş; ancak komşu slotun
-  // ismini almaması için sabit ızgaranın yaklaşık 1/4 genişliğinde.
-  const wide=slot==='GK' ? .30 : (slot.startsWith('FW-') ? .24 : .23);
-  const high=slot.startsWith('FW-') ? .085 : .070;
-  const sx=Math.max(0,Math.min(field.width-field.width*wide,field.width*cx-field.width*wide/2));
-  const sy=Math.max(0,Math.min(field.height-field.height*high,field.height*cy-field.height*high/2));
-  const sw=Math.max(1,Math.round(field.width*wide));
-  const sh=Math.max(1,Math.round(field.height*high));
+  const box=OCR_NAME_BOXES[slot];
+  if(!box)throw new Error('OCR koordinatı bulunamadı: '+slot);
+
+  // Referans koordinatları gerçek yeşil saha crop'una ölçekle.
+  const sx=Math.round(box.x1/OCR_REFERENCE_SIZE.width*field.width);
+  const sy=Math.round(box.y1/OCR_REFERENCE_SIZE.height*field.height);
+  const ex=Math.round(box.x2/OCR_REFERENCE_SIZE.width*field.width);
+  const ey=Math.round(box.y2/OCR_REFERENCE_SIZE.height*field.height);
+  const x=Math.max(0,Math.min(field.width-1,sx));
+  const y=Math.max(0,Math.min(field.height-1,sy));
+  const right=Math.max(x+1,Math.min(field.width,ex));
+  const bottom=Math.max(y+1,Math.min(field.height,ey));
+  const sw=right-x,sh=bottom-y;
 
   const c=document.createElement('canvas');
-  c.width=Math.max(1,Math.round(sw*scale));c.height=Math.max(1,Math.round(sh*scale));
+  c.width=Math.max(1,sw*scale);c.height=Math.max(1,sh*scale);
   const ctx=c.getContext('2d',{willReadFrequently:true});
   ctx.imageSmoothingEnabled=true;
-  // Orijinal renkli metni koru. Tesseract, beyaz isim + yeşil saha
-  // kontrastını doğrudan çok iyi okuyabildiği için agresif threshold
-  // uygulanmıyor; bu özellikle küçük isimlerde karakter kaybını önlüyor.
-  ctx.drawImage(field,sx,sy,sw,sh,0,0,c.width,c.height);
+  ctx.drawImage(field,x,y,sw,sh,0,0,c.width,c.height);
   return c;
 }
 
@@ -185,7 +198,7 @@ async function importLineupFromImage(file){
   const status=document.getElementById('imageStatus'),err=document.getElementById('error');
   if(!file)return;
   if(!players.length){status.textContent='Önce CHPP oyuncu listesinin yüklenmesini bekle.';return;}
-  err.style.display='none'; status.textContent='14 sabit mevki bölgesi okunuyor…';
+  err.style.display='none'; status.textContent='14 sabit koordinat okunuyor…';
   const img=new Image(),url=URL.createObjectURL(file);
   try{
     await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;img.src=url});
@@ -194,8 +207,8 @@ async function importLineupFromImage(file){
     source.height=Math.max(1,Math.round(img.naturalHeight*scale));
     source.getContext('2d').drawImage(img,0,0,source.width,source.height);
 
-    // Önce yalnızca yeşil saha alanını buluyoruz. Sonrası tamamen sabit
-    // koordinatlarla ilerliyor; OCR artık ekranda isim aramıyor.
+    // Sadece yeşil saha crop'u bulunur. Bundan sonra hiçbir dinamik
+    // pozisyon tahmini yapılmaz; 14 sabit kutu kullanılır.
     const bounds=detectPitchBounds(source);
     const field=document.createElement('canvas');
     field.width=Math.max(1,Math.round(bounds.width));
@@ -211,7 +224,7 @@ async function importLineupFromImage(file){
 
     const slotMatches=[];
     for(const [slot] of SLOTS){
-      const crop=buildFixedNameCrop(field,slot,3);
+      const crop=buildFixedNameCrop(field,slot,4);
       const out=await worker.recognize(crop);
       let best=null;
       for(const text of ocrCandidatesFromResult(out)){
@@ -223,7 +236,7 @@ async function importLineupFromImage(file){
     }
     await worker.terminate();
 
-    // Aynı oyuncu iki bölgede eşleşirse en güçlü bölgeyi tut.
+    // Aynı CHPP oyuncusu iki kutuda eşleşirse daha güçlü OCR sonucunu koru.
     slotMatches.sort((a,b)=>b.score-a.score);
     const found=[],usedPlayers=new Set();
     for(const item of slotMatches){
@@ -237,8 +250,9 @@ async function importLineupFromImage(file){
     renderPitch(null);renderPlayers();
 
     status.textContent=found.length
-      ? found.length+' oyuncu bulundu ve sabit mevkilere yerleştirildi: '+found.map(x=>x.player.name).join(', ')
-      : 'İsim bölgeleri okunamadı. Ekran görüntüsünü aynı maç ekranından yükle.';
+      ? found.length+' oyuncu bulundu ve sabit koordinatlara yerleştirildi: '+found.map(x=>x.player.name).join(', ')
+      : 'Sabit isim kutularından oyuncu okunamadı.';
+
   }catch(e){
     console.error(e);status.textContent='Resim okunamadı.';
     err.textContent='Resimden kadro okunamadı: '+(e.message||e);err.style.display='block';
