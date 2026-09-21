@@ -183,12 +183,12 @@ function nearestSlot(nx,ny,used){
 const OCR_REFERENCE_SIZE={width:900,height:850};
 const OCR_NAME_BOXES={
   'GK':    {x1:381,y1:173,x2:509,y2:214},
-  'WB-L':  {x1:34, y1:382,x2:157,y2:417},
+  'WB-L':  {x1:34, y1:382,x2:175,y2:442},
   'WB-R':  {x1:700,y1:375,x2:895,y2:430},
   'DEF-CL':{x1:193,y1:381,x2:340,y2:423},
   'DEF-C': {x1:365,y1:381,x2:509,y2:414},
   'DEF-CR':{x1:544,y1:374,x2:696,y2:424},
-  'W-L':   {x1:19, y1:586,x2:173,y2:628},
+  'W-L':   {x1:19, y1:586,x2:185,y2:648},
   'IM-L':  {x1:183,y1:584,x2:348,y2:638},
   'IM-C':  {x1:358,y1:584,x2:521,y2:638},
   'IM-R':  {x1:541,y1:584,x2:692,y2:638},
@@ -227,7 +227,7 @@ function formationSlotBoxes(defenders,midfielders,forwards){
     // sol savunma ~%11, merkez ~%50, sağ savunma ~%88.
     // Özellikle sol/sağ kutuyu saha kenarına taşırmadan oyuncu isim etiketini
     // hedefliyoruz; mevcut 5'li savunma matrisi diğer formasyonlarda aynen kalır.
-    result['WB-L']={x1:35,y1:382,x2:175,y2:430};
+    result['WB-L']={x1:35,y1:382,x2:175,y2:442};
     result['DEF-C']={x1:350,y1:382,x2:540,y2:430};
     result['WB-R']={x1:700,y1:375,x2:895,y2:430};
   }
