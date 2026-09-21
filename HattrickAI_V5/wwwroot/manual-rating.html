@@ -137,34 +137,34 @@ function nearestSlot(nx,ny,used){
   return best;
 }
 const OCR_NAME_SLOTS={
-  'GK':[.50,.235],
-  'WB-L':[.105,.470],'DEF-CL':[.300,.470],'DEF-C':[.500,.470],'DEF-CR':[.700,.470],'WB-R':[.900,.470],
-  'W-L':[.105,.665],'IM-L':[.300,.665],'IM-C':[.500,.665],'IM-R':[.700,.665],'W-R':[.900,.665],
-  'FW-L':[.300,.986],'FW-C':[.500,.986],'FW-R':[.700,.986]
+  // Koordinatlar yeşil saha crop'ına göre normalize edilmiştir.
+  // Bu Hattrick "Maç dizilişi" ekranında isim etiketleri her formasyonda
+  // aynı 14 ızgara noktasında kalır.
+  'GK':[.500,.245],
+  'WB-L':[.105,.490],'DEF-CL':[.300,.490],'DEF-C':[.500,.490],'DEF-CR':[.700,.490],'WB-R':[.895,.490],
+  'W-L':[.105,.735],'IM-L':[.300,.735],'IM-C':[.500,.735],'IM-R':[.700,.735],'W-R':[.895,.735],
+  'FW-L':[.300,.970],'FW-C':[.500,.970],'FW-R':[.700,.970]
 };
 
-function buildFixedNameCrop(field,slot,scale=3){
+function buildFixedNameCrop(field,slot,scale=4){
   const [cx,cy]=OCR_NAME_SLOTS[slot];
-  const wide=(slot==='GK'||slot==='FW-L'||slot==='FW-C'||slot==='FW-R') ? .30 : .20;
-  const high=slot.startsWith('FW-') ? .055 : .075;
+  // Her etiketin tamamını kapsayacak kadar geniş; ancak komşu slotun
+  // ismini almaması için sabit ızgaranın yaklaşık 1/4 genişliğinde.
+  const wide=slot==='GK' ? .30 : (slot.startsWith('FW-') ? .24 : .23);
+  const high=slot.startsWith('FW-') ? .085 : .070;
   const sx=Math.max(0,Math.min(field.width-field.width*wide,field.width*cx-field.width*wide/2));
   const sy=Math.max(0,Math.min(field.height-field.height*high,field.height*cy-field.height*high/2));
   const sw=Math.max(1,Math.round(field.width*wide));
   const sh=Math.max(1,Math.round(field.height*high));
+
   const c=document.createElement('canvas');
   c.width=Math.max(1,Math.round(sw*scale));c.height=Math.max(1,Math.round(sh*scale));
   const ctx=c.getContext('2d',{willReadFrequently:true});
   ctx.imageSmoothingEnabled=true;
+  // Orijinal renkli metni koru. Tesseract, beyaz isim + yeşil saha
+  // kontrastını doğrudan çok iyi okuyabildiği için agresif threshold
+  // uygulanmıyor; bu özellikle küçük isimlerde karakter kaybını önlüyor.
   ctx.drawImage(field,sx,sy,sw,sh,0,0,c.width,c.height);
-
-  // Beyaz isimleri yeşil zeminden ayır: kontrastı hafif artır.
-  const img=ctx.getImageData(0,0,c.width,c.height),d=img.data;
-  for(let i=0;i<d.length;i+=4){
-    const y=.299*d[i]+.587*d[i+1]+.114*d[i+2];
-    const v=y>155 ? 255 : Math.max(0,Math.min(255,(y-90)*2.1));
-    d[i]=d[i+1]=d[i+2]=v;
-  }
-  ctx.putImageData(img,0,0);
   return c;
 }
 
