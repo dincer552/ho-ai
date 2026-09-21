@@ -151,15 +151,15 @@ const OCR_NAME_BOXES={
   'WB-R':  {x1:725,y1:381,x2:852,y2:416},
   'DEF-CL':{x1:193,y1:381,x2:340,y2:423},
   'DEF-C': {x1:365,y1:381,x2:509,y2:414},
-  'DEF-CR':{x1:544,y1:378,x2:696,y2:416},
+  'DEF-CR':{x1:544,y1:374,x2:696,y2:424},
   'W-L':   {x1:19, y1:586,x2:173,y2:628},
-  'IM-L':  {x1:183,y1:588,x2:348,y2:624},
-  'IM-C':  {x1:358,y1:591,x2:521,y2:620},
-  'IM-R':  {x1:541,y1:586,x2:692,y2:622},
-  'W-R':   {x1:716,y1:588,x2:874,y2:622},
-  'FW-L':  {x1:197,y1:797,x2:345,y2:831},
-  'FW-C':  {x1:355,y1:797,x2:523,y2:831},
-  'FW-R':  {x1:535,y1:793,x2:705,y2:828}
+  'IM-L':  {x1:183,y1:584,x2:348,y2:638},
+  'IM-C':  {x1:358,y1:584,x2:521,y2:638},
+  'IM-R':  {x1:541,y1:584,x2:692,y2:638},
+  'W-R':   {x1:716,y1:584,x2:874,y2:638},
+  'FW-L':  {x1:197,y1:805,x2:345,y2:850},
+  'FW-C':  {x1:355,y1:805,x2:523,y2:850},
+  'FW-R':  {x1:535,y1:801,x2:705,y2:850}
 };
 
 function buildFixedNameCrop(field,slot,scale=4){
@@ -210,6 +210,19 @@ function buildFixedNameCrop(field,slot,scale=4){
   make('kontrast','contrast');
   make('beyaz135','white');
   make('beyaz105','white2');
+  const whiteText=document.createElement('canvas');
+  whiteText.width=c.width;whiteText.height=c.height;
+  const wx=whiteText.getContext('2d',{willReadFrequently:true});
+  const d=wx.createImageData(c.width,c.height),sd=src.data;
+  for(let i=0;i<sd.length;i+=4){
+    const r=sd[i],g=sd[i+1],b=sd[i+2],bright=(r+g+b)/3;
+    const neutral=Math.max(r,g,b)-Math.min(r,g,b);
+    const isText=bright>145&&neutral<70;
+    const q=isText?0:255;
+    d.data[i]=d.data[i+1]=d.data[i+2]=q;d.data[i+3]=255;
+  }
+  wx.putImageData(d,0,0);
+  variants.push({name:'beyaz-maske',canvas:whiteText});
   return {variants,x,y,width:sw,height:sh};
 }
 
@@ -299,7 +312,7 @@ async function importLineupFromImage(file){
       // İlk tur: normal renkli crop. Sadece eşleşemeyen kutular ikinci turda
       // siyah/beyaz varyantıyla tekrar okutulur. Önceki 168 OCR çağrısını
       // 14-28 çağrıya indiriyoruz.
-      const variants=info.variants.filter(v=>v.name==='renkli'||v.name==='beyaz105');
+      const variants=info.variants.filter(v=>v.name==='renkli'||v.name==='beyaz-maske');
       for(const variant of variants){
         if(ranked.some(x=>x.score>=.84))break;
         const out=await worker.recognize(variant.canvas);
