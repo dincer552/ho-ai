@@ -19,7 +19,7 @@ public sealed class V5RatingEngine : IRatingEngine
     }
 }
 
-/// <summary>Single registry/factory for the four independent rating engines.</summary>
+/// <summary>Single registry/factory for independent rating engines (V5 default preserved).</summary>
 public sealed class RatingEngineRegistry
 {
     private readonly IReadOnlyDictionary<RatingEngineKind, IRatingEngine> _engines;
@@ -31,7 +31,8 @@ public sealed class RatingEngineRegistry
             new V5RatingEngine(),
             new HOEngineAdapter(),
             new HattrickDashEngine(),
-            new FoxtrickEngine()
+            new FoxtrickEngine(),
+            new HatForRatingEngine()
         }).ToList();
 
         if (list.Count != Enum.GetValues<RatingEngineKind>().Length)

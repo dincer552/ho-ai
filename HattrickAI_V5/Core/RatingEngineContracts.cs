@@ -11,7 +11,8 @@ public enum RatingEngineKind
     V5,
     HO,
     HattrickDash,
-    Foxtrick
+    Foxtrick,
+    HatFor
 }
 
 public sealed record HOEngineContext(
