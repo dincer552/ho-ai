@@ -30,6 +30,18 @@ jobs:
           node --check HattrickAI_V5/wwwroot/team-player-chpp-export.js
           node --check HattrickAI_V5/wwwroot/rating-engines.js
 
+      - name: Set up .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: HatFor rating regressions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- rating-contract
+          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- rating-validation
+
       - name: Build Docker image
         shell: bash
         run: |
