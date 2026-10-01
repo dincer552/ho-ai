@@ -4,13 +4,11 @@ using System.Collections.Generic;
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// V5.1 M7 scenario layer.
-/// Uses the Stage 2 regional-rating engine so raw contribution and displayed
-/// rating conversion remain separate and deterministic.
+/// M7 scenario layer. Production path uses HatFor for all lineup ratings.
 /// </summary>
 public sealed class RegionalRatingScenarioEngine
 {
-    private readonly Stage2RegionalRatingEngine _baseEngine = new();
+    private readonly RegionalRatingEngineFinal _hatForFinal = new();
     private readonly RatingEngineRegistry _ratingEngines = new();
 
     public RatingScenarioResult Calculate(IReadOnlyList<RegionalPlayer> players, MatchState state)
@@ -19,7 +17,8 @@ public sealed class RegionalRatingScenarioEngine
         ArgumentNullException.ThrowIfNull(state);
 
         var context = BuildRatingContext(state);
-        var baseRating = _baseEngine.Calculate(players, context);
+        // Always HatFor — no Stage2 path
+        var baseRating = _hatForFinal.Calculate(players, context, BuildHOContext(state));
         var adjusted = ApplyQuestionnaireContext(baseRating, state);
 
         return new RatingScenarioResult(adjusted, state, RatingConfidence.High, BuildModifiers(state));
@@ -39,11 +38,7 @@ public sealed class RegionalRatingScenarioEngine
             context,
             HOContext: BuildHOContext(state));
 
-        // IMPORTANT: V5 must use the production V5 adapter here. The previous
-        // path used Stage2RegionalRatingEngine and then fed its already-displayed
-        // values through the experimental HattrickRatingDisplayConverter, which
-        // compressed normal V5 values into ~1-6 ratings during live M6/M7.
-        // Independent engines stay isolated and keep their own display space.
+        // Registry resolves every kind to HatFor
         var baseRating = _ratingEngines.Calculate(selected, request).Rating;
 
         return new RatingScenarioResult(baseRating, state, RatingConfidence.High, BuildModifiers(state));
@@ -143,15 +138,10 @@ public sealed class RegionalRatingScenarioEngine
         var rawCa = ca(rating.RawCentralAttack);
         var rawRa = ra(rating.RawRightAttack);
 
+        // HatFor already returns display-space quarter ratings; keep raw==display
         return new RegionalRatingSnapshot(
             rawLd, rawCd, rawRd, rawMid, rawLa, rawCa, rawRa,
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftDefence, rawLd),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralDefence, rawCd),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightDefence, rawRd),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.Midfield, rawMid),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.LeftAttack, rawLa),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.CentralAttack, rawCa),
-            HattrickRatingDisplayConverter.ToDisplay(RatingSector.RightAttack, rawRa));
+            rawLd, rawCd, rawRd, rawMid, rawLa, rawCa, rawRa);
     }
 }
 
