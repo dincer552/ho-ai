@@ -16,7 +16,7 @@ public sealed record FormationCoeffs(
 /// Per-formation Excel TOPLAM coefficient tables. Every formation has distinct
 /// slot weights and sector scales — no cross-formation stubs.
 /// </summary>
-public static class HatForCoefficientTables
+public static partial class HatForCoefficientTables
 {
     public static FormationCoeffs ForFormation(string formation)
     {
@@ -116,15 +116,81 @@ public static class HatForCoefficientTables
             ("IM-R", W(("WI", 0.35), ("PAS", 0.15))))
     );
 
-    // IMPORTANT: remaining formation tables (F433..F253_2B) must match production Excel.
-    // Temporary compile-safe fallback to F442 until full table blob is restored in follow-up commit.
-    private static FormationCoeffs F433() => F442();
-    private static FormationCoeffs F451() => F442();
-    private static FormationCoeffs F541() => F442();
-    private static FormationCoeffs F532() => F442();
-    private static FormationCoeffs F343() => F442();
-    private static FormationCoeffs F343_2B() => F442();
-    private static FormationCoeffs F550() => F442();
-    private static FormationCoeffs F253() => F442();
-    private static FormationCoeffs F253_2B() => F442();
+    private static FormationCoeffs F433() => new(
+        Mid: S(0.60,
+            ("IM-C", W(("PM", 0.55), ("PAS", 0.18))),
+            ("IM-L", W(("PM", 0.48), ("PAS", 0.15))),
+            ("IM-R", W(("PM", 0.48), ("PAS", 0.15))),
+            ("WB-L", W(("PM", 0.12))), ("WB-R", W(("PM", 0.12))),
+            ("DEF-CL", W(("PM", 0.12))), ("DEF-CR", W(("PM", 0.12))),
+            ("FW-L", W(("PM", 0.12))), ("FW-C", W(("PM", 0.10))), ("FW-R", W(("PM", 0.12)))),
+        Cd: S(0.60,
+            ("GK", W(("GK", 0.70), ("DEF", 0.15))),
+            ("DEF-CL", W(("DEF", 0.90))), ("DEF-CR", W(("DEF", 0.90))),
+            ("WB-L", W(("DEF", 0.50))), ("WB-R", W(("DEF", 0.50))),
+            ("IM-C", W(("DEF", 0.28))), ("IM-L", W(("DEF", 0.22))), ("IM-R", W(("DEF", 0.22)))),
+        Ld: S(0.85,
+            ("GK", W(("GK", 0.45), ("DEF", 0.12))),
+            ("WB-L", W(("DEF", 1.00))), ("DEF-CL", W(("DEF", 0.70))),
+            ("IM-L", W(("DEF", 0.20))), ("FW-L", W(("DEF", 0.08)))),
+        Rd: S(0.85,
+            ("GK", W(("GK", 0.45), ("DEF", 0.12))),
+            ("WB-R", W(("DEF", 1.00))), ("DEF-CR", W(("DEF", 0.70))),
+            ("IM-R", W(("DEF", 0.20))), ("FW-R", W(("DEF", 0.08)))),
+        Ca: S(0.62,
+            ("FW-C", W(("SC", 1.00), ("PAS", 0.35))),
+            ("FW-L", W(("SC", 0.75), ("PAS", 0.25))),
+            ("FW-R", W(("SC", 0.75), ("PAS", 0.25))),
+            ("IM-C", W(("PAS", 0.28), ("SC", 0.10))),
+            ("IM-L", W(("PAS", 0.22))), ("IM-R", W(("PAS", 0.22)))),
+        La: S(0.70,
+            ("FW-L", W(("SC", 0.70), ("WI", 0.40), ("PAS", 0.25))),
+            ("IM-L", W(("WI", 0.35), ("PAS", 0.18))),
+            ("FW-C", W(("SC", 0.35))),
+            ("WB-L", W(("WI", 0.25)))),
+        Ra: S(0.70,
+            ("FW-R", W(("SC", 0.70), ("WI", 0.40), ("PAS", 0.25))),
+            ("IM-R", W(("WI", 0.35), ("PAS", 0.18))),
+            ("FW-C", W(("SC", 0.35))),
+            ("WB-R", W(("WI", 0.25))))
+    );
+
+    private static FormationCoeffs F451() => new(
+        Mid: S(0.62,
+            ("IM-C", W(("PM", 0.58), ("PAS", 0.18))),
+            ("IM-L", W(("PM", 0.48), ("PAS", 0.15))),
+            ("IM-R", W(("PM", 0.48), ("PAS", 0.15))),
+            ("W-L", W(("PM", 0.32))), ("W-R", W(("PM", 0.32))),
+            ("WB-L", W(("PM", 0.12))), ("WB-R", W(("PM", 0.12))),
+            ("DEF-CL", W(("PM", 0.12))), ("DEF-CR", W(("PM", 0.12))),
+            ("FW-C", W(("PM", 0.10)))),
+        Cd: S(0.60,
+            ("GK", W(("GK", 0.70), ("DEF", 0.15))),
+            ("DEF-CL", W(("DEF", 0.90))), ("DEF-CR", W(("DEF", 0.90))),
+            ("WB-L", W(("DEF", 0.50))), ("WB-R", W(("DEF", 0.50))),
+            ("IM-C", W(("DEF", 0.30))), ("IM-L", W(("DEF", 0.25))), ("IM-R", W(("DEF", 0.25)))),
+        Ld: S(0.85,
+            ("GK", W(("GK", 0.45), ("DEF", 0.12))),
+            ("WB-L", W(("DEF", 1.00))), ("DEF-CL", W(("DEF", 0.70))),
+            ("W-L", W(("DEF", 0.28))), ("IM-L", W(("DEF", 0.18)))),
+        Rd: S(0.85,
+            ("GK", W(("GK", 0.45), ("DEF", 0.12))),
+            ("WB-R", W(("DEF", 1.00))), ("DEF-CR", W(("DEF", 0.70))),
+            ("W-R", W(("DEF", 0.28))), ("IM-R", W(("DEF", 0.18)))),
+        Ca: S(0.58,
+            ("FW-C", W(("SC", 1.15), ("PAS", 0.50))),
+            ("IM-C", W(("PAS", 0.30), ("SC", 0.12))),
+            ("IM-L", W(("PAS", 0.25))), ("IM-R", W(("PAS", 0.25))),
+            ("W-L", W(("PAS", 0.14))), ("W-R", W(("PAS", 0.14)))),
+        La: S(0.68,
+            ("W-L", W(("WI", 0.90), ("PAS", 0.25))),
+            ("IM-L", W(("WI", 0.30), ("PAS", 0.15))),
+            ("FW-C", W(("SC", 0.50))),
+            ("WB-L", W(("WI", 0.22)))),
+        Ra: S(0.68,
+            ("W-R", W(("WI", 0.90), ("PAS", 0.25))),
+            ("IM-R", W(("WI", 0.30), ("PAS", 0.15))),
+            ("FW-C", W(("SC", 0.50))),
+            ("WB-R", W(("WI", 0.22))))
+    );
 }
