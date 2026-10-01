@@ -1,1 +1,21 @@
-PLACEHOLDER_USE_FILE
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><title>Yükleniyor…</title></head>
+<body>
+<p style="font-family:sans-serif;padding:20px">Manuel test (f6442b4) yükleniyor…</p>
+<script>
+(async()=>{
+  const parts=[];
+  for(let i=0;i<4;i++){
+    const r=await fetch('/manual-rating.part'+i+'?v=f6442b4');
+    if(!r.ok) throw new Error('part '+i+' yüklenemedi: '+r.status);
+    parts.push(await r.text());
+  }
+  const html=parts.join('');
+  document.open();
+  document.write(html);
+  document.close();
+})().catch(e=>{
+  document.body.innerHTML='<pre style="color:red;padding:20px">'+e+'</pre>';
+});
+</script>
+</body></html>
