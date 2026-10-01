@@ -20,6 +20,9 @@ public sealed partial class MotorPipelineService
             ct.ThrowIfCancellationRequested();
             if (!legalFormations.Contains(candidate.Formation, StringComparer.Ordinal)) continue;
 
+            // Every tactic is evaluated against the same XI baseline. This makes the
+            // tactic-specific trade-off explicit instead of rewarding a tactic merely
+            // because it produced a high generic TacticalScore.
             var baseline = EvaluateForComparison(candidate.Lineup, players, context, TeamTactic.Normal);
             var baselineView = new ComparisonEvaluationView(baseline.Chance, baseline.Advanced, baseline.Prediction);
 
@@ -45,9 +48,17 @@ public sealed partial class MotorPipelineService
                     prediction.LossProbability,
                     prediction.ExpectedHomeGoals,
                     prediction.ExpectedAwayGoals,
-                    prediction.ExpectedPoints,
-                    fit.Score,
-                    fit.Reason));
+                    evaluation.Advanced.Level.Value,
+                    evaluation.Advanced.Tactic)
+                {
+                    TacticFitScore = fit.FitScore,
+                    TacticPrimaryMetric = fit.PrimaryMetric,
+                    TacticTradeoffCost = fit.TradeoffCost,
+                    TacticSquadFit = fit.SquadFit,
+                    TacticMatchupFit = fit.MatchupFit,
+                    TacticEligible = fit.Eligible,
+                    TacticExplanation = fit.Explanation
+                });
             }
         }
         return results;
@@ -69,33 +80,103 @@ public sealed partial class MotorPipelineService
 
     private sealed record ComparisonEvaluation(TacticalCandidate Tactical, RatingScenarioResult Scenario, AdvancedTacticalScenarioResult Advanced, M8ChanceResult Chance, MatchPrediction Prediction);
 
-    private static IReadOnlyList<MatchEventGoals> selectedM9ResultOpponentEvents(MatchPrediction prediction)
-        => prediction.OpponentEventGoals ?? [];
+    private static M9EventGoalBreakdown selectedM9ResultOpponentEvents(M9PredictionResult result) => result.OpponentEventGoals;
 
-    private static string FormatFormationCounts(IEnumerable<CandidateEvaluationRecord> records) => string.Join(", ", records.GroupBy(x => x.Formation).OrderByDescending(g => g.Count()).Select(g => $"{g.Key}:{g.Count()}"));
-    private static PositionAssignmentCandidate ToPositionCandidate(Lineup lineup, string formation, double rankingScore) => new(lineup, formation, rankingScore, rankingScore);
-    private static double ComputeM9OwnChanceShare(M8ChanceResult chance) => Math.Clamp(chance.OwnRegularChanceExpected / Math.Max(0.01, chance.OwnRegularChanceExpected + chance.OpponentRegularChanceExpected), 0, 1);
-    private static double Share(double own, double opponent) { var ownSafe = Math.Max(0, own); var oppSafe = Math.Max(0, opponent); return ownSafe / Math.Max(0.01, ownSafe + oppSafe); }
+    private static string FormatFormationCounts(IEnumerable<CandidateEvaluationRecord> records) => string.Join(" | ", records.GroupBy(x => x.Formation, StringComparer.Ordinal).OrderByDescending(x => x.Count()).ThenBy(x => x.Key, StringComparer.Ordinal).Select(x => $"{x.Key}:{x.Count()}"));
+
+    private static PositionAssignmentCandidate ToPositionCandidate(Lineup lineup, string formation, double rankingScore) => new(formation, lineup, Math.Max(0.001, rankingScore), lineup.Slots.ToDictionary(x => x.PlayerId, x => x.Code), 1.0);
+
+    private static double ComputeM9OwnChanceShare(M8ChanceResult chance) => Math.Clamp(chance.OwnRegularChanceExpected / Math.Max(1e-9, chance.OwnRegularChanceExpected + chance.OpponentRegularChanceExpected), 0, 1);
+
+    private static double Share(double own, double opponent)
+    {
+        var ownSafe = Math.Max(0, own);
+        var opponentSafe = Math.Max(0, opponent);
+        var total = ownSafe + opponentSafe;
+        return total <= 0 ? 0.5 : Math.Clamp(ownSafe / total, 0, 1);
+    }
+
     private static double ComputeM9OwnLeft(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent) => Share(own.LeftAttack, opponent.RightDefence);
     private static double ComputeM9OwnCentre(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent) => Share(own.CentralAttack, opponent.CentralDefence);
     private static double ComputeM9OwnRight(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent) => Share(own.RightAttack, opponent.LeftDefence);
     private static double ComputeM9OpponentLeft(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent) => Share(opponent.LeftAttack, own.RightDefence);
     private static double ComputeM9OpponentCentre(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent) => Share(opponent.CentralAttack, own.CentralDefence);
     private static double ComputeM9OpponentRight(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent) => Share(opponent.RightAttack, own.LeftDefence);
-    private static double WeightedAttackQuality(double left, double centre, double right, double leftW, double centreW, double rightW) => (left * leftW + centre * centreW + right * rightW) / Math.Max(0.01, leftW + centreW + rightW);
-    private static double ComputeM9OwnAttackQuality(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent, M8ChanceResult chance) => WeightedAttackQuality(Share(own.LeftAttack, opponent.RightDefence), Share(own.CentralAttack, opponent.CentralDefence), Share(own.RightAttack, opponent.LeftDefence), 1, 1.2, 1);
-    private static double ComputeM9OpponentAttackQuality(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent, M8ChanceResult chance) => WeightedAttackQuality(Share(opponent.LeftAttack, own.RightDefence), Share(opponent.CentralAttack, own.CentralDefence), Share(opponent.RightAttack, own.LeftDefence), 1, 1.2, 1);
-    private static void LogStart(string? runId, string motor, string message) { if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.StartMotor(runId, motor, message); }
-    private static void LogComplete(string? runId, string motor, string message, long durationMs = 0, int? count = null) { if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.CompleteMotor(runId, motor, message, durationMs, count); }
-    private static void LogFail(string? runId, string motor, string message, long durationMs = 0) { if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.FailMotor(runId, motor, message, durationMs); }
-    private static MatchupEvaluation BuildMatchup(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent, M8ChanceResult chance) { double signed(double v) => (v * 2.0) - 1.0; var midfield = signed(chance.MidfieldShare); var left = signed(chance.LeftAttackVsRightDefence); var centre = signed(chance.CentreAttackVsCentreDefence); var right = signed(chance.RightAttackVsLeftDefence); var leftDef = signed(Share(own.LeftDefence, opponent.RightAttack)); var centreDef = signed(Share(own.CentralDefence, opponent.CentralAttack)); var rightDef = signed(Share(own.RightDefence, opponent.LeftAttack)); var overall = (midfield + left + centre + right + leftDef + centreDef + rightDef) / 7.0; return new MatchupEvaluation(midfield, left, centre, right, leftDef, centreDef, rightDef, overall); }
-    private static double Average(RegionalRatingSnapshot r) => (r.LeftDefence + r.CentralDefence + r.RightDefence + r.Midfield + r.LeftAttack + r.CentralAttack + r.RightAttack) / 7.0;
-    private static double TeamSpiritValue(TeamSpiritLevel level) => level switch { TeamSpiritLevel.Murderous => 1, TeamSpiritLevel.Furious => 2, TeamSpiritLevel.Irritated => 3, TeamSpiritLevel.Composed => 4.5, TeamSpiritLevel.Calm => 5, TeamSpiritLevel.Content => 6, TeamSpiritLevel.Satisfied => 7, TeamSpiritLevel.Delirious => 8, TeamSpiritLevel.WalkingOnClouds => 9, TeamSpiritLevel.ParadiseOnEarth => 10, _ => 4.5 };
-    private static string Signature(Lineup lineup) => string.Join(";", lineup.Slots.OrderBy(s => s.Code, StringComparer.Ordinal).ThenBy(s => s.PlayerId).Select(s => $"{s.Code}:{s.PlayerId}:{(int)s.Order}"));
+
+    private static double WeightedAttackQuality(double left, double centre, double right, double leftW, double centreW, double rightW)
+        => (left * leftW + centre * centreW + right * rightW) / Math.Max(0.01, leftW + centreW + rightW);
+
+    private static double ComputeM9OwnAttackQuality(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent, M8ChanceResult chance)
+        => WeightedAttackQuality(Share(own.LeftAttack, opponent.RightDefence), Share(own.CentralAttack, opponent.CentralDefence), Share(own.RightAttack, opponent.LeftDefence), 1, 1.2, 1);
+
+    private static double ComputeM9OpponentAttackQuality(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent, M8ChanceResult chance)
+        => WeightedAttackQuality(Share(opponent.LeftAttack, own.RightDefence), Share(opponent.CentralAttack, own.CentralDefence), Share(opponent.RightAttack, own.LeftDefence), 1, 1.2, 1);
+
+    private static void LogStart(string? runId, string motor, string message)
+    {
+        if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.StartMotor(runId, motor, message);
+    }
+
+    private static void LogComplete(string? runId, string motor, string message, long durationMs = 0, int? count = null)
+    {
+        if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.CompleteMotor(runId, motor, message, durationMs, count);
+    }
+
+    private static void LogFail(string? runId, string motor, string message, long durationMs = 0)
+    {
+        if (!string.IsNullOrWhiteSpace(runId)) MotorRunLogStore.FailMotor(runId, motor, message, durationMs);
+    }
+
+    private static MatchupEvaluation BuildMatchup(RegionalRatingSnapshot own, RegionalRatingSnapshot opponent, M8ChanceResult chance)
+    {
+        double signed(double v) => (v * 2.0) - 1.0;
+        var midfield = signed(chance.MidfieldShare);
+        var left = signed(chance.LeftAttackVsRightDefence);
+        var centre = signed(chance.CentreAttackVsCentreDefence);
+        var right = signed(chance.RightAttackVsLeftDefence);
+        var leftDef = signed(Share(own.LeftDefence, opponent.RightAttack));
+        var centreDef = signed(Share(own.CentralDefence, opponent.CentralAttack));
+        var rightDef = signed(Share(own.RightDefence, opponent.LeftAttack));
+        var overall = (midfield + left + centre + right + leftDef + centreDef + rightDef) / 7.0;
+        return new MatchupEvaluation(midfield, left, centre, right, leftDef, centreDef, rightDef, overall);
+    }
+
+    private static double Average(RegionalRatingSnapshot r)
+        => (r.LeftDefence + r.CentralDefence + r.RightDefence + r.Midfield + r.LeftAttack + r.CentralAttack + r.RightAttack) / 7.0;
+
+    private static double TeamSpiritValue(TeamSpiritLevel level) => level switch
+    {
+        TeamSpiritLevel.Murderous => 1,
+        TeamSpiritLevel.Furious => 2,
+        TeamSpiritLevel.Irritated => 3,
+        TeamSpiritLevel.Composed => 4.5,
+        TeamSpiritLevel.Calm => 5,
+        TeamSpiritLevel.Content => 6,
+        TeamSpiritLevel.Satisfied => 7,
+        TeamSpiritLevel.Delirious => 8,
+        TeamSpiritLevel.WalkingOnClouds => 9,
+        TeamSpiritLevel.ParadiseOnEarth => 10,
+        _ => 4.5
+    };
+
+    private static string Signature(Lineup lineup)
+        => string.Join(";", lineup.Slots.OrderBy(s => s.Code, StringComparer.Ordinal).ThenBy(s => s.PlayerId).Select(s => $"{s.Code}:{s.PlayerId}:{(int)s.Order}"));
+
     private sealed record CandidateEvaluation(TacticalCandidate Tactical, RatingScenarioResult Scenario, AdvancedTacticalScenarioResult Advanced, M8ChanceResult Chance);
 }
 
-public sealed record MotorPipelineResult(PlayerAnalysisResult M3, FormationCandidateSet M4, IReadOnlyList<PositionAssignmentCandidate> M5, M6OptimizationResult M6, RatingScenarioResult M7, AdvancedTacticalScenarioResult M72, M8ChanceResult M8, M9PredictionResult M9, M10DecisionResult M10, FinalMatchPlan FinalPlan, MatchPrediction FinalPrediction)
+public sealed record MotorPipelineResult(
+    PlayerAnalysisResult M3,
+    FormationCandidateSet M4,
+    IReadOnlyList<PositionAssignmentCandidate> M5,
+    M6OptimizationResult M6,
+    RatingScenarioResult M7,
+    AdvancedTacticalScenarioResult M72,
+    M8ChanceResult M8,
+    M9PredictionResult M9,
+    M10DecisionResult M10,
+    FinalMatchPlan FinalPlan,
+    MatchPrediction FinalPrediction)
 {
     public M11DecisionResult? M11 { get; init; }
     public int CandidateDatabase1Count { get; init; }
