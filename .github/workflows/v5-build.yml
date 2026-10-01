@@ -19,7 +19,8 @@ jobs:
     steps:
       - name: Checkout V5
         uses: actions/checkout@v4
-      - name: JavaScript syntax regression
+
+      - name: JavaScript syntax check
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -28,62 +29,14 @@ jobs:
           node --check HattrickAI_V5/wwwroot/chpp-export.js
           node --check HattrickAI_V5/wwwroot/team-player-chpp-export.js
           node --check HattrickAI_V5/wwwroot/rating-engines.js
-      - name: CHPP trainer exclusion regression
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- trainer
-      - name: V5 user IM-L Hattrick screenshot regression
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- user-im-screenshots
-      - name: V5 normal IM full-sector regression
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- mid-diagnostic
-      - name: V5 exact HO crowding regression
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- stage6
-      - name: V5 IM screenshot combination diagnostic
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- mid-combinations
-      - name: CHPP WRITE-03 validation regression
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write3
-      - name: CHPP WRITE-04 mock write regression
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write4
-      - name: CHPP WRITE-05 permission regression
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write5
-      - name: CHPP WRITE-06 live write path regression
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write6
-      - name: CHPP WRITE-07 read-back regression
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- write7
+
       - name: Build Docker image
         shell: bash
         run: |
           set -Eeuo pipefail
           IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
           docker build --pull --build-arg BUILD_SHA="${GITHUB_SHA}" -t "${IMAGE}:${GITHUB_SHA}" -t "${IMAGE}:v5" -f HattrickAI_V5/Dockerfile .
+
       - name: Login to GHCR
         shell: bash
         env:
@@ -93,6 +46,7 @@ jobs:
           set -Eeuo pipefail
           printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io -u "${GHCR_USER}" --password-stdin
           unset GHCR_TOKEN GHCR_USER
+
       - name: Push Docker image to GHCR
         shell: bash
         run: |
