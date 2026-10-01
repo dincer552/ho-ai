@@ -55,10 +55,19 @@ public sealed partial class MotorPipelineService
 
     private ComparisonEvaluation EvaluateForComparison(Lineup lineup, IReadOnlyList<Player> players, MatchDataContext context, TeamTactic tactic)
     {
-        var evaluation = Evaluate(lineup, null, context.RatingContext.Attitude, false, tactic);
-        var prediction = _m9.Predict(evaluation.Tactical, evaluation.Chance, context.Opponent.Rating, context.RatingContext.MatchLocation, players, context.Opponent.LastMatchLineup, context.Opponent.Players);
-        return new ComparisonEvaluation(evaluation.Tactical, evaluation.Scenario, evaluation.Advanced, evaluation.Chance, prediction.Prediction);
+        var signature = Signature(lineup);
+        var state = new MatchState(signature, lineup.Formation, signature, signature, context.RatingContext.MatchLocation, context.RatingContext.Attitude, tactic, TeamSpiritValue(context.Questionnaire.TeamSpirit), context.Questionnaire.Coach);
+        var scenario = _m7.CalculateLineup(lineup, players, state);
+        var advanced = _m72.CalculateLineup(lineup, players, state, Average(context.Opponent.Rating));
+        var chance = _m8.Calculate(AdvancedTacticalScenarioEngine.BuildM8Input(scenario, advanced), context.Opponent.Rating);
+        var matchup = BuildMatchup(scenario.Rating, context.Opponent.Rating, chance);
+        var tacticalScore = (0.70 * chance.StructuralChanceIndex) + (0.30 * matchup.OverallScore);
+        var tactical = new TacticalCandidate(lineup, scenario.Rating, matchup, tacticalScore);
+        var prediction = _m9.Predict(tactical, chance, context.Opponent.Rating, context.RatingContext.MatchLocation, players, context.Opponent.LastMatchLineup, context.Opponent.Players).Prediction;
+        return new ComparisonEvaluation(tactical, scenario, advanced, chance, prediction);
     }
+
+    private sealed record ComparisonEvaluation(TacticalCandidate Tactical, RatingScenarioResult Scenario, AdvancedTacticalScenarioResult Advanced, M8ChanceResult Chance, MatchPrediction Prediction);
 
     private static IReadOnlyList<MatchEventGoals> selectedM9ResultOpponentEvents(MatchPrediction prediction)
         => prediction.OpponentEventGoals ?? [];
