@@ -1,18 +1,28 @@
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// Common contract for independently implemented rating engines.
-/// This layer is intentionally passive: it does not replace or modify the
-/// existing V5 pipeline. Each future engine may consume canonical lineup/player
-/// data and, when available, engine-specific match context.
+/// Production rating engine is HatFor only (Excel formation-specific formulas).
 /// </summary>
 public enum RatingEngineKind
 {
-    V5,
-    HO,
-    HattrickDash,
-    Foxtrick,
-    HatFor
+    HatFor = 0
+}
+
+public static class RatingEngineKindParse
+{
+    /// <summary>Accepts legacy names (V5, HO, HattrickDash, Foxtrick) and maps them to HatFor.</summary>
+    public static bool TryParse(string? value, out RatingEngineKind kind)
+    {
+        kind = RatingEngineKind.HatFor;
+        if (string.IsNullOrWhiteSpace(value)) return true;
+        var v = value.Trim();
+        if (v.Equals("HatFor", StringComparison.OrdinalIgnoreCase)) return true;
+        if (v.Equals("V5", StringComparison.OrdinalIgnoreCase)) return true;
+        if (v.Equals("HO", StringComparison.OrdinalIgnoreCase)) return true;
+        if (v.Equals("HattrickDash", StringComparison.OrdinalIgnoreCase)) return true;
+        if (v.Equals("Foxtrick", StringComparison.OrdinalIgnoreCase)) return true;
+        return Enum.TryParse(v, true, out kind);
+    }
 }
 
 public sealed record HOEngineContext(

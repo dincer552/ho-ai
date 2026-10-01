@@ -6,13 +6,13 @@ public sealed record RatingEngineComparisonRow(
     RegionalRatingSnapshot Rating,
     double? HatStats,
     double? LoddarStats,
-    double MidfieldDeltaVsV5,
-    double LeftDefenceDeltaVsV5,
-    double CentralDefenceDeltaVsV5,
-    double RightDefenceDeltaVsV5,
-    double LeftAttackDeltaVsV5,
-    double CentralAttackDeltaVsV5,
-    double RightAttackDeltaVsV5);
+    double MidfieldDeltaVsBaseline,
+    double LeftDefenceDeltaVsBaseline,
+    double CentralDefenceDeltaVsBaseline,
+    double RightDefenceDeltaVsBaseline,
+    double LeftAttackDeltaVsBaseline,
+    double CentralAttackDeltaVsBaseline,
+    double RightAttackDeltaVsBaseline);
 
 public sealed record RatingEngineComparison(
     RatingEngineKind Baseline,
@@ -29,10 +29,10 @@ public sealed class RatingEngineComparisonService
     public IReadOnlyList<RatingEngineResult> CalculateAll(RatingEngineRequest request)
         => _registry.All.Select(x => x.Calculate(request)).ToArray();
 
-    public RatingEngineComparison Compare(RatingEngineRequest request, RatingEngineKind selected = RatingEngineKind.V5)
+    public RatingEngineComparison Compare(RatingEngineRequest request, RatingEngineKind selected = RatingEngineKind.HatFor)
     {
         var results = CalculateAll(request);
-        var baseline = results.Single(x => x.Engine == RatingEngineKind.V5).Rating;
+        var baseline = results.Single(x => x.Engine == RatingEngineKind.HatFor).Rating;
         var rows = results.Select(result => new RatingEngineComparisonRow(
             result.Engine,
             _registry.Get(result.Engine).Name,
@@ -46,6 +46,6 @@ public sealed class RatingEngineComparisonService
             result.Rating.LeftAttack - baseline.LeftAttack,
             result.Rating.CentralAttack - baseline.CentralAttack,
             result.Rating.RightAttack - baseline.RightAttack)).ToArray();
-        return new RatingEngineComparison(RatingEngineKind.V5, selected, rows);
+        return new RatingEngineComparison(RatingEngineKind.HatFor, selected, rows);
     }
 }

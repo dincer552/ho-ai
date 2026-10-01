@@ -1,25 +1,20 @@
 namespace HattrickAI.V5.Core;
 
-/// <summary>Production adapter exposing the empirically calibrated V5 rating calculation.</summary>
+/// <summary>
+/// Production adapter: all former "V5" pipeline callers now use HatFor.
+/// Formation-specific Excel coefficients; not the old RegionalRatingEngineFixed path.
+/// </summary>
 public sealed class V5RatingEngine : IRatingEngine
 {
-    private readonly RegionalRatingEngineFinal _engine = new();
-    public RatingEngineKind Kind => RatingEngineKind.V5;
-    public string Name => "V5";
+    private readonly HatForRatingEngine _engine = new();
+    public RatingEngineKind Kind => RatingEngineKind.HatFor;
+    public string Name => "HatFor (Excel)";
 
     public RatingEngineResult Calculate(RatingEngineRequest request)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        var rating = _engine.CalculateLineup(
-            request.Lineup,
-            request.Players,
-            request.Context,
-            request.HOContext);
-        return new RatingEngineResult(Kind, rating);
-    }
+        => _engine.Calculate(request);
 }
 
-/// <summary>Single registry/factory for independent rating engines (V5 default preserved).</summary>
+/// <summary>Single-engine registry: HatFor only.</summary>
 public sealed class RatingEngineRegistry
 {
     private readonly IReadOnlyDictionary<RatingEngineKind, IRatingEngine> _engines;
@@ -28,24 +23,23 @@ public sealed class RatingEngineRegistry
     {
         var list = (engines ?? new IRatingEngine[]
         {
-            new V5RatingEngine(),
-            new HOEngineAdapter(),
-            new HattrickDashEngine(),
-            new FoxtrickEngine(),
             new HatForRatingEngine()
         }).ToList();
 
-        if (list.Count != Enum.GetValues<RatingEngineKind>().Length)
-            throw new InvalidOperationException("Rating engine registry eksik veya fazla motor içeriyor.");
         _engines = list.ToDictionary(x => x.Kind);
-        if (!_engines.ContainsKey(RatingEngineKind.V5))
-            throw new InvalidOperationException("V5 registry'de zorunlu.");
+        if (!_engines.ContainsKey(RatingEngineKind.HatFor))
+            throw new InvalidOperationException("HatFor registry'de zorunlu.");
     }
 
     public IReadOnlyList<IRatingEngine> All => _engines.Values.OrderBy(x => x.Kind).ToArray();
-    public IRatingEngine Get(RatingEngineKind kind) => _engines.TryGetValue(kind, out var engine)
-        ? engine
-        : throw new KeyNotFoundException($"Rating engine bulunamadı: {kind}");
+    public IRatingEngine Get(RatingEngineKind kind)
+    {
+        // Any legacy kind request resolves to HatFor
+        if (_engines.TryGetValue(RatingEngineKind.HatFor, out var engine))
+            return engine;
+        throw new KeyNotFoundException($"Rating engine bulunamadı: {kind}");
+    }
 
-    public RatingEngineResult Calculate(RatingEngineKind kind, RatingEngineRequest request) => Get(kind).Calculate(request);
+    public RatingEngineResult Calculate(RatingEngineKind kind, RatingEngineRequest request)
+        => Get(kind).Calculate(request);
 }
