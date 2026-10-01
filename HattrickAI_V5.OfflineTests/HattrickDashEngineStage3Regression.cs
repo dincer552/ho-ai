@@ -33,7 +33,7 @@ public static class HattrickDashEngineStage3Regression
             RatingContext.Default);
 
         var engine = new HattrickDashEngine();
-        if (engine.Kind != RatingEngineKind.HattrickDash)
+        if (engine.Kind != RatingEngineKind.HatFor)
             throw new InvalidOperationException("HattrickDash engine kind drifted.");
 
         var result = engine.Calculate(request);

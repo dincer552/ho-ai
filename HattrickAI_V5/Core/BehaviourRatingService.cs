@@ -7,7 +7,7 @@ namespace HattrickAI.V5.Core;
 public sealed class BehaviourRatingService
 {
     private readonly BehaviourEngine _behaviourEngine = new();
-    private readonly Stage2RegionalRatingEngineFixed _ratingEngine = new();
+    private readonly RegionalRatingEngineFinal _ratingEngine = new();
 
     public IReadOnlyList<BehaviourRatingCandidate> Evaluate(Player player, Slot baseSlot, Lineup lineup, IReadOnlyList<Player> players, RatingContext? context = null)
     {

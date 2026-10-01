@@ -27,7 +27,7 @@ public sealed class AnalysisService
         var teamId = XmlV5.Int(teamNode, "TeamID");
         var teamName = XmlV5.Text(teamNode, "TeamName");
         var trainerId = ChppRosterFilter.ReadTrainerId(teamNode);
-        if (teamId <= 0) throw new InvalidOperationException("Kullanıcı takım bilgisi alınamadı.");
+        if (teamId <= 0) throw new InvalidOperationException("Kullan?c? tak?m bilgisi al?namad?.");
 
         var trainingXml = await _chpp.GetXmlAsync("training", new Dictionary<string, string?> { ["version"] = "1.1" }, ct);
         var trainingTeam = XmlV5.Root(trainingXml)?.Descendants("Team").FirstOrDefault();
@@ -35,7 +35,7 @@ public sealed class AnalysisService
 
         var ownPlayers = await ReadPlayers(teamId, trainerId, ct);
         if (ownPlayers.Count < 11)
-            throw new InvalidOperationException("Kullanıcı takımında analiz için yeterli oyuncu verisi yok.");
+            throw new InvalidOperationException("Kullan?c? tak?m?nda analiz i?in yeterli oyuncu verisi yok.");
 
         var matchesXml = await _chpp.GetXmlAsync("matches", new Dictionary<string, string?> { ["version"] = "2.2", ["teamID"] = teamId.ToString(CultureInfo.InvariantCulture) }, ct);
         var matches = ReadMatches(matchesXml, teamId);
@@ -43,20 +43,20 @@ public sealed class AnalysisService
 
         var selectedText = _http.HttpContext?.Request.Cookies["v5.matchId"];
         if (!int.TryParse(selectedText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var selectedMatchId) || selectedMatchId <= 0)
-            throw new InvalidOperationException("Önce analiz edilecek lig maçını seçmelisin.");
+            throw new InvalidOperationException("?nce analiz edilecek lig ma??n? se?melisin.");
 
         var next = matches.FirstOrDefault(x => x.MatchId == selectedMatchId && x.Date > now && x.MatchType == 1);
         if (next.MatchId <= 0)
-            throw new InvalidOperationException("Seçilen maç geçersiz, geçmişte kalmış veya lig maçı değil. Lütfen yaklaşan lig maçlarından birini seç.");
+            throw new InvalidOperationException("Se?ilen ma? ge?ersiz, ge?mi?te kalm?? veya lig ma?? de?il. L?tfen yakla?an lig ma?lar?ndan birini se?.");
 
         var opponentId = next.HomeId == teamId ? next.AwayId : next.HomeId;
         var opponentName = next.HomeId == teamId ? next.AwayName : next.HomeName;
-        if (opponentId <= 0) throw new InvalidOperationException("Rakip takım ID'si bulunamadı.");
+        if (opponentId <= 0) throw new InvalidOperationException("Rakip tak?m ID'si bulunamad?.");
 
         var opponentMatchesXml = await _chpp.GetXmlAsync("matches", new Dictionary<string, string?> { ["version"] = "2.2", ["teamID"] = opponentId.ToString(CultureInfo.InvariantCulture) }, ct);
         var opponentMatches = ReadMatches(opponentMatchesXml, opponentId);
         var lastMatch = opponentMatches.Where(x => x.Date != default && x.Date <= now && IsCompetitiveMatchType(x.MatchType)).OrderByDescending(x => x.Date).FirstOrDefault();
-        if (lastMatch.MatchId <= 0) throw new InvalidOperationException("Rakibin resmi tamamlanmış maçı bulunamadı.");
+        if (lastMatch.MatchId <= 0) throw new InvalidOperationException("Rakibin resmi tamamlanm?? ma?? bulunamad?.");
 
         var lineupXml = await _chpp.GetXmlAsync("matchlineup", new Dictionary<string, string?>
         {
@@ -65,10 +65,10 @@ public sealed class AnalysisService
             ["teamID"] = opponentId.ToString(CultureInfo.InvariantCulture)
         }, ct);
         var lineupRoot = XmlV5.Root(lineupXml);
-        if (XmlV5.Int(lineupRoot, "MatchID") != lastMatch.MatchId) throw new InvalidOperationException("CHPP lineup MatchID uyuşmuyor.");
+        if (XmlV5.Int(lineupRoot, "MatchID") != lastMatch.MatchId) throw new InvalidOperationException("CHPP lineup MatchID uyu?muyor.");
 
         var lineupNodes = SelectFinalFieldPlayers(lineupRoot);
-        if (lineupNodes.Count != 11) throw new InvalidOperationException($"Rakibin son resmi maçında final saha 11'i belirlenemedi: {lineupNodes.Count}.");
+        if (lineupNodes.Count != 11) throw new InvalidOperationException($"Rakibin son resmi ma??nda final saha 11'i belirlenemedi: {lineupNodes.Count}.");
 
         var opponentHistoricalRating = await ReadDirectHistoricalOpponentRating(lastMatch.MatchId, opponentId, ct);
         var opponentPlayers = await ReadPlayers(opponentId, 0, ct);
@@ -95,7 +95,7 @@ public sealed class AnalysisService
         var finalRating = ConfidenceRatingAdjuster.Apply(pipeline.FinalPlan.Rating, selfConfidence);
         var appliedQuestionnaire = questionnaire with { MatchImportance = pipeline.SelectedMatchApproach };
         var location = next.HomeId == teamId ? "Ev sahibi" : "Deplasman";
-        var title = $"{next.Date.ToLocalTime():dd.MM.yyyy HH:mm} • {opponentName} • {location}";
+        var title = $"{next.Date.ToLocalTime():dd.MM.yyyy HH:mm} ? {opponentName} ? {location}";
 
         var analysis = new Analysis(build, teamName, opponentName, title, finalLineup, opponentLineup, finalRating, opponentHistoricalRating, appliedQuestionnaire)
         {
@@ -111,7 +111,7 @@ public sealed class AnalysisService
             ? traceParsedTactic
             : TeamTactic.Normal;
         var traceContext = ratingContext with { Tactic = traceTactic };
-        var ratingTrace = new RegionalRatingEngineFixed()
+        var ratingTrace = new HatForRatingEngine()
             .CalculateLineupWithTrace(finalLineup, ownPlayers, traceContext);
         ratingTrace = ratingTrace with
         {
@@ -163,10 +163,10 @@ public sealed class AnalysisService
     {
         var xml = await _chpp.GetXmlAsync("matchdetails", new Dictionary<string, string?> { ["version"] = "1.4", ["matchID"] = matchId.ToString(CultureInfo.InvariantCulture) }, ct);
         var match = XmlV5.Root(xml)?.Descendants("Match").FirstOrDefault();
-        if (XmlV5.Int(match, "MatchID") != matchId) throw new InvalidOperationException("CHPP matchdetails MatchID uyuşmuyor.");
+        if (XmlV5.Int(match, "MatchID") != matchId) throw new InvalidOperationException("CHPP matchdetails MatchID uyu?muyor.");
         var team = match?.Element("HomeTeam");
         if (team is null || TeamNodeId(team) != opponentId) team = match?.Element("AwayTeam");
-        if (team is null || TeamNodeId(team) != opponentId) throw new InvalidOperationException("Rakibin matchdetails kaydı alınamadı.");
+        if (team is null || TeamNodeId(team) != opponentId) throw new InvalidOperationException("Rakibin matchdetails kayd? al?namad?.");
         return new RegionalRatingSnapshot(
             XmlV5.Int(team, "RatingLeftDef") / 4.0, XmlV5.Int(team, "RatingMidDef") / 4.0, XmlV5.Int(team, "RatingRightDef") / 4.0,
             XmlV5.Int(team, "RatingMidfield") / 4.0, XmlV5.Int(team, "RatingLeftAtt") / 4.0, XmlV5.Int(team, "RatingMidAtt") / 4.0, XmlV5.Int(team, "RatingRightAtt") / 4.0,
@@ -208,11 +208,11 @@ public sealed class AnalysisService
         var order = behaviour switch { 1 => PlayerOrder.Offensive, 2 => PlayerOrder.Defensive, 3 => PlayerOrder.TowardsMiddle, 4 => PlayerOrder.TowardsWing, _ => PlayerOrder.Normal };
         var map = behaviour switch
         {
-            7 => ("DEF-C", "Merkez stoper", 50d, 34d), 6 => ("IM-C", "Merkez iç", 50d, 50d), 5 => ("FW-C", "Merkez forvet", 50d, 72d),
+            7 => ("DEF-C", "Merkez stoper", 50d, 34d), 6 => ("IM-C", "Merkez i?", 50d, 50d), 5 => ("FW-C", "Merkez forvet", 50d, 72d),
             _ => position switch
             {
-                1 => ("GK", "Kaleci", 50d, 10d), 2 => ("DEF-R", "Sağ bek", 88d, 34d), 3 => ("DEF-CR", "Sağ stoper", 70d, 34d), 4 => ("DEF-CL", "Sol stoper", 30d, 34d), 5 => ("DEF-L", "Sol bek", 12d, 34d),
-                6 => ("W-R", "Sağ kanat", 88d, 50d), 7 => ("IM-R", "Sağ iç", 66d, 50d), 8 => ("IM-L", "Sol iç", 34d, 50d), 9 => ("W-L", "Sol kanat", 12d, 50d), 10 => ("FW-R", "Sağ forvet", 62d, 72d), 11 => ("FW-L", "Sol forvet", 38d, 72d), _ => ("IM-C", "Merkez", 50d, 50d)
+                1 => ("GK", "Kaleci", 50d, 10d), 2 => ("DEF-R", "Sa? bek", 88d, 34d), 3 => ("DEF-CR", "Sa? stoper", 70d, 34d), 4 => ("DEF-CL", "Sol stoper", 30d, 34d), 5 => ("DEF-L", "Sol bek", 12d, 34d),
+                6 => ("W-R", "Sa? kanat", 88d, 50d), 7 => ("IM-R", "Sa? i?", 66d, 50d), 8 => ("IM-L", "Sol i?", 34d, 50d), 9 => ("W-L", "Sol kanat", 12d, 50d), 10 => ("FW-R", "Sa? forvet", 62d, 72d), 11 => ("FW-L", "Sol forvet", 38d, 72d), _ => ("IM-C", "Merkez", 50d, 50d)
             }
         };
         var rp = OpponentRatingEstimator.Estimate(stars, map.Item1, behaviour, rating, experienceLevel);

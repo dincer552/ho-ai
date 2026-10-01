@@ -15,7 +15,7 @@ namespace HattrickAI.V5.Core;
 /// </summary>
 public sealed class Motor2OpponentAwareRefiner
 {
-    private readonly Stage2RegionalRatingEngineFixed _ratings = new();
+    private readonly RegionalRatingEngineFinal _ratings = new();
     private readonly PositionSuitabilityEngine _suitability = new();
 
     public Lineup Refine(Lineup initial, IReadOnlyList<Player> players, OpponentMatchProfile opponent)

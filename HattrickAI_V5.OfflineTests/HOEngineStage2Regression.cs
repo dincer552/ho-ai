@@ -25,7 +25,7 @@ public static class HOEngineStage2Regression
         });
 
         var engine = new HOEngineAdapter();
-        if (engine.Kind != RatingEngineKind.HO)
+        if (engine.Kind != RatingEngineKind.HatFor)
             throw new InvalidOperationException("HO adapter kind drifted.");
         if (!string.Equals(engine.Name, "Hattrick Organizer", StringComparison.Ordinal))
             throw new InvalidOperationException("HO adapter name drifted.");

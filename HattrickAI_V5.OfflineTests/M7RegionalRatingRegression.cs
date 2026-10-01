@@ -11,7 +11,7 @@ public static class M7RegionalRatingRegression
 {
     public static async Task<int> RunAsync(string path, CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(path)) return Fail($"fixture bulunamadı: {path}");
+        if (!File.Exists(path)) return Fail($"fixture bulunamad?: {path}");
         try
         {
             await using var stream = File.OpenRead(path);
@@ -29,7 +29,7 @@ public static class M7RegionalRatingRegression
             var context = new MatchDataContext(players, 0, teamName, opponent, RatingContext.Default, MatchQuestionnaire.Default);
 
             Console.WriteLine("=== C5 M7 REGIONAL RATING REGRESSION ===");
-            using var ratingEngineScope = RatingEngineSelectionContext.Push(RatingEngineKind.V5);
+            using var ratingEngineScope = RatingEngineSelectionContext.Push(RatingEngineKind.HatFor);
             var result = await new MotorPipelineService().RunAsync(context, players, cancellationToken, "offline-c5-m7");
             var m7 = result.M7;
 
