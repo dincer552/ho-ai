@@ -326,4 +326,4 @@ RatingEngineWebEndpoints.Map(app);
 app.Run();
 
 public sealed record QuestionnaireRequest(string CoachStyle, string TeamSpirit, string MatchImportance);
-public sealed record StoredLineup(string TeamName, string Formation, IReadOnlyList<Slot> slots);
+public sealed record StoredLineup(string TeamName, string Formation, IReadOnlyList<Slot> Slots);
