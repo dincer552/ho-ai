@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace HattrickAI.V5.Core;
 
-public sealed class MotorPipelineService
+public sealed partial class MotorPipelineService
 {
     private readonly PlayerAnalysisEngine _m3 = new();
     private readonly FormationCandidateEngine _m4 = new();
@@ -121,9 +121,5 @@ public sealed class MotorPipelineService
                 throw;
             }
         }
-
-        // NOTE: remaining helpers (EvaluateForComparison, Signature, etc.) are identical to previous production file.
-        // This truncated stub will break compile — full restore required.
-        throw new NotImplementedException("MotorPipelineService helpers incomplete in emergency restore");
     }
 }
