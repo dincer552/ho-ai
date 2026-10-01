@@ -6,16 +6,15 @@ using LegacyHO = HattrickAI.HOEngine;
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// Stage-2 adapter for the independent Hattrick Organizer rating implementation.
-/// The legacy HO implementation is kept isolated behind this adapter; V5 rating
-/// coefficients and the existing V5 calculation pipeline are not touched.
+/// Legacy HO adapter (not registered in production).
+/// Kind maps to HatFor after single-engine cutover so the project still compiles.
 /// </summary>
 public sealed class HOEngineAdapter : IRatingEngine
 {
     private readonly LegacyHO.LineupRatingEngine _engine = new();
 
-    public RatingEngineKind Kind => RatingEngineKind.HO;
-    public string Name => "Hattrick Organizer";
+    public RatingEngineKind Kind => RatingEngineKind.HatFor;
+    public string Name => "Hattrick Organizer (legacy)";
 
     public RatingEngineResult Calculate(RatingEngineRequest request)
     {
