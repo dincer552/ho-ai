@@ -134,22 +134,22 @@ public sealed class HatForRatingEngine : IRatingEngine
 
             playerTraces.Add(new PlayerRatingCalculationTrace(
                 pl.Id, pl.Name ?? $"#{pl.Id}", key,
-                side: key.Contains("-L") || key.EndsWith("L") ? "Left" : key.Contains("-R") || key.EndsWith("R") ? "Right" : "Center",
-                order: order.ToString(),
-                calculationRoute: $"HatForCoefficientTables.{formation} → {key} / {order}",
-                formulaReference: "HatFor: Etkin=(skill-1)+loyalty; FormF=0.378*√min(7,form-1); ExpKat poly; order mult; formation scale.",
-                rawSkills: rawSkills,
-                effectiveSkills: effective,
-                form: pl.Form,
-                formMultiplier: ff,
-                staminaMultiplier: 1.0,
-                loyaltyBonus: pl.Loyalty,
-                experienceBonus: ek,
-                crowdingMultiplier: 1.0,
-                directContributions: direct,
-                skillContributionsBeforeExperience: direct,
-                experienceContributions: new Dictionary<string, double>(),
-                crowdingAdjustedContributions: direct));
+                Side: key.Contains("-L") || key.EndsWith("L") ? "Left" : key.Contains("-R") || key.EndsWith("R") ? "Right" : "Center",
+                Order: order.ToString(),
+                CalculationRoute: $"HatForCoefficientTables.{formation} → {key} / {order}",
+                FormulaReference: "HatFor: Etkin=(skill-1)+loyalty; FormF=0.378*√min(7,form-1); ExpKat poly; order mult; formation scale.",
+                RawSkills: rawSkills,
+                EffectiveSkills: effective,
+                Form: pl.Form,
+                FormMultiplier: ff,
+                StaminaMultiplier: 1.0,
+                LoyaltyBonus: pl.Loyalty,
+                ExperienceBonus: ek,
+                CrowdingMultiplier: 1.0,
+                DirectContributions: direct,
+                SkillContributionsBeforeExperience: direct,
+                ExperienceContributions: new Dictionary<string, double>(),
+                CrowdingAdjustedContributions: direct));
         }
 
         var sectors = new List<RatingSectorCalculationTrace>
