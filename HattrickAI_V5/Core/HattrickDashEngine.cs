@@ -5,18 +5,13 @@ using System.Linq;
 namespace HattrickAI.V5.Core;
 
 /// <summary>
-/// Stage-3 implementation of the rating logic used by HattrickDash's lineup
-/// service. HattrickDash currently exposes a simplified position estimate:
-/// primary positional skill 70%, form 20%, stamina 10%, then averages those
-/// estimates into midfield/defence/attack team scores.
-///
-/// The source project documents this as a local lineup/analytics calculation;
-/// it is deliberately kept separate from V5 and HO.
+/// Legacy HattrickDash estimate (not registered in production).
+/// Kept for offline comparison only; Kind maps to HatFor after single-engine cutover.
 /// </summary>
 public sealed class HattrickDashEngine : IRatingEngine
 {
-    public RatingEngineKind Kind => RatingEngineKind.HattrickDash;
-    public string Name => "HattrickDash";
+    public RatingEngineKind Kind => RatingEngineKind.HatFor;
+    public string Name => "HattrickDash (legacy)";
 
     public RatingEngineResult Calculate(RatingEngineRequest request)
     {
@@ -36,9 +31,6 @@ public sealed class HattrickDashEngine : IRatingEngine
         var defence = Average(placements.Where(x => IsDefence(x.Role)).Select(x => x.Rating));
         var attack = Average(placements.Where(x => IsAttack(x.Role)).Select(x => x.Rating));
 
-        // HattrickDash itself exposes aggregate mid/def/att values. The common
-        // contract requires seven sectors, so the aggregate is normalized into
-        // each corresponding sector without inventing side-specific coefficients.
         var snapshot = new RegionalRatingSnapshot(
             defence, defence, defence, midfield,
             attack, attack, attack,
