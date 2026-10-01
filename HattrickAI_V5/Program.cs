@@ -110,7 +110,7 @@ app.MapGet("/api/v5/analysis", async (HttpContext http, AnalysisService service,
     }
 });
 
-// V5_RATING_CALCULATION_JSON_V1: exact per-player regional rating calculation trace.
+// Rating calculation JSON dump (HatFor production engine).
 app.MapGet("/api/v5/rating-calculation-details", (HttpContext http) =>
 {
     var session = http.Session;
@@ -123,9 +123,10 @@ app.MapGet("/api/v5/rating-calculation-details", (HttpContext http) =>
 
     var selectedEngine = session.GetString("v5.rating.engine")
         ?? session.GetString("v5.rating.selected")
-        ?? RatingEngineKind.V5.ToString();
-    if (!string.Equals(selectedEngine, RatingEngineKind.V5.ToString(), StringComparison.OrdinalIgnoreCase))
-        return Results.Conflict(new { message = $"Hesap JSON dökümü şu anda V5 motoru için kullanılabilir. Seçili motor: {selectedEngine}." });
+        ?? RatingEngineKind.HatFor.ToString();
+    // Legacy session values (V5/HO/...) are accepted via RatingEngineKindParse mapping to HatFor.
+    if (!RatingEngineKindParse.TryParse(selectedEngine, out _))
+        return Results.Conflict(new { message = $"Hesap JSON dökümü HatFor motoru için kullanılabilir. Seçili motor: {selectedEngine}." });
 
     try
     {
@@ -325,4 +326,4 @@ RatingEngineWebEndpoints.Map(app);
 app.Run();
 
 public sealed record QuestionnaireRequest(string CoachStyle, string TeamSpirit, string MatchImportance);
-public sealed record StoredLineup(string TeamName, string Formation, IReadOnlyList<Slot> Slots);
+public sealed record StoredLineup(string TeamName, string Formation, IReadOnlyList<Slot> slots);
