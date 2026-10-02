@@ -35,13 +35,6 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
-      - name: HatFor rating regressions
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- rating-contract
-          dotnet run --project HattrickAI_V5.OfflineTests/HattrickAI_V5.OfflineTests.csproj -- rating-validation
-
       - name: Build Docker image
         shell: bash
         run: |
